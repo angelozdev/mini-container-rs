@@ -1,5 +1,10 @@
 [
   {
+    "id": "alpine",
+    "term": "Alpine",
+    "definition": "Una distribución de Linux muy pequeña. Aquí no la arrancas: usas solo sus archivos, que son el `/` de tu contenedor."
+  },
+  {
     "id": "arm",
     "term": "brazo",
     "match": [
@@ -16,6 +21,15 @@
       "atributos"
     ],
     "definition": "Una línea `#[...]` encima de un tipo: una instrucción para el compilador."
+  },
+  {
+    "id": "bind-mount",
+    "term": "bind mount",
+    "match": [
+      "bind mount",
+      "bind mounts"
+    ],
+    "definition": "Un montaje que muestra una carpeta que ya existe en un segundo sitio, sin copiar nada."
   },
   {
     "id": "cgroup",
@@ -61,6 +75,15 @@
       "destructores"
     ],
     "definition": "El código que Rust ejecuta para limpiar cuando algo deja de usarse."
+  },
+  {
+    "id": "device",
+    "term": "dispositivo",
+    "match": [
+      "dispositivo",
+      "dispositivos"
+    ],
+    "definition": "Un archivo especial que no guarda datos: leer o escribir en él le habla al kernel."
   },
   {
     "id": "environment-variable",
@@ -204,9 +227,19 @@
     "definition": "Un programa en ejecución."
   },
   {
+    "id": "rootfs",
+    "term": "rootfs",
+    "definition": "La carpeta con todos los archivos de un Linux: `bin`, `etc`, `usr` y los demás. El nombre viene de «root filesystem»."
+  },
+  {
     "id": "rust-analyzer",
     "term": "rust-analyzer",
     "definition": "Un programa que lee tu código mientras escribes y marca los errores."
+  },
+  {
+    "id": "sha256",
+    "term": "sha256",
+    "definition": "La huella de un archivo: un número de 64 caracteres que cambia si el archivo cambia."
   },
   {
     "id": "shell",
@@ -289,6 +322,11 @@
       "terminales"
     ],
     "definition": "La ventana donde escribes comandos."
+  },
+  {
+    "id": "tmpfs",
+    "term": "tmpfs",
+    "definition": "Un tipo de montaje cuyos archivos viven en memoria, no en el disco, y se pierden al desmontarlo."
   },
   {
     "id": "trait",

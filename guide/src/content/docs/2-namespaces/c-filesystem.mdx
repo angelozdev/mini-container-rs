@@ -1,0 +1,999 @@
+---
+title: 2c · Ver solo los archivos de Alpine
+description: El comando que lanza tu programa ve como raíz solo los archivos de Alpine, no los de tu máquina.
+checkpoint: 2c
+icon: 🏔️
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import KernelBox from "../../../components/diagram/KernelBox.astro";
+import KernelEntry from "../../../components/diagram/KernelEntry.astro";
+import Lane from "../../../components/diagram/Lane.astro";
+import Step from "../../../components/diagram/Step.astro";
+import Stepper from "../../../components/diagram/Stepper.astro";
+import Compare from "../../../components/Compare.astro";
+import Hint from "../../../components/Hint.astro";
+import Quiz from "../../../components/Quiz.astro";
+import QuizOption from "../../../components/QuizOption.astro";
+import ShouldSee from "../../../components/ShouldSee.astro";
+import Term from "../../../components/Term.astro";
+
+**Al terminar:** el comando que lanza tu programa ve solo los archivos de <Term id="alpine">Alpine</Term>. Los de tu máquina desaparecen de su vista.
+
+*Alpine* es una distribución de Linux muy pequeña. Aquí no la arrancas: usas solo sus archivos, que son el `/` de tu contenedor.
+
+La raíz es la carpeta `/`, de la que cuelga todo lo demás. Cada <Term id="process">proceso</Term> tiene la suya. Hasta hoy, el comando usa la de tu máquina: si lista `/`, ve tus carpetas, entre ellas `/Users`, que es tu Mac.
+
+Hoy le pides al <Term id="kernel">kernel</Term> que la raíz del comando sea otra: la carpeta donde guardas los archivos de Alpine. El diagrama muestra las dos raíces y cómo una pasa a ser la otra.
+
+<Stepper name="roots" title="Las dos raíces · paso a paso">
+<Step>
+<Lane title="Tu máquina">
+<KernelBox label="raíz del hijo">
+<KernelEntry>Users</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry note="aquí dentro, la carpeta de Alpine">var</KernelEntry>
+</KernelBox>
+</Lane>
+<Lane title="Alpine">
+<KernelBox label="carpeta de Alpine">
+<KernelEntry>bin</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry>dev</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">El hijo arranca con la raíz de tu máquina. Ve `Users`, `etc` y `var`. Los archivos de Alpine son una carpeta más, dentro de `var`.</Fragment>
+</Step>
+<Step call="bind_mount_onto_itself(rootfs)">
+<Lane title="Tu máquina">
+<KernelBox label="raíz del hijo">
+<KernelEntry>Users</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry note="aquí dentro, la carpeta de Alpine">var</KernelEntry>
+</KernelBox>
+</Lane>
+<Lane title="Alpine">
+<KernelBox label="carpeta de Alpine · montaje propio">
+<KernelEntry highlighted change="edited">bin</KernelEntry>
+<KernelEntry highlighted change="edited">etc</KernelEntry>
+<KernelEntry highlighted change="edited">dev</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">Tu programa hace de la carpeta de Alpine un montaje propio, con su propia entrada en la lista de montajes. Los archivos son los mismos. Lo que ve el hijo todavía no cambia.</Fragment>
+</Step>
+<Step call='mount_dev(&rootfs.join("dev"))'>
+<Lane title="Tu máquina">
+<KernelBox label="raíz del hijo">
+<KernelEntry>Users</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry>var</KernelEntry>
+</KernelBox>
+</Lane>
+<Lane title="Alpine">
+<KernelBox label="carpeta de Alpine · montaje propio">
+<KernelEntry>bin</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry highlighted change="edited" note="carpeta nueva, en memoria">dev</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">El `dev` de Alpine viene vacío. Tu programa monta encima una carpeta nueva que vive en memoria, también vacía.</Fragment>
+</Step>
+<Step call='create_device(&dev.join("null"), MEMORY_MAJOR, NULL_MINOR)'>
+<Lane title="Tu máquina">
+<KernelBox label="raíz del hijo">
+<KernelEntry>Users</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry>var</KernelEntry>
+</KernelBox>
+</Lane>
+<Lane title="Alpine">
+<KernelBox label="carpeta de Alpine · montaje propio">
+<KernelEntry>bin</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry highlighted change="new">dev/null</KernelEntry>
+<KernelEntry highlighted change="new">dev/zero</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">En esa carpeta nueva crea dos archivos especiales: `null` y `zero`. Son lo único que el comando verá en `/dev`.</Fragment>
+</Step>
+<Step call='pivot_root(".", ".")'>
+<Lane title="Tu máquina">
+<KernelBox label="raíz vieja · apilada encima">
+<KernelEntry>Users</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry>var</KernelEntry>
+</KernelBox>
+</Lane>
+<Lane title="Alpine">
+<KernelBox label="raíz del hijo">
+<KernelEntry highlighted change="edited">bin</KernelEntry>
+<KernelEntry highlighted change="edited">etc</KernelEntry>
+<KernelEntry highlighted change="edited">dev/null</KernelEntry>
+<KernelEntry highlighted change="edited">dev/zero</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">Antes, el hijo se movió a la carpeta de Alpine con `chdir`. Ahora su `/` es esa carpeta. La raíz de tu máquina sigue montada, apilada encima, y el hijo todavía puede llegar a ella.</Fragment>
+</Step>
+<Step call='umount2(".", MntFlags::MNT_DETACH)'>
+<Lane title="Alpine">
+<KernelBox label="raíz del hijo">
+<KernelEntry>bin</KernelEntry>
+<KernelEntry>etc</KernelEntry>
+<KernelEntry>dev/null</KernelEntry>
+<KernelEntry>dev/zero</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">Tu programa desmonta la raíz vieja. Ya no hay camino hacia tus archivos. Desde aquí, el hijo y el comando en que se convierte ven solo Alpine.</Fragment>
+</Step>
+</Stepper>
+
+La carpeta con los archivos de Alpine se llama <Term id="rootfs">rootfs</Term>. Un *rootfs* es la carpeta con todos los archivos de un Linux: `bin`, `etc`, `usr` y los demás. El nombre viene de «root filesystem». En tu rootfs hay un Linux completo, menos el kernel: ese lo pone tu máquina.
+
+<Aside type="note" title="Analogía">
+Una casa tiene muchos cuartos. Dejas a un visitante en el cuarto de invitados, con sus cosas. Cierras con llave la puerta que da al resto de la casa. El visitante cree que ese cuarto es toda la casa.
+</Aside>
+
+La casa es la raíz de tu máquina. El cuarto es la carpeta de Alpine. La puerta es la raíz vieja, y cerrarla con llave es desmontarla.
+
+## Qué vas a escribir
+
+Una descarga y tres cambios:
+
+1. Bajas el rootfs de Alpine a tu máquina. No es código.
+2. `Cargo.toml` gana una <Term id="feature">feature</Term> de `nix`: `fs`.
+3. `src/container.rs`: `init` llama a una función nueva, `enter_rootfs`.
+4. `src/filesystem.rs`: escribes `enter_rootfs`, que hace los pasos del diagrama.
+
+Teclea cada trozo, como en 2b. El código y los textos que imprime van en inglés. La página te explica en español qué dice cada texto la primera vez que aparece.
+
+Antes de escribir, una predicción.
+
+<Quiz kind="prediction">
+<Fragment slot="question">Tu programa deja a Alpine como raíz del comando y lanza `/bin/ls /`. `ls` imprime lo que hay en la carpeta que le pidas, y aquí le pides la raíz. Lo corres con `sudo`. ¿Qué imprime?</Fragment>
+
+<QuizOption>Las carpetas de tu máquina, con `Users` entre ellas.<Fragment slot="feedback">Esa es la raíz de hoy. Con Alpine como raíz, `/` ya no es la de tu máquina, y `/bin/ls` tampoco.</Fragment></QuizOption>
+
+<QuizOption correct>Solo las de Alpine, como `bin`, `etc` y `usr`, sin `Users`.<Fragment slot="feedback">La raíz del comando es la carpeta de Alpine, y `ls /` lista esa raíz. Ese `ls` es el `/bin/ls` que Alpine trae, no el de tu máquina.</Fragment></QuizOption>
+
+<QuizOption>Nada: `ls` no existe dentro de Alpine.<Fragment slot="feedback">Sí existe. Alpine trae `ls` y los programas básicos en su `/bin`. Lo que no trae es lo que tiene tu máquina, como `bash`.</Fragment></QuizOption>
+</Quiz>
+
+## Los trozos
+
+<Steps>
+
+1. **Baja Alpine.**
+
+   Alpine publica sus archivos en un solo archivo comprimido, un `.tar.gz`. Bajas la versión 3.24.4. Hay uno por tipo de procesador, y tu máquina Linux usa `aarch64`. Compruébalo. En Linux:
+
+   ```sh title="En Linux"
+   uname -m
+   ```
+
+   - `uname`: imprime datos de la máquina.
+   - `-m`: pide el tipo de procesador.
+   - Efecto: ninguno. Solo lee.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ uname -m
+   aarch64
+   ```
+
+   </ShouldSee>
+
+   Baja el archivo a `/tmp`:
+
+   ```sh title="En Linux"
+   curl -fsSL -o /tmp/alpine-minirootfs-3.24.4-aarch64.tar.gz https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.4-aarch64.tar.gz
+   ```
+
+   - `curl`: baja un archivo de internet.
+   - `-f`: si el servidor contesta con un error, `curl` falla. Sin `-f`, guardaría la página de error como si fuera el archivo.
+   - `-s`: no muestra la barra de progreso.
+   - `-S`: aun con `-s`, muestra el error si algo falla.
+   - `-L`: sigue las redirecciones del servidor.
+   - `-o /tmp/alpine-minirootfs-3.24.4-aarch64.tar.gz`: guarda el archivo con ese nombre en `/tmp`, la carpeta de archivos temporales de Linux.
+   - La última parte es la dirección del archivo, en el servidor de Alpine.
+   - Efecto: crea el archivo. Si sale bien, no imprime nada.
+
+   Antes de usarlo, comprueba que es el que Alpine publicó. Alpine publica el <Term id="sha256">sha256</Term> de cada archivo. Un *sha256* es la huella de un archivo: un número de 64 caracteres que cambia si el archivo cambia. El de este es `4b14c18f7e90a063b61462ea1462a5732c154bf6adad594974fe6487cd98a8de`.
+
+   ```sh title="En Linux"
+   echo "4b14c18f7e90a063b61462ea1462a5732c154bf6adad594974fe6487cd98a8de  /tmp/alpine-minirootfs-3.24.4-aarch64.tar.gz" | sha256sum -c
+   ```
+
+   - `echo "..."`: imprime una línea con dos partes: la huella que esperas y la ruta del archivo. Entre las dos van dos espacios.
+   - `|`: pasa esa línea al programa siguiente.
+   - `sha256sum -c`: `-c` es «comprobar». Lee la línea, calcula la huella del archivo y la compara con la que esperas.
+   - Efecto: ninguno. Solo lee.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ echo "4b14c18f7e90a063b61462ea1462a5732c154bf6adad594974fe6487cd98a8de  /tmp/alpine-minirootfs-3.24.4-aarch64.tar.gz" | sha256sum -c
+   /tmp/alpine-minirootfs-3.24.4-aarch64.tar.gz: OK
+   ```
+
+   </ShouldSee>
+
+   `OK` dice que el archivo es el que Alpine publicó, sin cambios. Si ves `FAILED`, no lo uses: bájalo otra vez.
+
+   Extráelo en su sitio:
+
+   ```sh title="En Linux"
+   sudo mkdir -p /var/lib/mini-container/alpine
+   sudo tar -xzf /tmp/alpine-minirootfs-3.24.4-aarch64.tar.gz -C /var/lib/mini-container/alpine
+   ```
+
+   - `sudo`: pide permisos de administrador. Los archivos de Alpine son de `root`, y solo `root` puede dejarlos así.
+   - `mkdir -p /var/lib/mini-container/alpine`: crea la carpeta. `-p` crea también las carpetas de arriba si faltan, y no falla si ya existe.
+   - `tar`: abre archivos empaquetados.
+   - `-x`: extrae.
+   - `-z`: descomprime el gzip.
+   - `-f /tmp/alpine-minirootfs-3.24.4-aarch64.tar.gz`: el archivo que abre.
+   - `-C /var/lib/mini-container/alpine`: entra en esa carpeta antes de extraer.
+   - Efecto: crea `bin`, `etc`, `usr` y las demás carpetas dentro de `/var/lib/mini-container/alpine`.
+
+   La carpeta va en el disco de Linux, no en la carpeta compartida con tu Mac. En la carpeta compartida, el dueño de los archivos siempre es tu usuario, aunque hagas `chown`, y los de Alpine son de `root`.
+
+   Alpine ya está en tu máquina. Puedes leer sus archivos desde fuera:
+
+   ```sh title="En Linux"
+   cat /var/lib/mini-container/alpine/etc/os-release
+   ```
+
+   - `cat`: imprime un archivo.
+   - `/var/lib/mini-container/alpine/etc/os-release`: el archivo donde un Linux dice cómo se llama.
+   - Efecto: ninguno. Solo lee.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cat /var/lib/mini-container/alpine/etc/os-release
+   NAME="Alpine Linux"
+   ID=alpine
+   VERSION_ID=3.24.4
+   PRETTY_NAME="Alpine Linux v3.24"
+   HOME_URL="https://alpinelinux.org/"
+   BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+   ```
+
+   </ShouldSee>
+
+   Desde tu máquina, ese archivo vive en `/var/lib/mini-container/alpine/etc/os-release`. Cuando termines, el comando lo verá en `/etc/os-release`. Es el mismo archivo con dos rutas, porque el comando verá esa carpeta como su `/`.
+
+2. **Añade la feature `fs`.**
+
+   `nix` guarda detrás de la feature `fs` tres funciones que vas a usar: `chdir`, `pivot_root` y `mknod`. En Linux, en la raíz del repo:
+
+   ```sh title="En Linux"
+   cargo add nix@0.31.3 --features fs
+   ```
+
+   - `cargo add`: añade una dependencia o cambia una que ya tienes.
+   - `nix@0.31.3`: el mismo <Term id="crate">crate</Term> y la misma versión de siempre.
+   - `--features fs`: la feature nueva. `sched`, `hostname` y `mount` se quedan.
+   - Efecto: reescribe la línea de `nix` en `Cargo.toml`.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo add nix@0.31.3 --features fs
+       Updating crates.io index
+         Adding nix v0.31.3 to dependencies
+                Features:
+                + fs
+                + hostname
+                + mount
+                + process
+                + sched
+                + uio
+                30 deactivated features
+   ```
+
+   </ShouldSee>
+
+   - `Features:`: las features que quedan activas. Son seis. `sched`, `hostname`, `mount` y `fs` las pediste tú. `process` la activa `sched` y `uio` la activa `mount`, como en 2b.
+   - `30 deactivated features`: las demás quedan apagadas.
+   - No hay `Locking`: no hace falta ningún paquete nuevo.
+
+   Abre `Cargo.toml` en Zed. La línea de `nix` cambia:
+
+   ```toml title="Cargo.toml" del={8} ins={9}
+   [package]
+   name = "mini-container"
+   version = "0.1.0"
+   edition = "2024"
+
+   [dependencies]
+   anyhow = "1.0.104"
+   nix = { version = "0.31.3", features = ["sched", "hostname", "mount"] }
+   nix = { version = "0.31.3", features = ["sched", "hostname", "mount", "fs"] }
+   ```
+
+   - `features = ["sched", "hostname", "mount", "fs"]`: las cuatro features que usa tu programa.
+
+3. **Que `init` cambie de raíz.**
+
+   `init` es lo que hace `child` antes de convertirse en el comando. Hoy hace tres cosas, en este orden: hace privados los <Term id="mount">montajes</Term>, monta `/proc` y se convierte en el comando. Hoy añades una entre las dos primeras: cambiar de raíz.
+
+   Empieza por el principio, lo que `init` necesita. En `src/container.rs`, añade una línea de `use`:
+
+   ```rust title="src/container.rs" ins={3}
+   use std::convert::Infallible;
+   use std::os::unix::process::{CommandExt, ExitStatusExt};
+   use std::path::Path;
+   use std::process::{Command, ExitCode, ExitStatus};
+   ```
+
+   - `std::path::Path`: el tipo de Rust para una ruta de archivos. Un `&str` es solo un texto. `Path::new` lo convierte en una ruta.
+
+   Y en `init`, añade una línea:
+
+   ```rust title="src/container.rs" ins={3}
+   pub fn init(command: &CommandLine) -> Result<Infallible> {
+       filesystem::make_mounts_private()?;
+       filesystem::enter_rootfs(Path::new(filesystem::ROOTFS))?;
+       filesystem::mount_proc()?;
+       let error = Command::new(&command.program).args(&command.args).exec();
+       Err(error).with_context(|| format!("could not run `{}`", command.program))
+   }
+   ```
+
+   - `filesystem::enter_rootfs(...)`: la función nueva. Cambia la raíz del proceso. La escribes en el paso siguiente.
+   - `Path::new(filesystem::ROOTFS)`: la ruta de la carpeta de Alpine, hecha una `Path`. `ROOTFS` también la escribes en el paso siguiente.
+   - `?`: si cambiar de raíz falla, `init` sale con el error.
+   - El orden importa, y tiene dos reglas:
+     - `enter_rootfs` va **después** de `make_mounts_private`. El kernel se niega a cambiar de raíz mientras los montajes estén compartidos. Sin `make_mounts_private`, el cambio falla con `EINVAL`.
+     - `enter_rootfs` va **antes** de `mount_proc`. `mount_proc` monta `/proc` en la raíz que esté vigente. Si montas antes, el `/proc` queda en la raíz vieja y se va con ella. La raíz nueva tiene un `/proc` vacío, y `ps` no ve ningún proceso.
+
+   No compiles todavía: `enter_rootfs` no existe.
+
+4. **Escribe el plan: `enter_rootfs`.**
+
+   En Zed, abre `src/filesystem.rs`. Cambia lo que trae arriba y añade la ruta de Alpine:
+
+   ```rust title="src/filesystem.rs" del={6} ins={1-4,7-11}
+   use std::fs::{self, Permissions};
+   use std::os::unix::fs::PermissionsExt;
+   use std::path::Path;
+
+   use anyhow::{Context, Result};
+   use nix::mount::{MsFlags, mount};
+   use nix::mount::{MntFlags, MsFlags, mount, umount2};
+   use nix::sys::stat::{Mode, SFlag, makedev, mknod};
+   use nix::unistd::{chdir, pivot_root};
+
+   pub const ROOTFS: &str = "/var/lib/mini-container/alpine";
+   ```
+
+   - `std::fs::{self, Permissions}`: `fs` es el módulo de Rust para archivos. `self` trae el módulo mismo, para escribir `fs::set_permissions`. `Permissions` son los permisos de un archivo.
+   - `std::os::unix::fs::PermissionsExt`: un <Term id="trait">trait</Term> que añade a `Permissions` lo que solo existe en Unix: crearlos desde un número como `0o666`.
+   - `std::path::Path`: el tipo de ruta, como en `container.rs`.
+   - `nix::mount::{MntFlags, MsFlags, mount, umount2}`: `mount` ya la tenías. `umount2` desmonta, y `MntFlags` son sus <Term id="flag">banderas</Term>.
+   - `nix::sys::stat::{Mode, SFlag, makedev, mknod}`: `mknod` crea un archivo especial. `SFlag` dice de qué tipo, `Mode` dice con qué permisos y `makedev` arma su número.
+   - `nix::unistd::{chdir, pivot_root}`: `chdir` cambia la carpeta actual del proceso. `pivot_root` cambia su raíz.
+   - `pub const ROOTFS: &str = "..."`: la ruta de Alpine, escrita una sola vez. `const` es un valor que no cambia. `pub` deja que `container.rs` la use.
+
+   Ahora el plan. Debajo de `mount_proc`, con una línea en blanco, escribe la función que hace los pasos del diagrama:
+
+   ```rust title="src/filesystem.rs" ins={1-5}
+   pub fn enter_rootfs(rootfs: &Path) -> Result<()> {
+       bind_mount_onto_itself(rootfs)?;
+       mount_dev(&rootfs.join("dev"))?;
+       switch_root(rootfs)
+   }
+   ```
+
+   - `rootfs: &Path`: la carpeta de Alpine, prestada.
+   - `bind_mount_onto_itself(rootfs)?;`: el paso 2 del diagrama.
+   - `mount_dev(&rootfs.join("dev"))?;`: los pasos 3 y 4. `rootfs.join("dev")` une dos partes de una ruta: `/var/lib/mini-container/alpine` y `dev`. Devuelve una ruta nueva, y `&` la presta.
+   - `switch_root(rootfs)`: los pasos 5 y 6. No lleva `?` ni `;`: es lo último que hace la función, y devuelve su `Result` tal cual.
+   - Las tres funciones las escribes ahora, de arriba abajo.
+
+5. **Primer paso: la carpeta de Alpine, un montaje propio.**
+
+   Debajo de `enter_rootfs`, con una línea en blanco:
+
+   ```rust title="src/filesystem.rs" ins={1-15}
+   fn bind_mount_onto_itself(rootfs: &Path) -> Result<()> {
+       mount(
+           Some(rootfs),
+           rootfs,
+           None::<&str>,
+           MsFlags::MS_BIND | MsFlags::MS_REC,
+           None::<&str>,
+       )
+       .with_context(|| {
+           format!(
+               "could not find the alpine root filesystem at {}",
+               rootfs.display()
+           )
+       })
+   }
+   ```
+
+   Este paso es un <Term id="bind-mount">bind mount</Term>. Un *bind mount* muestra una carpeta que ya existe en un segundo sitio, sin copiar nada. Aquí el segundo sitio es la misma carpeta: los archivos no cambian, pero la carpeta pasa a tener una entrada propia en la lista de montajes.
+
+   Hace falta porque `pivot_root` solo acepta como raíz nueva un montaje. La carpeta de Alpine es solo una carpeta dentro del montaje de tu máquina. Sin este paso, `pivot_root` falla con `EBUSY`.
+
+   - `Some(rootfs)`: de dónde sale lo que se monta: la carpeta de Alpine.
+   - `rootfs`: en qué carpeta se conecta: la misma.
+   - `None::<&str>`: sin tipo de archivos. Un bind mount no crea un tipo nuevo.
+   - `MsFlags::MS_BIND`: «esto es un bind mount».
+   - `MsFlags::MS_REC`: «recursivo». Si debajo de la carpeta hubiera otros montajes, el bind mount los arrastra también. Hoy no hay ninguno.
+   - `None::<&str>`: sin opciones extra.
+   - `.with_context(|| { ... })`: como `.context(...)`, pero recibe una <Term id="closure">closure</Term> que arma el mensaje solo si hubo un error.
+   - `format!("... {}", rootfs.display())`: arma un texto. `{}` es un <Term id="placeholder">hueco</Term> que Rust rellena con la ruta. `rootfs.display()` convierte la ruta en algo que se puede imprimir.
+   - El mensaje dice «no encontré el sistema de archivos de Alpine en tal ruta». Es lo que verás si te olvidaste de bajar Alpine: la carpeta no existe y el kernel contesta que no la encuentra.
+
+6. **Segundo paso: un `/dev` propio.**
+
+   `/dev` es la carpeta donde Linux guarda sus <Term id="device">dispositivos</Term>. Un *dispositivo* es un archivo especial que no guarda datos: leer o escribir en él le habla al kernel. Dos de ellos los usan casi todos los programas:
+
+   - `/dev/null` es un agujero: lo que escribes ahí desaparece, y leer de él no da nada.
+   - `/dev/zero` da ceros sin parar.
+
+   El `/dev` de Alpine viene vacío. Otra predicción.
+
+   <Quiz kind="prediction">
+   <Fragment slot="question">El `/dev` de Alpine está vacío y tu programa todavía no monta nada en él. Dentro del contenedor, un comando corre `echo hola > /dev/null`. `echo` imprime lo que le des, y `>` manda esa salida a un archivo en vez de a la pantalla. ¿Qué pasa?</Fragment>
+
+   <QuizOption>Da un error: `/dev/null` no existe.<Fragment slot="feedback">Es lo que parece lógico, pero no. Cuando `>` apunta a un archivo que no existe, el shell lo crea. No hay error.</Fragment></QuizOption>
+
+   <QuizOption>No pasa nada visible: `hola` desaparece, como siempre con `/dev/null`.<Fragment slot="feedback">Eso pasa con el `/dev/null` de verdad. Aquí no existe, y el shell crea un archivo con ese nombre. `hola` se guarda en él, y no desaparece.</Fragment></QuizOption>
+
+   <QuizOption correct>No da error, pero el shell crea un archivo normal llamado `null`, y `hola` queda guardado en él.<Fragment slot="feedback">Una redirección crea el archivo si falta. Después, `cat /dev/null` imprime `hola`, en vez de no imprimir nada. La trampa de más abajo lo explica.</Fragment></QuizOption>
+   </Quiz>
+
+   La solución es montar un `/dev` propio, un <Term id="tmpfs">tmpfs</Term>, y crear `null` y `zero` en él. Un *tmpfs* es un tipo de montaje cuyos archivos viven en memoria, no en el disco, y se pierden al desmontarlo. Nace vacío. Lo montas encima del `/dev` vacío de Alpine.
+
+   Debajo de `bind_mount_onto_itself`, con una línea en blanco:
+
+   ```rust title="src/filesystem.rs" ins={1-16}
+   fn mount_dev(dev: &Path) -> Result<()> {
+       const MEMORY_MAJOR: u64 = 1;
+       const NULL_MINOR: u64 = 3;
+       const ZERO_MINOR: u64 = 5;
+
+       mount(
+           Some("tmpfs"),
+           dev,
+           Some("tmpfs"),
+           MsFlags::empty(),
+           None::<&str>,
+       )
+       .context("could not mount a tmpfs on /dev")?;
+       create_device(&dev.join("null"), MEMORY_MAJOR, NULL_MINOR)?;
+       create_device(&dev.join("zero"), MEMORY_MAJOR, ZERO_MINOR)
+   }
+   ```
+
+   - `dev: &Path`: la carpeta `dev` de Alpine, vista desde fuera: `/var/lib/mini-container/alpine/dev`.
+   - `const MEMORY_MAJOR`, `NULL_MINOR` y `ZERO_MINOR`: los números de los dispositivos. Cada dispositivo tiene dos. El mayor dice qué parte del kernel lo atiende: el `1` es la de los dispositivos de memoria. El menor dice cuál es: el `3` es `null` y el `5` es `zero`.
+   - `Some("tmpfs")` como origen: no hay disco. El origen es solo un nombre, por costumbre.
+   - `dev`: la carpeta donde se conecta.
+   - `Some("tmpfs")` como tipo: el tipo de archivos `tmpfs`, el que vive en memoria.
+   - `MsFlags::empty()`: ninguna bandera.
+   - `None::<&str>`: sin opciones extra.
+   - `.context("could not mount a tmpfs on /dev")?`: «no pude montar un tmpfs en /dev». El `?` sale con el error si falla.
+   - `create_device(...)`: crea un dispositivo. Una vez para `null` y otra para `zero`. La segunda no lleva `?` ni `;`: es lo último y devuelve su `Result` tal cual.
+   - El tmpfs vive solo en la copia de montajes del hijo. El `/dev` de tu máquina no se toca.
+
+   Ahora la función que crea cada dispositivo. Debajo de `mount_dev`, con una línea en blanco:
+
+   ```rust title="src/filesystem.rs" ins={1-13}
+   fn create_device(path: &Path, major: u64, minor: u64) -> Result<()> {
+       const OPEN_TO_EVERYONE: u32 = 0o666;
+
+       mknod(
+           path,
+           SFlag::S_IFCHR,
+           Mode::from_bits_truncate(OPEN_TO_EVERYONE),
+           makedev(major, minor),
+       )
+       .with_context(|| format!("could not create {}", path.display()))?;
+       fs::set_permissions(path, Permissions::from_mode(OPEN_TO_EVERYONE))
+           .with_context(|| format!("could not open {} to everyone", path.display()))
+   }
+   ```
+
+   - `mknod(...)`: crea un archivo especial.
+   - `path`: dónde lo crea.
+   - `SFlag::S_IFCHR`: de qué tipo. «Dispositivo de caracteres»: se lee y se escribe byte a byte.
+   - `Mode::from_bits_truncate(OPEN_TO_EVERYONE)`: con qué permisos. `0o666` es un número octal, por el `0o`. Significa lectura y escritura para el dueño, el grupo y todos: `rw-rw-rw-`.
+   - `makedev(major, minor)`: junta los dos números en uno solo.
+   - `fs::set_permissions(...)`: pone los permisos otra vez. El sistema le quita permisos a todo archivo nuevo, según una máscara que tiene cada proceso, la `umask`. Con `sudo` vale `022`, y quita la escritura a todos menos al dueño: `0o666` queda en `0o644`. Escribirlos después los deja como los pediste.
+   - `Permissions::from_mode(...)`: arma los permisos desde un número. Es lo que aporta `PermissionsExt`.
+
+7. **Tercer paso: cambia de raíz.**
+
+   Debajo de `create_device`, con una línea en blanco, la última función:
+
+   ```rust title="src/filesystem.rs" ins={1-6}
+   fn switch_root(rootfs: &Path) -> Result<()> {
+       chdir(rootfs).context("could not enter the root filesystem")?;
+       pivot_root(".", ".").context("could not pivot into the root filesystem")?;
+       umount2(".", MntFlags::MNT_DETACH).context("could not detach the old root")?;
+       chdir("/").context("could not move to the new root")
+   }
+   ```
+
+   - `chdir(rootfs)`: cambia la carpeta actual del proceso a la de Alpine. Así `.`, la carpeta actual, es la raíz nueva.
+   - `pivot_root(".", ".")`: cambia la raíz del proceso. Los dos argumentos son «la raíz nueva» y «dónde dejar la raíz vieja». Aquí son la misma carpeta, y el kernel lo permite: apila la raíz vieja encima de la nueva, en el mismo `/`.
+   - `umount2(".", MntFlags::MNT_DETACH)`: desmonta la raíz vieja. Desde `.` se llega a ella, porque está apilada encima. `MNT_DETACH` es un desmontaje perezoso: la desconecta ya, aunque algo todavía la use.
+   - `chdir("/")`: el manual de `pivot_root` pide terminar así, porque `pivot_root` no cambia la carpeta actual de quien la llama. Aquí la carpeta actual ya es la raíz nueva. La llamada solo lo asegura.
+   - Existe otra llamada que cambia la raíz, `chroot`. Solo cambia cómo se leen las rutas que empiezan por `/`, y el manual avisa de que no sirve para aislar un proceso. `pivot_root` y `umount2` hacen que la raíz vieja deje de estar montada.
+
+   Compila. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+   - Efecto: baja la feature nueva de `nix` y recompila.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling nix v0.31.3
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.59s
+   ```
+
+   </ShouldSee>
+
+   No hay avisos: `init` usa `enter_rootfs` y `ROOTFS`, y `enter_rootfs` usa las demás.
+
+</Steps>
+
+## Corre tu programa
+
+Corre tu programa en Linux:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/cat /etc/os-release
+```
+
+- `run /bin/cat /etc/os-release`: lanza `cat` con esa ruta. Las dos cosas, el programa y el archivo, son de Alpine.
+- Efecto: `cat` imprime el archivo.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/cat /etc/os-release
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.24.4
+PRETTY_NAME="Alpine Linux v3.24"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+```
+
+</ShouldSee>
+
+La primera línea es `NAME="Alpine Linux"`. Antes de hoy, el mismo comando imprimía el archivo de tu máquina, que empieza por `PRETTY_NAME="Ubuntu 26.04.1 LTS"`.
+
+Mira ahora la raíz del contenedor:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/ls -1 /
+```
+
+- `run /bin/ls -1 /`: lanza `ls` con esas opciones.
+- `-1`: una carpeta por línea. Sin `-1`, tu <Term id="terminal">terminal</Term> las reparte en columnas, según su ancho.
+- `/`: la carpeta que lista, la raíz.
+- Efecto: `ls` imprime lo que hay en la raíz.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/ls -1 /
+bin
+dev
+etc
+home
+lib
+media
+mnt
+opt
+proc
+root
+run
+sbin
+srv
+sys
+tmp
+usr
+var
+```
+
+</ShouldSee>
+
+Son las carpetas de Alpine. No está `Users`: tu Mac ya no se ve. Tampoco están las carpetas que son solo de tu máquina.
+
+Los programas del `/bin` de Alpine son casi todos enlaces a `busybox`, un solo programa pequeño que hace de `sh`, `ls`, `cat` y muchos más. Alpine no trae `bash`.
+
+Ahora el `/dev`:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/ls -l /dev
+```
+
+- `run /bin/ls -l /dev`: lanza `ls` con `-l`, que muestra una línea de detalles por archivo.
+- Efecto: `ls` imprime lo que hay en `/dev`.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/ls -l /dev
+total 0
+crw-rw-rw-    1 root     root        1,   3 Nov 13 19:18 null
+crw-rw-rw-    1 root     root        1,   5 Nov 13 19:18 zero
+```
+
+</ShouldSee>
+
+- `total 0`: los archivos de `/dev` no ocupan espacio en ningún disco.
+- `crw-rw-rw-`: la `c` dice «dispositivo de caracteres». Después van los permisos: `rw-rw-rw-` es `0o666`.
+- `1,   3` y `1,   5`: el número mayor y el menor. Son los que escribiste en las constantes.
+- `null` y `zero`: los nombres. La fecha y la hora cambian en cada ejecución.
+
+Prueba que `/dev/zero` da ceros:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/sh -c 'head -c 10 /dev/zero | wc -c'
+```
+
+- `run /bin/sh -c '...'`: lanza `sh` con la orden que va entre comillas. Las comillas simples evitan que tu terminal interprete el `|` antes de lanzar nada.
+- `head -c 10 /dev/zero`: lee los 10 primeros bytes de `/dev/zero`.
+- `|`: pasa esos bytes al programa siguiente.
+- `wc -c`: cuenta los bytes que recibe.
+- Efecto: imprime cuántos bytes dio `/dev/zero`.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/sh -c 'head -c 10 /dev/zero | wc -c'
+10
+```
+
+</ShouldSee>
+
+Y ahora abre un <Term id="shell">shell</Term> de Alpine:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/sh
+```
+
+- `run /bin/sh`: lanza `sh`, sin más. Como no tiene nada que ejecutar, se queda esperando que le escribas.
+- Efecto: tu terminal queda dentro del shell de Alpine.
+
+Escribe cada línea que sigue a `/ # `, una por una:
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/sh
+/ # head -n 1 /etc/os-release
+NAME="Alpine Linux"
+/ # ls /Users
+ls: /Users: No such file or directory
+/ # hostname
+container
+/ # exit
+```
+
+</ShouldSee>
+
+- `/ # `: el prompt de Alpine. `/` es la carpeta actual y `#` dice que eres `root`.
+- `head -n 1 /etc/os-release`: imprime solo la primera línea del archivo.
+- `ls /Users`: pide la carpeta de tu Mac. No existe en este `/`.
+- `hostname`: el nombre que vio el hijo en 2a. Sigue siendo `container`.
+- `exit`: cierra el shell y vuelve a tu terminal.
+
+Tu máquina no cambió. Pregúntale desde fuera, en la misma terminal de Linux, sin tu programa:
+
+```sh title="En Linux"
+ls -d /Users; findmnt -rn | grep -c /var/lib/mini-container
+```
+
+- `ls -d /Users`: pide la carpeta `/Users` de tu máquina. `-d` imprime la carpeta misma, no lo que tiene dentro.
+- `;`: corre el comando siguiente cuando termina el anterior.
+- `findmnt -rn`: lista todos los montajes de tu máquina, uno por línea y sin cabecera.
+- `grep -c /var/lib/mini-container`: cuenta cuántas de esas líneas nombran esa carpeta.
+- Efecto: ninguno. Solo lee.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ ls -d /Users; findmnt -rn | grep -c /var/lib/mini-container
+/Users
+0
+```
+
+</ShouldSee>
+
+`/Users` sigue ahí, y `0` dice que ningún montaje del contenedor quedó en tu máquina. El bind mount y el tmpfs vivieron solo dentro de la copia de montajes del hijo.
+
+Prueba un programa que Alpine no trae:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run bash; echo $?
+```
+
+- `run bash`: pide lanzar `bash`, sin ruta. El comando lo busca en las carpetas de Alpine.
+- `; echo $?`: imprime el <Term id="exit-code">código de salida</Term> del comando anterior.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run bash; echo $?
+Error: could not run `bash`
+
+Caused by:
+    No such file or directory (os error 2)
+1
+```
+
+</ShouldSee>
+
+- ``Error: could not run `bash` ``: el mensaje de `init`, el de 2b. Dice «no pude ejecutar `bash`».
+- `Caused by:` y `No such file or directory (os error 2)`: la causa. Alpine no tiene `bash`.
+- El `1` es el código de salida.
+
+Tu `bash` existe, pero en la raíz vieja, y esa ya no existe para el comando. Para un shell, usa `/bin/sh`.
+
+Si te olvidas de bajar Alpine, tu programa lo dice. Es lo que sale cuando la carpeta no existe:
+
+```sh title="Lo que ves si falta Alpine"
+$ sudo ./target/debug/mini-container run /bin/sh
+Error: could not find the alpine root filesystem at /var/lib/mini-container/alpine
+
+Caused by:
+    ENOENT: No such file or directory
+```
+
+- ``Error: could not find the alpine root filesystem at ...``: el mensaje que pusiste en `bind_mount_onto_itself`. Dice «no encontré el sistema de archivos de Alpine en esa ruta».
+- `ENOENT: No such file or directory`: la causa, escrita por `nix`. `ENOENT` es el nombre que Linux da al error «no existe el archivo o la carpeta».
+
+<Aside type="caution" title="Trampa típica">
+Creer que Alpine trae su propio `/dev`. Viene vacío: la carpeta `dev` no tiene nada. Quitas la línea de `mount_dev` de `enter_rootfs`. Todo compila y el contenedor arranca. Pero no hay `/dev/null` ni `/dev/zero`. Peor todavía: una redirección a `/dev/null` no falla. El shell crea un archivo normal con ese nombre, y guarda ahí lo que redirigiste.
+
+- Así sí: ① `mount` de un `tmpfs` sobre `dev`, ② `mknod` de `null` y de `zero`.
+- Así no: ni ① ni ②.
+
+**No lo pruebes**: dejaría un archivo falso, llamado `null`, dentro de la carpeta de Alpine, en el disco.
+</Aside>
+
+Esto es lo que sale con tu programa sin esa línea. La salida es la de tu programa con ese cambio, compilado y corrido:
+
+```sh title="Lo que ves"
+$ sudo ./target/debug/mini-container run /bin/sh -c 'ls -l /dev; echo hola > /dev/null; ls -l /dev; cat /dev/null; head -c 10 /dev/zero | wc -c'
+total 0
+total 4
+-rw-r--r--    1 root     root             5 Nov 13 19:19 null
+hola
+0
+head: /dev/zero: No such file or directory
+```
+
+- `total 0`: el primer `ls -l /dev` no encuentra nada. El `/dev` está vacío.
+- `echo hola > /dev/null`: no imprime nada, y no da error.
+- `total 4` y `-rw-r--r--    1 root     root             5 ... null`: el segundo `ls -l /dev` ya muestra un archivo. La primera letra, `-`, dice «archivo normal». Pesa 5 bytes: `hola` y el salto de línea.
+- `hola`: `cat /dev/null` imprime lo que guardó la redirección. Con el `/dev/null` de verdad, no imprimiría nada.
+- `head: /dev/zero: No such file or directory`: `/dev/zero` tampoco existe. La demo de memoria de la parte 3 lo necesita.
+- `0`: `wc -c` cuenta cero bytes.
+
+## Comprueba tu código
+
+Compila con `cargo build`: la prueba usa el binario del último `cargo build`, así que sin compilar antes comprueba el viejo.
+
+La prueba necesita Alpine en `/var/lib/mini-container/alpine`. Si falta, se detiene y lo dice antes de correr nada.
+
+Corre la prueba de esta sección sobre tu programa. Funciona igual que en 2b. En Linux, desde la raíz del repo:
+
+```sh title="En Linux"
+sudo guide/scripts/check-my-code.sh 2c
+```
+
+- `sudo`: corre el comando como administrador. Tu programa lo necesita, y la prueba también lo corre una vez sin él, para ver si el error dice qué falta.
+- `guide/scripts/check-my-code.sh`: el script de la guía que corre la prueba sobre tu programa.
+- `2c`: la sección cuya prueba se corre.
+- Efecto: corre `target/debug/mini-container`, tu binario, con las comprobaciones de 2c. Son las de 2b y cinco casos nuevos, que se listan debajo.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo guide/scripts/check-my-code.sh 2c
+OK 2c
+```
+
+</ShouldSee>
+
+`OK 2c` dice que tu programa pasó todas las comprobaciones. Si una falla, el script la nombra y sale con un código distinto de 0, como en 1a.
+
+Los casos nuevos de 2c son estos:
+
+- La primera línea de `/etc/os-release` es `NAME="Alpine Linux"`.
+- `ls /` muestra `etc` y no muestra `Users`.
+- `/dev/zero` da ceros, y `/dev/null` es un dispositivo de caracteres que no da nada. Los dos tienen permisos `666`.
+- Un programa que Alpine no trae, `bash`, dice que no se pudo ejecutar y sale con 1.
+- Sin Alpine, el error nombra la ruta donde lo busca, y tu máquina no conserva ningún montaje de `/var/lib/mini-container`.
+
+Hagas o no los ejercicios 1a.1, 2a.1 y 2c.1, la prueba da `OK`. El 2b.1 no escribe código.
+
+## El orden dentro de `mount_dev`
+
+El tmpfs va primero, y los dispositivos después. Mira `mount_dev` escrita de las dos formas, y lo que `ls -l /dev` imprime en el contenedor. La salida de «Así no» es la de tu programa con ese cambio, compilado y corrido, dos veces seguidas.
+
+<Compare>
+<Fragment slot="bad">
+
+```rust title="Con mknod antes del tmpfs"
+fn mount_dev(dev: &Path) -> Result<()> {
+    const MEMORY_MAJOR: u64 = 1;
+    const NULL_MINOR: u64 = 3;
+    const ZERO_MINOR: u64 = 5;
+
+    create_device(&dev.join("null"), MEMORY_MAJOR, NULL_MINOR)?;
+    create_device(&dev.join("zero"), MEMORY_MAJOR, ZERO_MINOR)?;
+    mount(
+        Some("tmpfs"),
+        dev,
+        Some("tmpfs"),
+        MsFlags::empty(),
+        None::<&str>,
+    )
+    .context("could not mount a tmpfs on /dev")
+}
+```
+
+```sh title="Lo que ves"
+$ sudo ./target/debug/mini-container run /bin/ls -l /dev
+total 0
+$ sudo ./target/debug/mini-container run /bin/ls -l /dev
+Error: could not create /var/lib/mini-container/alpine/dev/null
+
+Caused by:
+    EEXIST: File exists
+```
+
+`mknod` creó `null` y `zero` en la carpeta `dev` de verdad, la del disco. Después el tmpfs los tapó, y el contenedor vio un `/dev` vacío. En la segunda ejecución los dos archivos ya existían en el disco, y `mknod` falló con `EEXIST`, «el archivo ya existe».
+
+</Fragment>
+<Fragment slot="good">
+
+```rust title="Con el tmpfs primero"
+fn mount_dev(dev: &Path) -> Result<()> {
+    const MEMORY_MAJOR: u64 = 1;
+    const NULL_MINOR: u64 = 3;
+    const ZERO_MINOR: u64 = 5;
+
+    mount(
+        Some("tmpfs"),
+        dev,
+        Some("tmpfs"),
+        MsFlags::empty(),
+        None::<&str>,
+    )
+    .context("could not mount a tmpfs on /dev")?;
+    create_device(&dev.join("null"), MEMORY_MAJOR, NULL_MINOR)?;
+    create_device(&dev.join("zero"), MEMORY_MAJOR, ZERO_MINOR)
+}
+```
+
+```sh title="Lo que ves"
+$ sudo ./target/debug/mini-container run /bin/ls -l /dev
+total 0
+crw-rw-rw-    1 root     root        1,   3 Nov 13 19:18 null
+crw-rw-rw-    1 root     root        1,   5 Nov 13 19:18 zero
+```
+
+El tmpfs tapa primero el `dev` del disco. Los dispositivos se crean dentro del tmpfs, y el contenedor los ve. En el disco no queda nada.
+
+</Fragment>
+</Compare>
+
+Si probaste el «Así no», quedaron dos archivos falsos en el disco. Con el código bueno no estorban: el tmpfs los tapa. Si quieres quitarlos:
+
+**Destructivo:** el comando borra esos dos archivos. Revisa la ruta antes de ejecutarlo.
+
+```sh title="En Linux"
+sudo rm /var/lib/mini-container/alpine/dev/null /var/lib/mini-container/alpine/dev/zero
+```
+
+- `sudo`: pide permisos de administrador. Los archivos son de `root`.
+- `rm`: borra archivos.
+- Las dos rutas: los dos archivos falsos, los que creó `mknod` en el disco.
+- Efecto: la carpeta `dev` de Alpine vuelve a estar vacía.
+
+Entre el bind mount y el tmpfs, en cambio, el orden no es obligatorio. Con `MS_REC`, un bind mount recursivo arrastra los montajes que ya cuelgan de la carpeta, y un tmpfs montado antes sería uno. Está comprobado: `/dev` salió completo. Sin `MS_REC`, el bind mount lo taparía. Dejar el tmpfs después no depende de ese detalle, y por eso `enter_rootfs` lo hace así.
+
+## Resumen
+
+| Situación | Qué usar |
+| --- | --- |
+| Quieres que el comando vea solo los archivos de Alpine | `filesystem::enter_rootfs(Path::new(filesystem::ROOTFS))` en `init`, después de `make_mounts_private` y antes de `mount_proc` |
+| `pivot_root` falla con `EBUSY` porque la carpeta no es un montaje | Un bind mount sobre sí misma antes: `MsFlags::MS_BIND \| MsFlags::MS_REC` |
+| Alpine no trae `/dev/null` ni `/dev/zero` | Un `tmpfs` sobre `dev` y después `mknod` de `null` (1, 3) y de `zero` (1, 5), con permisos `0o666` |
+| Quieres que la raíz vieja deje de existir para el comando | `pivot_root(".", ".")`, `umount2(".", MntFlags::MNT_DETACH)` y `chdir("/")` |
+| Quieres saber si el archivo de Alpine bajó sin cambios | `sha256sum -c`, con la huella que Alpine publica |
+| Pides un programa que Alpine no trae, como `bash` | El error ``could not run `bash` ``. Usa los que Alpine trae, como `/bin/sh` |
+
+<Quiz kind="closing">
+<Fragment slot="question">Después de `pivot_root` y `umount2`, el comando corre `/bin/cat /etc/os-release`. ¿De dónde sale ese `cat`?</Fragment>
+
+<QuizOption>Del `/bin/cat` de tu máquina, que el kernel sigue encontrando aunque la raíz cambie.<Fragment slot="feedback">Después de `umount2`, la raíz vieja ya no está montada. No hay camino hacia el `cat` de tu máquina.</Fragment></QuizOption>
+
+<QuizOption correct>Del `/bin/cat` de Alpine. Toda ruta que empieza por `/` se busca desde la raíz nueva, y la raíz nueva es la carpeta de Alpine.<Fragment slot="feedback">Por eso el comando solo puede usar los programas que Alpine trae. Y por eso `bash` falla: está en tu máquina, no en Alpine.</Fragment></QuizOption>
+
+<QuizOption>De ninguno: hay que copiar `cat` dentro de Alpine antes.<Fragment slot="feedback">No hace falta. Alpine ya trae `cat` en su `/bin`, como trae `ls` y `sh`.</Fragment></QuizOption>
+</Quiz>
+
+## Ejercicios
+
+<Aside type="tip" title="Regla de los 5 minutos">
+Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+</Aside>
+
+### 2c.1 Sin red, solo `lo`
+
+**Objetivo:** el comando corre sin las interfaces de red de tu máquina. Solo ve `lo`.
+
+Una interfaz de red es por donde una máquina habla con otras. `lo` es la interfaz de «loopback»: la máquina hablando consigo misma. `eth0` es la que sale hacia fuera. Mira lo que ve hoy el comando:
+
+```sh title="Antes"
+$ sudo ./target/debug/mini-container run /sbin/ip link
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0@if8: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue state UP qlen 1000
+    link/ether 5a:81:5e:31:e1:7f brd ff:ff:ff:ff:ff:ff
+```
+
+Hay dos interfaces: `lo` y `eth0`. Las direcciones y los números de `eth0` cambian en cada máquina. Un <Term id="namespace">namespace</Term> de red es una copia privada de la lista de interfaces, como los de 2a y 2b. Pídele uno al kernel, y el comando verá una lista nueva.
+
+El resultado esperado es una sola interfaz, apagada:
+
+```sh title="Resultado esperado"
+$ sudo ./target/debug/mini-container run /sbin/ip link
+1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+```
+
+- `run /sbin/ip link`: lanza `ip` con `link`, que lista las interfaces de red.
+- `1: lo:`: la interfaz número 1, llamada `lo`. Es la única.
+- `<LOOPBACK>`: sin `UP`: está apagada.
+- `state DOWN`: lo mismo, dicho en palabras. Una lista nueva nace con `lo` apagada.
+
+Tu cambio queda en la línea de `unshare` de `src/namespaces.rs`. Las demás secciones funcionan igual con él.
+
+<Hint n={1}>Mira la línea de `unshare` en `src/namespaces.rs`. Ya junta tres banderas con `|`: `CLONE_NEWUTS`, `CLONE_NEWPID` y `CLONE_NEWNS`. Cada tipo de namespace tiene la suya.</Hint>
+
+<Hint n={2}>La del namespace de red termina en `NET`: `CloneFlags::CLONE_NEWNET`. Júntala con las otras con `|`.</Hint>
+
+<Hint n={3}>Con la bandera nueva, la línea queda muy larga. `cargo fmt` reescribe tu código con el formato estándar de Rust, y parte esa línea en varias. Córrelo en la raíz del repo.</Hint>
+
+## Fuentes
+
+- Alpine, página de descargas: la «Mini root filesystem» es el «Minimal root filesystem. For use in containers and minimal chroots.», con una versión para `aarch64`, y la versión actual es la 3.24.4 («Released Nov 05, 2026»). [alpinelinux.org/downloads](https://alpinelinux.org/downloads/). Consultada el 2026-11-13.
+- El archivo `alpine-minirootfs-3.24.4-aarch64.tar.gz` y su sha256, `4b14c18f7e90a063b61462ea1462a5732c154bf6adad594974fe6487cd98a8de`, que coincide con el del archivo `.sha256` que Alpine publica al lado: [dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.4-aarch64.tar.gz.sha256](https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.4-aarch64.tar.gz.sha256). Comprobado el 2026-11-13: el archivo bajado dio `OK` con `sha256sum -c`.
+- `pivot_root(2)`: `new_root` debe ser «a path to a mount point», y «A path that is not already a mount point can be converted into one by bind mounting the path onto itself». El error `EBUSY` es «new_root or put_old is on the current root mount», y `EINVAL` aparece si el montaje de `new_root`, o su padre, es `MS_SHARED`. La secuencia `chdir(new_root); pivot_root(".", "."); umount2(".", MNT_DETACH);` funciona porque «the pivot_root() call stacks the old root mount point on top of the new root mount point at /». Sobre `chdir("/")`: «pivot_root() does not change the caller's current working directory (unless it is on the old root directory), and thus it should be followed by a chdir("/") call». [man7.org/linux/man-pages/man2/pivot_root.2.html](https://man7.org/linux/man-pages/man2/pivot_root.2.html), Linux man-pages 6.19. Consultada el 2026-11-13.
+- `mount(2)`: un bind mount «makes a file or a directory subtree visible at another point within the single directory hierarchy». «By default, when a directory is bind mounted, only that directory is mounted; if there are any submounts under the directory tree, they are not bind mounted. If the MS_REC flag is also specified, then a recursive bind mount operation is performed». [man7.org/linux/man-pages/man2/mount.2.html](https://man7.org/linux/man-pages/man2/mount.2.html). Consultada el 2026-11-13.
+- `umount(2)`: `MNT_DETACH` hace un desmontaje perezoso: «make the mount unavailable for new accesses, immediately disconnect the filesystem and all filesystems mounted below it from each other and from the mount table, and actually perform the unmount when the mount ceases to be busy». [man7.org/linux/man-pages/man2/umount.2.html](https://man7.org/linux/man-pages/man2/umount.2.html). Consultada el 2026-11-13.
+- `chroot(2)`: «This call changes an ingredient in the pathname resolution process and does nothing else. In particular, it is not intended to be used for any kind of security purpose, neither to fully sandbox a process nor to restrict filesystem system calls.» [man7.org/linux/man-pages/man2/chroot.2.html](https://man7.org/linux/man-pages/man2/chroot.2.html). Consultada el 2026-11-13.
+- `mknod(2)`: crea un archivo especial en el sistema de archivos. [man7.org/linux/man-pages/man2/mknod.2.html](https://man7.org/linux/man-pages/man2/mknod.2.html). Consultada el 2026-11-13.
+- `umask(2)`: la máscara se usa en las llamadas que crean archivos para modificar los permisos que reciben. [man7.org/linux/man-pages/man2/umask.2.html](https://man7.org/linux/man-pages/man2/umask.2.html). Consultada el 2026-11-13. Que con `sudo` la máscara vale `022` y deja un dispositivo creado con `0o666` en `0o644`: comprobado en la máquina de pruebas, con `sudo sh -c umask` y con una variante sin `fs::set_permissions`, el 2026-11-13.
+- Kernel de Linux, lista de números de dispositivo: el mayor `1` es «Memory devices», con `3 = /dev/null` y `5 = /dev/zero`. [docs.kernel.org/admin-guide/devices.html](https://docs.kernel.org/admin-guide/devices.html). Consultada el 2026-11-13.
+- Kernel de Linux, `tmpfs`: «Tmpfs is a file system which keeps all of its files in virtual memory», y «no files will be created on your hard drive. If you unmount a tmpfs instance, everything stored therein is lost.» [docs.kernel.org/filesystems/tmpfs.html](https://docs.kernel.org/filesystems/tmpfs.html). Consultada el 2026-11-13.
+- `network_namespaces(7)`: los namespaces de red aíslan, entre otras cosas, los dispositivos de red. [man7.org/linux/man-pages/man7/network_namespaces.7.html](https://man7.org/linux/man-pages/man7/network_namespaces.7.html). Consultada el 2026-11-13. Que una lista de interfaces nueva solo trae `lo`, apagada: comprobado en la máquina de pruebas con `run /sbin/ip link` y la bandera `CLONE_NEWNET`, el 2026-11-13.
+- `nix` 0.31.3: las páginas de `nix::unistd::pivot_root`, `nix::unistd::chdir`, `nix::sys::stat::mknod`, `nix::sys::stat::makedev`, `nix::sys::stat::SFlag` y `nix::sys::stat::Mode` dicen «Available on crate feature `fs` only», y las de `nix::mount::umount2` y `nix::mount::MntFlags`, «Available on crate feature `mount` only». [docs.rs/nix/0.31.3/nix/unistd/fn.pivot_root.html](https://docs.rs/nix/0.31.3/nix/unistd/fn.pivot_root.html). Consultada el 2026-11-13. `cargo add` mostró que `fs` no activa ninguna feature más.
+- La carpeta compartida con tu Mac: con `sudo chown 1234 archivo` el dueño siguió siendo el usuario 501, y `sudo mknod dev-null c 1 3` falló con `Operation not permitted`. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Los programas de `/bin` de Alpine: 81 de 82 son enlaces a `/bin/busybox`, y no hay `bash`. Comprobado en la máquina de pruebas, el 2026-11-13.
+- `init` sin `make_mounts_private`: en un namespace de montajes desechable (`unshare -m`, con `mount --make-rshared /`), `pivot_root` falló con `EINVAL`. Sin el bind mount, falló con `EBUSY`. Con `mount_proc` antes de `enter_rootfs`, `ps` imprimió solo la cabecera. Sin la línea de `mount_dev`, `echo hola > /dev/null` creó un archivo de 5 bytes y `cat /dev/null` imprimió `hola`. Con `mknod` antes del tmpfs, la primera ejecución dio un `/dev` vacío y la segunda falló con `EEXIST`. Con el tmpfs montado antes del bind mount, con `MS_REC`, `/dev` salió completo. Todo comprobado en la máquina de pruebas, con la tabla de montajes de la máquina igual antes y después, el 2026-11-13.
+- Sin `chdir("/")` al final de `switch_root`, `pwd` imprimió `/` y `ls -i -d . /` dio el mismo número para las dos: la carpeta actual ya era la raíz nueva. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.

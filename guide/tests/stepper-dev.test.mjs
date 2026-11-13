@@ -13,6 +13,7 @@ const startupTimeout = 90000;
 const sequencePages = [
   { path: "/2-namespaces/a-hostname/", source: "2-namespaces/a-hostname.mdx" },
   { path: "/2-namespaces/b-processes/", source: "2-namespaces/b-processes.mdx" },
+  { path: "/2-namespaces/c-filesystem/", source: "2-namespaces/c-filesystem.mdx" },
 ];
 const stepTag = /<Step[\s>]/g;
 

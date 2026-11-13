@@ -6,7 +6,7 @@ import { captionMarker, maximumSteps, minimumSteps, stepMarker } from "../src/co
 import { attributeOf, builtFolder, builtPageOf, docsFolder, guideRoot, listFiles } from "./support.mjs";
 import { attributeFlag, readSteppers } from "./stepper-html.mjs";
 
-const sequencePages = ["2-namespaces/a-hostname.mdx", "2-namespaces/b-processes.mdx"];
+const sequencePages = ["2-namespaces/a-hostname.mdx", "2-namespaces/b-processes.mdx", "2-namespaces/c-filesystem.mdx"];
 
 const inputTag = /<input\b[^>]*>/g;
 const idAttribute = /\sid="([^"]*)"/g;
