@@ -96,3 +96,7 @@ export function listSectionPaths() {
 export function pageUrlOf(docsPath) {
   return `/${relative(docsFolder, docsPath).replace(/\.mdx$/, "")}/`;
 }
+
+export function hasClass(tag, name) {
+  return (attributeOf(tag, "class") ?? "").split(/\s+/).includes(name);
+}

@@ -1,0 +1,11 @@
+---
+import Default from "@astrojs/starlight/components/Header.astro";
+import { findSectionPosition, type SidebarEntry } from "../lib/sections";
+import ReadingBar from "./ReadingBar.astro";
+
+const { sidebar } = Astro.locals.starlightRoute;
+const isSectionPage = findSectionPosition(sidebar as SidebarEntry[]) !== undefined;
+---
+
+{isSectionPage && <ReadingBar />}
+<Default {...Astro.props}><slot /></Default>

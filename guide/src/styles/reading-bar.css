@@ -1,0 +1,30 @@
+.reading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: 3px;
+  background: var(--n-t-purple);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  display: none;
+}
+
+@keyframes reading-bar-grow {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .reading-bar {
+      display: block;
+      animation-name: reading-bar-grow;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+    }
+  }
+}
