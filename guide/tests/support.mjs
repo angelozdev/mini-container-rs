@@ -1,8 +1,19 @@
 import { readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const guideRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+export const docsFolder = join(guideRoot, "src/content/docs");
+export const builtFolder = join(guideRoot, "dist");
+
+export function builtPageOf(docsPath) {
+  const slug = relative(docsFolder, docsPath).replace(/\.mdx$/, "");
+  return slug === "index" ? join(builtFolder, "index.html") : join(builtFolder, slug, "index.html");
+}
+
+export function textOf(html) {
+  return html.replace(/<[^>]*>/g, "").trim();
+}
 
 const ignoredFolders = new Set(["node_modules", "dist", ".astro", "target"]);
 

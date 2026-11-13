@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { relative } from "node:path";
 import { test } from "node:test";
-import { guideRoot, listFiles } from "./support.mjs";
+import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, textOf } from "./support.mjs";
 
-const docsFolder = join(guideRoot, "src/content/docs");
-const builtFolder = join(guideRoot, "dist");
 const compareOpening = /<div\b[^>]*\bclass="compare not-content"[^>]*>/g;
 const sideOpening = /^<div\b[^>]*\bclass="compare-side"[^>]*\sdata-side="(bad|good)"[^>]*>/;
 const labelBlock = /<div\b[^>]*\bclass="compare-label"[^>]*>([\s\S]*?)<\/div>/;
@@ -15,15 +13,6 @@ const expectedSides = [
   { side: "bad", label: "Así no" },
   { side: "good", label: "Así sí" },
 ];
-
-function builtPageOf(docsPath) {
-  const slug = relative(docsFolder, docsPath).replace(/\.mdx$/, "");
-  return join(builtFolder, slug, "index.html");
-}
-
-function textOf(html) {
-  return html.replace(/<[^>]*>/g, "").trim();
-}
 
 function readDiv(html, start) {
   divTag.lastIndex = start;
@@ -63,16 +52,26 @@ const pages = listFiles(docsFolder)
   .map((path) => ({ path, written: (readFileSync(path, "utf8").match(compareTag) ?? []).length }))
   .filter((page) => page.written > 0);
 
+function builtComparesOf(docsPath) {
+  const page = builtPageOf(docsPath);
+  assert.ok(existsSync(page), `${relative(guideRoot, page)} is missing: run astro build`);
+  return describeCompares(readFileSync(page, "utf8"));
+}
+
+test("the site is built before checking the compares", () => {
+  assert.ok(existsSync(builtFolder), "guide/dist is missing: run astro build");
+});
+
 for (const page of pages) {
   const name = relative(docsFolder, page.path);
-  const compares = describeCompares(readFileSync(builtPageOf(page.path), "utf8"));
 
   test(`${name}: every written Compare appears in the built page`, () => {
+    const compares = builtComparesOf(page.path);
     assert.equal(compares.length, page.written, `${name}: found ${compares.length} compares, wrote ${page.written}`);
   });
 
   test(`${name}: every compare shows the bad side and then the good side, each with its label and content`, () => {
-    for (const sides of compares) {
+    for (const sides of builtComparesOf(page.path)) {
       assert.deepEqual(
         sides.map(({ side, label }) => ({ side, label })),
         expectedSides,

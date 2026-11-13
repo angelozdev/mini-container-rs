@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
-import { guideRoot, listFiles, readBlockTitle, readCodeBlocks } from "./support.mjs";
+import { docsFolder, guideRoot, listFiles, readBlockTitle, readCodeBlocks } from "./support.mjs";
 
-const docsFolder = join(guideRoot, "src/content/docs");
 const checkpointsFolder = join(guideRoot, "checkpoints");
 
 function readCheckpointId(source) {

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import { extname, relative } from "node:path";
 import { test } from "node:test";
 import {
+  docsFolder,
   guideRoot,
   listFiles,
   readBlockLanguage,
@@ -15,7 +16,6 @@ const urlSeparator = `:${slash.repeat(2)}`;
 const markersInCode = [slash.repeat(2), `${slash}*`, `<!${"-".repeat(2)}`];
 const hashAfterSpace = /(^|\s)#/;
 const checkedExtensions = new Set([".rs", ".sh", ".astro", ".mjs", ".css", ".ts"]);
-const docsFolder = join(guideRoot, "src/content/docs");
 
 const terminalOutputTitles = new Set(["Deberías ver", "Resultado esperado"]);
 const promptPrefix = "$ ";

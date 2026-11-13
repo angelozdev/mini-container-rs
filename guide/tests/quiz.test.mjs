@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { relative } from "node:path";
 import { test } from "node:test";
-import { guideRoot, listFiles } from "./support.mjs";
+import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, textOf } from "./support.mjs";
 
-const docsFolder = join(guideRoot, "src/content/docs");
-const builtFolder = join(guideRoot, "dist");
 const quizForm = /<form\b[^>]*\bclass="quiz"[^>]*>[\s\S]*?<\/form>/g;
 const optionStart = /(?=<div\b[^>]*\bclass="quiz-option")/;
 const correctMark = /^<div\b[^>]*\sdata-correct[\s>=]/;
@@ -18,15 +16,6 @@ const checkpointField = /^checkpoint:\s*\S/m;
 const iconField = /^icon:\s*\p{Extended_Pictographic}/mu;
 const iconValue = /^icon:\s*(\S+)/m;
 const renderedIcon = /<div\b[^>]*\bclass="page-icon"[^>]*>([^<]*)<\/div>/;
-
-function builtPageOf(docsPath) {
-  const slug = relative(docsFolder, docsPath).replace(/\.mdx$/, "");
-  return slug === "index" ? join(builtFolder, "index.html") : join(builtFolder, slug, "index.html");
-}
-
-function textOf(html) {
-  return html.replace(/<[^>]*>/g, "").trim();
-}
 
 function frontmatterOf(source) {
   return source.match(frontmatter)?.[1] ?? "";
