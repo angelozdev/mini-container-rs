@@ -419,7 +419,7 @@ Antes de escribir, una predicción.
 
    Hace falta porque `pivot_root` solo acepta como raíz nueva un montaje. La carpeta de Alpine es solo una carpeta dentro del montaje de tu máquina. Sin este paso, `pivot_root` falla con `EBUSY`, el código de error del sistema para «recurso ocupado».
 
-   Podrías esperar `EINVAL`, porque esa carpeta tampoco es un montaje. Pero el manual de `pivot_root` dice que `EBUSY` sale cuando `new_root` está «on the current root mount». La carpeta de Alpine está ahí, y en la máquina de pruebas salió `EBUSY`.
+   El manual de `pivot_root` lista dos errores que aquí son ciertos a la vez. `EBUSY`: la raíz nueva está en el montaje de la raíz actual, que es el de tu máquina. `EINVAL`: la raíz nueva no es un montaje. El manual no dice cuál sale. En la máquina de pruebas salió `EBUSY`.
 
    - `Some(rootfs)`: de dónde sale lo que se monta: la carpeta de Alpine.
    - `rootfs`: en qué carpeta se conecta: la misma.
@@ -921,7 +921,7 @@ Entre el bind mount y el tmpfs, en cambio, el orden no es obligatorio. Con `MS_R
 | Situación | Qué usar |
 | --- | --- |
 | Quieres que el comando vea solo los archivos de Alpine | `filesystem::enter_rootfs(Path::new(filesystem::ROOTFS))` en `init`, después de `make_mounts_private` y antes de `mount_proc` |
-| `pivot_root` falla con `EBUSY` porque la carpeta es solo una carpeta del montaje de la raíz | Un bind mount sobre sí misma antes: `MsFlags::MS_BIND \| MsFlags::MS_REC` |
+| `pivot_root` falla con `EBUSY` porque la carpeta es solo una carpeta dentro del montaje de tu máquina | Un bind mount sobre sí misma antes: `MsFlags::MS_BIND \| MsFlags::MS_REC` |
 | Alpine no trae `/dev/null` ni `/dev/zero` | Un `tmpfs` sobre `dev` y después `mknod` de `null` (1, 3) y de `zero` (1, 5), con permisos `0o666` |
 | Quieres que la raíz vieja deje de existir para el comando | `pivot_root(".", ".")`, `umount2(".", MntFlags::MNT_DETACH)` y `chdir("/")` |
 | Quieres saber si el archivo de Alpine bajó sin cambios | `sha256sum -c`, con la huella que Alpine publica |
