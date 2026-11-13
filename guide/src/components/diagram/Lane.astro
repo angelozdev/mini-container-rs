@@ -1,0 +1,12 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+---
+
+<div class="stepper-lane">
+  {title && <div class="stepper-lane-title">{title}</div>}
+  <slot />
+</div>

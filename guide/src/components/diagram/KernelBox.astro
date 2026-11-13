@@ -1,12 +1,13 @@
 ---
 interface Props {
   label?: string;
+  isCopy?: boolean;
 }
 
-const { label = "kernel" } = Astro.props;
+const { label = "kernel", isCopy = false } = Astro.props;
 ---
 
-<div class="kernel-box">
+<div class="kernel-box" data-copy={isCopy || undefined}>
   <div class="kernel-label">{label}</div>
   <div class="kernel-entries"><slot /></div>
 </div>

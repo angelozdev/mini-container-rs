@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { test } from "node:test";
-import { attributeOf, builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, textOf } from "./support.mjs";
+import { attributeOf, builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, readDiv, textOf } from "./support.mjs";
 
 const quizForm = /<form\b[^>]*\bclass="quiz"[^>]*>[\s\S]*?<\/form>/g;
 const optionStart = /(?=<div\b[^>]*\bclass="quiz-option")/;
@@ -10,6 +10,7 @@ const correctMark = /^<div\b[^>]*\sdata-correct[\s>=]/;
 const feedback = /<div\b[^>]*\bclass="quiz-feedback"[^>]*>([\s\S]*?)<\/div>/;
 const inputTag = /<input\b[^>]*>/g;
 const formTag = /<form\b/g;
+const stepperOpening = /<div\b[^>]*\bclass="stepper not-content"[^>]*>/g;
 const quizTag = /<Quiz[\s>]/g;
 const frontmatter = /^---\n([\s\S]*?)\n---/;
 const checkpointField = /^checkpoint:\s*\S/m;
@@ -43,9 +44,11 @@ function builtQuizzes(page, written) {
   return quizzes;
 }
 
-function radiosOf(page) {
+function radiosOutsideSteppers(page) {
   const html = readFileSync(page, "utf8");
-  return (html.match(inputTag) ?? []).filter((tag) => attributeOf(tag, "type") === "radio");
+  const steppers = [...html.matchAll(stepperOpening)].map((opening) => readDiv(html, opening.index));
+  const rest = steppers.reduce((remaining, stepper) => remaining.replace(stepper, ""), html);
+  return (rest.match(inputTag) ?? []).filter((tag) => attributeOf(tag, "type") === "radio");
 }
 
 test("the site is built before checking the quizzes", () => {
@@ -116,6 +119,6 @@ for (const docsPath of listFiles(docsFolder).filter((path) => path.endsWith(".md
       }
     }
     const inQuizzes = quizzes.reduce((total, quiz) => total + quiz.inputs.length, 0);
-    assert.equal(radiosOf(page).length, inQuizzes, "every radio of the page belongs to a quiz form");
+    assert.equal(radiosOutsideSteppers(page).length, inQuizzes, "every radio of the page outside the steppers belongs to a quiz form");
   });
 }

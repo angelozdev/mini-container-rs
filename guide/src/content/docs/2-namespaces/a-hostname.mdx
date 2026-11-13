@@ -6,10 +6,12 @@ icon: 🏷️
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
-import BeforeAfter from "../../../components/diagram/BeforeAfter.astro";
 import KernelBox from "../../../components/diagram/KernelBox.astro";
 import KernelEntry from "../../../components/diagram/KernelEntry.astro";
+import Lane from "../../../components/diagram/Lane.astro";
 import Process from "../../../components/diagram/Process.astro";
+import Step from "../../../components/diagram/Step.astro";
+import Stepper from "../../../components/diagram/Stepper.astro";
 import Compare from "../../../components/Compare.astro";
 import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
@@ -22,21 +24,63 @@ El *hostname* es el nombre de la máquina. El comando `hostname` lo imprime. El 
 
 Hoy tu programa le pide al kernel su propia copia de esa lista. Escribe un nombre nuevo en la copia y lanza un comando que lee la copia.
 
-<BeforeAfter beforeTitle="ANTES · hay una sola lista" afterTitle="DESPUÉS · tu programa tiene su copia">
-<Fragment slot="before">
-<div class="diagram-row"><Process>terminal</Process><Process highlighted>mini-container</Process></div>
-<p class="diagram-note">↓ los dos leen el mismo letrero ↓</p>
-<KernelBox><KernelEntry>hostname: mini-container-dev</KernelEntry></KernelBox>
-</Fragment>
-<Fragment slot="after">
-<div class="diagram-row"><Process>terminal</Process><Process highlighted>mini-container</Process></div>
-<p class="diagram-note">↓ cada uno lee el suyo ↓</p>
+<Stepper name="hostname">
+<Step>
+<Lane title="Fuera · tu terminal">
+<Process>terminal</Process>
+</Lane>
+<Lane title="Tu programa">
+<Process>mini-container</Process>
+</Lane>
 <KernelBox>
-<KernelEntry>hostname: mini-container-dev</KernelEntry>
-<KernelEntry isCopy>hostname: container</KernelEntry>
+<KernelEntry note="nombre de la máquina">mini-container-dev</KernelEntry>
 </KernelBox>
-</Fragment>
-</BeforeAfter>
+<Fragment slot="caption">Tu programa acaba de arrancar. Él y tu terminal leen **la misma** lista del kernel: el nombre `mini-container-dev`.</Fragment>
+</Step>
+<Step call="unshare(CloneFlags::CLONE_NEWUTS)">
+<Lane title="Fuera · tu terminal">
+<Process>terminal</Process>
+</Lane>
+<Lane title="Tu programa">
+<Process usesCopy>mini-container</Process>
+</Lane>
+<KernelBox>
+<KernelEntry note="original">mini-container-dev</KernelEntry>
+<KernelEntry isCopy change="new" note="copia">mini-container-dev</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">Tu programa pide una copia de la lista. El kernel la crea con el mismo nombre. Desde ahora, tu programa lee la copia.</Fragment>
+</Step>
+<Step call='sethostname("container")'>
+<Lane title="Fuera · tu terminal">
+<Process>terminal</Process>
+</Lane>
+<Lane title="Tu programa">
+<Process usesCopy>mini-container</Process>
+</Lane>
+<KernelBox>
+<KernelEntry note="original">mini-container-dev</KernelEntry>
+<KernelEntry isCopy change="edited" note="copia">container</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">Tu programa cambia el nombre. Como lee la copia, cambia la copia. El original no se toca.</Fragment>
+</Step>
+<Step>
+<Lane title="Fuera · tu terminal">
+<Process>hostname</Process>
+<p class="stepper-output">imprime <b>mini-container-dev</b></p>
+</Lane>
+<Lane title="Tu programa">
+<Process usesCopy>mini-container</Process>
+<p class="diagram-note">↓ lanza</p>
+<Process usesCopy>/bin/hostname</Process>
+<p class="stepper-output">imprime <b>container</b></p>
+</Lane>
+<KernelBox>
+<KernelEntry note="original">mini-container-dev</KernelEntry>
+<KernelEntry isCopy note="copia">container</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">El comando que lanza tu programa, `/bin/hostname`, hereda la copia e imprime `container`. Fuera, `hostname` lee el original e imprime `mini-container-dev`.</Fragment>
+</Step>
+</Stepper>
 
 Un *namespace* es una copia privada de una lista del kernel. El tipo de namespace que guarda el hostname se llama *UTS*. Es solo un nombre técnico: no hace falta que recuerdes qué significa la sigla.
 

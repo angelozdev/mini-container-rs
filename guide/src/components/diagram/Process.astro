@@ -1,9 +1,10 @@
 ---
 interface Props {
   highlighted?: boolean;
+  usesCopy?: boolean;
 }
 
-const { highlighted = false } = Astro.props;
+const { highlighted = false, usesCopy = false } = Astro.props;
 ---
 
-<span class="process" data-highlighted={highlighted || undefined}><slot /></span>
+<span class="process" data-highlighted={highlighted || undefined} data-uses-copy={usesCopy || undefined}><slot /></span>

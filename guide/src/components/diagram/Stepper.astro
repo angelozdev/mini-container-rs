@@ -1,0 +1,87 @@
+---
+interface Props {
+  name: string;
+  title?: string;
+}
+
+const { name, title = "Cómo funciona · paso a paso" } = Astro.props;
+
+const minimumSteps = 2;
+const maximumSteps = 8;
+const stageStart = '<div class="stepper-stage">';
+
+if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name)) {
+  throw new Error(`Stepper: the name "${name}" must be lowercase kebab-case, because it becomes part of the ids`);
+}
+
+const rendered = await Astro.slots.render("default");
+const total = rendered.split(stageStart).length - 1;
+
+if (total < minimumSteps || total > maximumSteps) {
+  throw new Error(`Stepper "${name}": it has ${total} steps, and it needs ${minimumSteps} to ${maximumSteps}`);
+}
+
+let numbered = 0;
+const stages = rendered.replaceAll(stageStart, () => {
+  numbered += 1;
+  return `<div class="stepper-stage" data-step="${numbered}">`;
+});
+
+const steps = Array.from({ length: total }, (_, index) => index + 1);
+const groupName = `stepper-${name}`;
+const radioId = (step: number) => `${groupName}-${step}`;
+---
+
+<div class="stepper not-content" role="group" aria-label={title}>
+  <div class="stepper-head">{title}</div>
+  {
+    steps.map((step) => (
+      <input
+        class="stepper-radio"
+        type="radio"
+        name={groupName}
+        id={radioId(step)}
+        value={step}
+        checked={step === 1}
+        aria-label={`Paso ${step} de ${total}`}
+      />
+    ))
+  }
+  <Fragment set:html={stages} />
+  <div class="stepper-player">
+    {
+      steps.map((step) => (
+        <div class="stepper-nav" data-step={step} aria-hidden="true">
+          {step > 1 ? (
+            <label class="stepper-button" for={radioId(step - 1)}>
+              ◀
+            </label>
+          ) : (
+            <span class="stepper-button" data-off>
+              ◀
+            </span>
+          )}
+          {step < total ? (
+            <label class="stepper-button" data-primary for={radioId(step + 1)}>
+              ▶
+            </label>
+          ) : (
+            <label class="stepper-button" for={radioId(1)}>
+              ↺
+            </label>
+          )}
+        </div>
+      ))
+    }
+    <div class="stepper-segments" aria-hidden="true">
+      {steps.map((step) => <label class="stepper-segment" for={radioId(step)} />)}
+    </div>
+    {
+      steps.map((step) => (
+        <span class="stepper-count" data-step={step}>
+          {step}/{total}
+        </span>
+      ))
+    }
+  </div>
+</div>

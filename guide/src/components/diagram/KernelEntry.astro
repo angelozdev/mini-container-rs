@@ -1,9 +1,12 @@
 ---
 interface Props {
   isCopy?: boolean;
+  highlighted?: boolean;
+  note?: string;
+  change?: "new" | "edited";
 }
 
-const { isCopy = false } = Astro.props;
+const { isCopy = false, highlighted = false, note, change } = Astro.props;
 ---
 
-<span class="kernel-entry" data-copy={isCopy || undefined}><slot /></span>
+<span class="kernel-entry" data-copy={isCopy || undefined} data-highlighted={highlighted || undefined} data-change={change}><slot />{note && <small class="kernel-entry-note">{note}</small>}</span>

@@ -39,7 +39,7 @@ export default defineConfig({
         root: { label: "Español", lang: "es" },
       },
       plugins: [starlightLinksValidator()],
-      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css"],
+      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css"],
       components: {
         PageTitle: "./src/components/PageTitle.astro",
       },

@@ -1,0 +1,312 @@
+.stepper {
+  position: relative;
+  margin-block: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--n-line);
+  border-radius: 8px;
+  background: var(--n-bg);
+}
+
+.stepper-head {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--n-line);
+  color: var(--n-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stepper-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.stepper-stage,
+.stepper-nav,
+.stepper-count {
+  display: none;
+}
+
+.stepper-stage {
+  padding: 1.125rem 0.875rem 0.375rem;
+}
+
+.stepper-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.625rem 0.875rem;
+}
+
+.stepper-lane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.stepper-lane:only-child {
+  grid-column: 1 / -1;
+}
+
+.stepper-lane > .kernel-box {
+  align-self: stretch;
+}
+
+.stepper-lane-title {
+  color: var(--n-faint);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.stepper-scene:has(> .kernel-box) > .stepper-lane::after {
+  content: "↓";
+  color: var(--n-faint);
+  line-height: 1;
+}
+
+.stepper-scene > .kernel-box {
+  grid-column: 1 / -1;
+}
+
+.stepper-scene > .kernel-box .kernel-entries {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.375rem 0.875rem;
+  justify-items: center;
+}
+
+.stepper-scene > .kernel-box .kernel-entry:only-child {
+  grid-column: 1 / -1;
+}
+
+.stepper-lane .kernel-entries {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.stepper-scene .kernel-label {
+  margin-bottom: 0.5rem;
+}
+
+.stepper-scene .kernel-entry {
+  max-width: 100%;
+  margin: 0;
+  padding: 0.1875rem 0.625rem;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.stepper-scene .kernel-entry[data-copy] {
+  outline: 1px dashed var(--n-t-green);
+  outline-offset: 2px;
+}
+
+.stepper-scene .process {
+  padding: 0.125rem 0.625rem;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.stepper-lane .diagram-note {
+  margin: 0;
+}
+
+.stepper-output {
+  margin: 0;
+  color: var(--n-muted);
+  font-family: var(--__sl-font-mono);
+  font-size: 0.8125rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.stepper-output b {
+  color: var(--n-text);
+  font-weight: 600;
+}
+
+.stepper-caption {
+  margin: 0.875rem 0 0.25rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 6px;
+  background: var(--n-c-gray);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.stepper-call {
+  display: block;
+  margin-bottom: 0.125rem;
+  padding: 0;
+  background: none;
+  color: var(--n-t-purple);
+  font-size: 0.8125rem;
+}
+
+.stepper-player {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border-top: 1px solid var(--n-line);
+}
+
+.stepper-nav {
+  gap: 0.375rem;
+}
+
+.stepper-button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--n-line);
+  border-radius: 6px;
+  color: var(--n-text);
+  cursor: pointer;
+  font-size: 0.875rem;
+  user-select: none;
+}
+
+.stepper-button:hover {
+  background: var(--n-hover);
+}
+
+.stepper-button[data-off] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stepper-button[data-off]:hover {
+  background: none;
+}
+
+.stepper-button[data-primary] {
+  border-color: var(--n-t-purple);
+  color: var(--n-t-purple);
+}
+
+.stepper-segments {
+  display: grid;
+  flex: 1;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0.25rem;
+  border-radius: 4px;
+}
+
+.stepper-segment {
+  height: 1.25rem;
+  padding-block: 0.375rem;
+  border-radius: 4px;
+  background: var(--n-line);
+  background-clip: content-box;
+  cursor: pointer;
+}
+
+.stepper-count {
+  min-width: 2rem;
+  color: var(--n-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.stepper:has(.stepper-radio:focus-visible) .stepper-segments {
+  outline: 2px solid var(--n-t-purple);
+  outline-offset: 3px;
+}
+
+.stepper:has(.stepper-radio[value="1"]:checked) :is(.stepper-stage, .stepper-count)[data-step="1"],
+.stepper:has(.stepper-radio[value="2"]:checked) :is(.stepper-stage, .stepper-count)[data-step="2"],
+.stepper:has(.stepper-radio[value="3"]:checked) :is(.stepper-stage, .stepper-count)[data-step="3"],
+.stepper:has(.stepper-radio[value="4"]:checked) :is(.stepper-stage, .stepper-count)[data-step="4"],
+.stepper:has(.stepper-radio[value="5"]:checked) :is(.stepper-stage, .stepper-count)[data-step="5"],
+.stepper:has(.stepper-radio[value="6"]:checked) :is(.stepper-stage, .stepper-count)[data-step="6"],
+.stepper:has(.stepper-radio[value="7"]:checked) :is(.stepper-stage, .stepper-count)[data-step="7"],
+.stepper:has(.stepper-radio[value="8"]:checked) :is(.stepper-stage, .stepper-count)[data-step="8"] {
+  display: block;
+}
+
+.stepper:has(.stepper-radio[value="1"]:checked) .stepper-nav[data-step="1"],
+.stepper:has(.stepper-radio[value="2"]:checked) .stepper-nav[data-step="2"],
+.stepper:has(.stepper-radio[value="3"]:checked) .stepper-nav[data-step="3"],
+.stepper:has(.stepper-radio[value="4"]:checked) .stepper-nav[data-step="4"],
+.stepper:has(.stepper-radio[value="5"]:checked) .stepper-nav[data-step="5"],
+.stepper:has(.stepper-radio[value="6"]:checked) .stepper-nav[data-step="6"],
+.stepper:has(.stepper-radio[value="7"]:checked) .stepper-nav[data-step="7"],
+.stepper:has(.stepper-radio[value="8"]:checked) .stepper-nav[data-step="8"] {
+  display: flex;
+}
+
+.stepper:has(.stepper-radio[value="1"]:checked) .stepper-segment:nth-child(-n + 1),
+.stepper:has(.stepper-radio[value="2"]:checked) .stepper-segment:nth-child(-n + 2),
+.stepper:has(.stepper-radio[value="3"]:checked) .stepper-segment:nth-child(-n + 3),
+.stepper:has(.stepper-radio[value="4"]:checked) .stepper-segment:nth-child(-n + 4),
+.stepper:has(.stepper-radio[value="5"]:checked) .stepper-segment:nth-child(-n + 5),
+.stepper:has(.stepper-radio[value="6"]:checked) .stepper-segment:nth-child(-n + 6),
+.stepper:has(.stepper-radio[value="7"]:checked) .stepper-segment:nth-child(-n + 7),
+.stepper:has(.stepper-radio[value="8"]:checked) .stepper-segment:nth-child(-n + 8) {
+  background-color: var(--n-t-purple);
+}
+
+@keyframes stepper-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stepper-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  70% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stepper-flash {
+  0%,
+  30% {
+    background: var(--n-c-yellow);
+    color: var(--n-t-orange);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stepper-stage {
+    animation: stepper-fade 0.25s ease;
+  }
+
+  .stepper-stage [data-change="new"] {
+    animation: stepper-pop 0.45s ease;
+  }
+
+  .stepper-stage [data-change="edited"] {
+    animation: stepper-flash 1s ease;
+  }
+}

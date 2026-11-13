@@ -340,11 +340,25 @@
   font-weight: 600;
 }
 
+.process[data-uses-copy] {
+  background: var(--n-c-green);
+  color: var(--n-t-green);
+  font-weight: 600;
+}
+
 .kernel-box {
   padding: 0.5rem;
   border: 1px dashed var(--n-faint);
   border-radius: 6px;
   text-align: center;
+}
+
+.kernel-box[data-copy] {
+  border-color: var(--n-t-green);
+}
+
+.kernel-box[data-copy] > .kernel-label {
+  color: var(--n-t-green);
 }
 
 .kernel-box + .kernel-box {
@@ -373,6 +387,21 @@
   background: var(--n-c-green);
   color: var(--n-t-green);
   font-weight: 600;
+}
+
+.kernel-entry[data-highlighted] {
+  background: var(--n-c-blue);
+  color: var(--n-t-blue);
+  font-weight: 600;
+}
+
+.kernel-entry-note {
+  display: block;
+  color: var(--n-muted);
+  font-family: var(--sl-font);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  text-align: center;
 }
 
 @media (max-width: 40rem) {
