@@ -557,7 +557,9 @@ Antes de escribir, una predicción.
 
    La ruta se lee antes de pedir las copias, no después.
 
-   Después de `unshare`, el kernel puede dar una ruta cortada. Pasa cuando tu programa era el único proceso que usaba su lista de montajes anterior. Por ejemplo, si lo lanzas con `unshare -m`. Ese comando crea una copia de montajes y lanza el programa dentro de ella.
+   Después de `unshare`, `current_exe()` puede devolver una ruta incompleta, a la que le falta el principio. Por ejemplo, una ruta que empieza por `/Users/tu-usuario/` puede volver como `/tu-usuario/`. Esa ruta no existe, y `run` falla con `could not launch the program` y la causa `No such file or directory`.
+
+   Pasa cuando tu programa es el único proceso de su lista de montajes. Lanzarlo con `unshare -m` lo provoca. Ese comando crea una copia de montajes y lanza el programa dentro de ella, y allí el programa es el único proceso.
 
    Leer la ruta antes evita ese caso.
 
@@ -724,6 +726,8 @@ sudo umount /proc
 
 Compila con `cargo build`: la prueba usa el binario del último `cargo build`, así que sin compilar antes comprueba el viejo.
 
+Un aviso antes de correrla. Si tu `init` monta `/proc` sin hacer privados los montajes antes, la prueba deja tu `/proc` muerto, como en la trampa de más arriba, ya la primera vez que corre tu programa. Entonces `ps` falla en tu máquina, y la prueba imprime `Error: no /proc/self/exe available. Is /proc mounted?`. El `umount /proc` de esa sección lo arregla.
+
 Corre la prueba de esta sección sobre tu programa. Funciona igual que en 1a. En Linux, desde la raíz del repo:
 
 ```sh title="En Linux"
@@ -733,7 +737,7 @@ sudo guide/scripts/check-my-code.sh 2b
 - `sudo`: corre el comando como administrador. Tu programa lo necesita, y la prueba también lo corre una vez sin él, para ver si el error dice qué falta.
 - `guide/scripts/check-my-code.sh`: el script de la guía que corre la prueba sobre tu programa.
 - `2b`: la sección cuya prueba se corre.
-- Efecto: corre `target/debug/mini-container`, tu binario, con las comprobaciones de 1a, 2a y 2b.
+- Efecto: corre `target/debug/mini-container`, tu binario, con las comprobaciones de 2b. Son las de 1a y 2a, con dos cambios y tres casos nuevos, que se listan debajo.
 
 <ShouldSee>
 
@@ -746,16 +750,18 @@ OK 2b
 
 `OK 2b` dice que tu programa pasó todas las comprobaciones. Si una falla, el script la nombra y sale con un código distinto de 0, como en 1a.
 
-Las comprobaciones de 2b añaden cuatro casos a las de 1a y 2a:
+Las comprobaciones de 2b cambian dos de las de 1a y 2a:
+
+- Un hijo que muere por `SIGKILL` ya no se mata desde dentro con `kill -9 $$`. Se mata desde fuera, y `run` sigue saliendo con 137. El motivo está en la sección «Por qué el PID 1 ignora señales».
+- Un programa que no existe ya no da el mensaje de `run`, `could not launch the program`. Da el de `init`, ``could not run `holaa` ``.
+
+Y añaden tres casos:
 
 - El comando es el PID 1 de su lista, y la lista solo tiene ese proceso.
 - Tu máquina conserva su lista de procesos y sus montajes.
-- Si matas al hijo desde fuera, `run` sale con 137.
 - Tu programa funciona cuando es el único proceso de su lista de montajes, el caso de `unshare -m` del paso 6.
 
 Hagas o no los ejercicios 1a.1 y 2a.1, la prueba da `OK`. El 2b.1 no escribe código.
-
-Si tu `init` monta `/proc` sin hacer privados los montajes antes, la prueba puede dejar tu `/proc` muerto, como en la trampa de más arriba. El `umount /proc` de esa sección lo arregla.
 
 ## Por qué el PID 1 ignora señales
 
@@ -782,7 +788,7 @@ Sale `0`, no `137`. El shell no murió: `kill` terminó bien y el shell salió c
 
 El PID 1 de una lista es especial. Solo recibe las señales para las que tiene un *manejador*, que es el código con el que un programa decide qué hacer al recibirlas. Las demás se pierden, incluso `SIGKILL`, si las manda un proceso de su misma lista. Aquí el PID 1 es el shell, y se la mandó a sí mismo.
 
-Hay una excepción: `SIGKILL` y `SIGSTOP` sí llegan si las manda un proceso de fuera de su lista. `SIGSTOP` es la señal que pausa a un proceso, sin terminarlo.
+Hay una excepción: `SIGKILL`, que mata al proceso, y `SIGSTOP`, que lo pausa sin terminarlo, sí llegan si las manda un proceso de fuera de su lista.
 
 Por eso `sudo kill -9 <PID>`, desde tu máquina, sí lo mata. Es lo que haces al final del ejercicio 2b.1.
 
@@ -939,10 +945,11 @@ grep NSpid /proc/<PID>/status
 - Rust, `std::convert::Infallible`: «Since this enum has no variant, a value of this type can never actually exist.». [doc.rust-lang.org/1.99.1/std/convert/enum.Infallible.html](https://doc.rust-lang.org/1.99.1/std/convert/enum.Infallible.html). Consultada el 2026-11-13. La Rust Reference, en «Zero-variant enums», dice que no tienen valores válidos y que no se pueden crear. [doc.rust-lang.org/1.99.1/reference/items/enumerations.html](https://doc.rust-lang.org/1.99.1/reference/items/enumerations.html). Consultada el 2026-11-13. Que un `match` sin brazos sobre ese tipo compile y sirva como valor de `main`: comprobado compilando con Rust 1.99.1.
 - Que `/` es `shared` en la máquina de pruebas: `findmnt -no PROPAGATION /` imprimió `shared`, el 2026-11-13.
 - La trampa de los montajes: comprobada en un namespace de montajes desechable, creado con `unshare -m` sobre la máquina de pruebas, y con `/` marcado como `shared` dentro de él (`mount --make-rshared /`) para imitar a la máquina. Allí, `init` sin `make_mounts_private` dejó `ps -e` con el error `Error, do this: mount -t proc proc /proc`, y `umount /proc` lo arregló. Con `sudo` desde un usuario normal también. La máquina no se tocó. El 2026-11-13.
+- La prueba de 2b sobre un `init` sin `make_mounts_private`: corrida con `check-my-code.sh 2b` dentro de un namespace de montajes desechable (`unshare -m`, con `mount --make-rshared /`). La primera ejecución del programa dejó el `/proc` muerto, la segunda imprimió `Error: no /proc/self/exe available. Is /proc mounted?` y la prueba terminó con `FAIL: the child prints hello: the program exited with 1`. Después, `ps -e` dio `Error, do this: mount -t proc proc /proc`, y un solo `umount /proc` lo dejó funcionando. La máquina no se tocó: antes y después tenía el mismo `/proc` y el mismo número de procesos. El 2026-11-13.
 - `child` a mano: comprobado en el mismo tipo de namespace desechable. Dejó `/` en `private` y dos montajes en `/proc`. El 2026-11-13.
-- `signal(7)`: la tabla de señales dice «SIGKILL ... Kill signal» y «SIGSTOP ... Stop process», y que las dos «cannot be caught, blocked, or ignored». [man7.org/linux/man-pages/man7/signal.7.html](https://man7.org/linux/man-pages/man7/signal.7.html), Linux man-pages 6.19. Consultada el 2026-11-13.
+- `signal(7)`: la tabla de señales dice «SIGKILL P1990 Term Kill signal» y «SIGSTOP P1990 Stop Stop process». Y: «The signals SIGKILL and SIGSTOP cannot be caught, blocked, or ignored.» [man7.org/linux/man-pages/man7/signal.7.html](https://man7.org/linux/man-pages/man7/signal.7.html), Linux man-pages 6.19, 2026-02-08. Texto leído en el HTML de man7.org el 2026-11-13.
 - `kill -9 $$` dentro del contenedor: `sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?` imprimió `0`, con el binario de 2b en la máquina de pruebas, el 2026-11-13. `sudo kill -9` sobre el PID real de un `sleep` del contenedor, desde la máquina, lo terminó, y `run` salió con 137.
 - Ctrl-C: comprobado en la máquina de pruebas con una terminal simulada. Tras Ctrl-C, `sudo` y `mini-container` desaparecen, pero `sleep`, el PID 1, sigue vivo. `SigCgt` en `/proc/<PID>/status` de ese `sleep` vale `0`: no tiene ningún manejador. El 2026-11-13.
-- Lanzar `mini-container` con `unshare -m`, donde es el único proceso de su namespace de montajes: sin leer la ruta antes de `unshare`, `current_exe()` devolvió una ruta cortada y el `run` falló con `No such file or directory`. Con la ruta leída antes, funciona. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Lanzar `mini-container` con `unshare -m`, donde es el único proceso de su namespace de montajes: sin leer la ruta antes de `unshare`, `current_exe()` devolvió una ruta a la que le faltaba el principio (`/Users/tu-usuario/...` volvió como `/tu-usuario/...`) y `run` falló con `could not launch the program` y la causa `No such file or directory`. Con un segundo proceso vivo en ese namespace (`unshare -m sh -c '...; true'`), la ruta salió completa. Con la ruta leída antes, funciona. Comprobado en la máquina de pruebas con una variante de 2b que lee `current_exe()` después de `unshare`, el 2026-11-13.
 - `NSpid` de un contenedor de `sleep`: mostró dos números, el de la máquina y `1`. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.
