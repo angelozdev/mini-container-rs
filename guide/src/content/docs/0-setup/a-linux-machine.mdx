@@ -50,7 +50,7 @@ Para razonarlo, hay que saber cómo se encuentra un programa. Un *shell* es el p
 
 <QuizOption>Imprime la versión de Cargo, porque `sudo` usa tu `PATH`.<Fragment slot="feedback">`sudo` no usa tu `PATH`. Usa el que fija su propia configuración, y `~/.cargo/bin` no está en él.</Fragment></QuizOption>
 
-<QuizOption correct>Dice que no encuentra el comando `cargo`.<Fragment slot="feedback">Rust se instaló para tu usuario, en tu carpeta personal. `sudo` busca en la lista que fija `/etc/sudoers` con la opción `secure_path`, y esa lista no llega a tu carpeta. Lo comprobarás en la trampa de más abajo.</Fragment></QuizOption>
+<QuizOption correct>Dice que no encuentra el comando `cargo`.<Fragment slot="feedback">Rust se instaló para tu usuario, en tu carpeta personal. `sudo` no busca en tu `PATH`: usa una lista de carpetas que fija su propia configuración, y esa lista no llega a tu carpeta. Lo comprobarás en la trampa de más abajo.</Fragment></QuizOption>
 
 <QuizOption>Pide instalar Rust otra vez, ahora para el administrador.<Fragment slot="feedback">`sudo` nunca instala nada por su cuenta. Solo corre el comando que le pasas, y si no lo encuentra, falla.</Fragment></QuizOption>
 </Quiz>
@@ -331,7 +331,7 @@ $ which cargo
 
 </ShouldSee>
 
-`/home/tu-usuario` es tu carpeta personal en Linux, la misma que `~`. Ninguna carpeta de la primera línea es `~/.cargo/bin`. Esa lista sale de la opción `secure_path` del archivo `/etc/sudoers`: cuando existe, `sudo` la usa en lugar de tu `PATH`.
+`/home/tu-usuario` es tu carpeta personal en Linux, la misma que `~`. Ninguna carpeta de la primera línea es `~/.cargo/bin`. Esa lista sale de la opción `secure_path`, que vive en `/etc/sudoers`, el archivo de configuración de `sudo`: cuando existe, `sudo` la usa en lugar de tu `PATH`.
 
 La salida correcta es compilar con tu usuario y correr solo el binario con `sudo`. Estos comandos son para 1a, cuando ya tengas un proyecto. No los corras todavía:
 
@@ -341,7 +341,7 @@ sudo ./target/debug/mini-container
 ```
 
 - `cargo build`: compila el proyecto y deja el binario en `target/debug/`. Lo corres con tu usuario, que sí encuentra `cargo`.
-- `sudo ./target/debug/mini-container`: corre el binario como administrador. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
+- `sudo ./target/debug/mini-container`: corre el binario como administrador. El `.` es la carpeta actual. Como la ruta lleva `/`, `sudo` la usa tal cual y no la busca en el `PATH`.
 - Efecto: el programa corre con permisos de administrador y `sudo` no necesita encontrar `cargo`.
 </Aside>
 

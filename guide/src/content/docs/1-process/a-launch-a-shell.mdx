@@ -141,7 +141,7 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
 
    Las líneas `#[derive(...)]` merecen su propia explicación. Una línea `#[...]` encima de un tipo es un *atributo*: una instrucción para el compilador. `derive` le pide a Rust que escriba por ti el código de ciertos *traits*. Un *trait* es una capacidad que un tipo puede tener.
 
-   - `Debug`: el tipo se puede imprimir para depurarlo, con `{:?}`.
+   - `Debug`: el tipo se puede imprimir para depurarlo, es decir, para ver su contenido cuando buscas un fallo. Un texto de Rust puede llevar *huecos*, que son `{}` que Rust rellena con un valor. El hueco `{:?}` pide esa forma de imprimir. Tu programa todavía no lo usa: en el paso 4 verás un hueco simple, `{}`.
    - `PartialEq`: dos valores del tipo se pueden comparar con `==`.
    - `Eq`: promete que un valor siempre es igual a sí mismo. `String` y `Vec` lo cumplen. Un número decimal no, por el valor `NaN`. `Eq` solo se puede derivar junto con `PartialEq`.
 
@@ -403,15 +403,15 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    }
    ```
 
-   - `fn main() -> anyhow::Result<ExitCode>`: `main` puede devolver un `Result`. Si devuelve `Err`, Rust imprime `Error: ...` por stderr y sale con el código 1.
+   - `fn main() -> anyhow::Result<ExitCode>`: `main` puede devolver un `Result`. Si devuelve `Err`, Rust imprime `Error: ...` por *stderr* y sale con el código 1. *stderr* es el canal por donde un programa escribe sus errores. El otro canal, *stdout*, es para su salida normal. Así un aviso no se mezcla con lo que el programa produce.
    - `env::args()`: las palabras que escribiste en la terminal. La primera es la ruta del propio programa.
    - `.skip(1)`: se salta esa primera palabra, que a `parse` no le sirve.
    - `match cli::parse(...)`: el tercer `match`. Compara lo que devuelve `parse` con dos opciones.
    - `Some(cli::Invocation::Run(command)) => container::run(&command)`: si `parse` entendió un `run`, lanza el programa.
    - `None => { ... }`: si no entendió, imprime el uso y sale con el código 2.
-   - `eprintln!`: imprime una línea por *stderr*, el canal de los errores. El canal normal, *stdout*, queda libre para la salida del programa.
+   - `eprintln!`: imprime una línea por stderr, no por stdout. La salida normal del programa queda libre.
    - El `!` al final de `eprintln!` marca una *macro*: código que Rust expande mientras compila.
-   - `"{}"`: la plantilla de `eprintln!`. Cada `{}` es un hueco que Rust rellena con el valor que sigue, aquí `cli::USAGE`. Hace falta la plantilla porque Rust exige que el primer argumento sea un texto escrito a mano, no una constante.
+   - `"{}"`: la plantilla de `eprintln!`, con un solo hueco `{}`. Rust lo rellena con el valor que sigue, aquí `cli::USAGE`. Hace falta la plantilla porque Rust exige que el primer argumento sea un texto escrito a mano, no una constante.
    - El 2 es nuestra elección: separa «me usaron mal» (2) de «falló al ejecutar» (1).
 
    Compila por última vez. En Linux:
@@ -446,7 +446,7 @@ sudo ./target/debug/mini-container run /bin/echo hello
 ```
 
 - `sudo`: corre el comando como administrador. En este paso todavía no hace falta. Lo usamos ya para no cambiar el comando cuando lo pida el aislamiento.
-- `./target/debug/mini-container`: la ruta de tu binario. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
+- `./target/debug/mini-container`: la ruta de tu binario. El `.` es la carpeta actual. Como la ruta lleva `/`, `sudo` la usa tal cual y no la busca en el `PATH`.
 - `run`: la palabra que `parse` espera primero.
 - `/bin/echo hello`: el programa que se lanza y su argumento.
 - Efecto: tu programa lanza `echo`, espera a que termine y sale con su código.
