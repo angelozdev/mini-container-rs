@@ -44,6 +44,7 @@ export default defineConfig({
         PageTitle: "./src/components/PageTitle.astro",
       },
       expressiveCode: {
+        defaultProps: { wrap: true },
         customizeTheme: useNotionSyntaxColors,
         minSyntaxHighlightingColorContrast: 0,
       },

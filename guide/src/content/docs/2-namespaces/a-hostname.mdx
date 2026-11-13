@@ -157,7 +157,7 @@ Antes de escribir, una predicción.
 
    Debajo de los `use`, deja una línea en blanco y escribe la función:
 
-   ```rust title="src/namespaces.rs" wrap
+   ```rust title="src/namespaces.rs"
    pub fn unshare_namespaces() -> Result<()> {
        unshare(CloneFlags::CLONE_NEWUTS)
            .context("could not create the namespaces: did you run it with sudo?")
@@ -210,7 +210,7 @@ Antes de escribir, una predicción.
 
    <ShouldSee>
 
-   ```sh title="Deberías ver" wrap
+   ```sh title="Deberías ver"
    $ cargo build
     Downloading crates ...
      Downloaded cfg-if v1.0.5
@@ -271,7 +271,7 @@ Antes de escribir, una predicción.
 
    Ahora la función. Va debajo de `unshare_namespaces`, con una línea en blanco entre las dos:
 
-   ```rust title="src/namespaces.rs" ins={5-8} wrap
+   ```rust title="src/namespaces.rs" ins={5-8}
    pub fn unshare_namespaces() -> Result<()> {
        unshare(CloneFlags::CLONE_NEWUTS)
            .context("could not create the namespaces: did you run it with sudo?")
@@ -297,7 +297,7 @@ Antes de escribir, una predicción.
 
    <ShouldSee>
 
-   ```sh title="Deberías ver" wrap
+   ```sh title="Deberías ver"
    $ cargo build
       Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
    warning: constant `HOSTNAME` is never used
@@ -370,7 +370,7 @@ Antes de escribir, una predicción.
 
    <ShouldSee>
 
-   ```sh title="Deberías ver" wrap
+   ```sh title="Deberías ver"
    $ cargo build
       Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
        Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
@@ -458,12 +458,12 @@ Mira la línea de `unshare` escrita de las dos formas, y lo que ve quien corre e
 <Compare>
 <Fragment slot="bad">
 
-```rust title="Con .unwrap()" wrap
+```rust title="Con .unwrap()"
 unshare(CloneFlags::CLONE_NEWUTS)
     .unwrap();
 ```
 
-```sh title="Lo que ves" wrap
+```sh title="Lo que ves"
 $ ./target/debug/mini-container run /bin/hostname; echo $?
 
 thread 'main' (12767) panicked at src/namespaces.rs:5:10:
@@ -477,12 +477,12 @@ Dice que algo falló y dónde: `src/namespaces.rs:5:10` es archivo, línea y col
 </Fragment>
 <Fragment slot="good">
 
-```rust title="Con .context() y ?" wrap
+```rust title="Con .context() y ?"
 unshare(CloneFlags::CLONE_NEWUTS)
     .context("could not create the namespaces: did you run it with sudo?")
 ```
 
-```sh title="Lo que ves" wrap
+```sh title="Lo que ves"
 $ ./target/debug/mini-container run /bin/hostname; echo $?
 Error: could not create the namespaces: did you run it with sudo?
 
@@ -520,7 +520,7 @@ Una *variable de entorno* es un nombre con un valor que un programa recibe de qu
 
 Un detalle de `sudo`: antes de lanzar tu programa, borra casi todas las variables de tu terminal. Las que escribes después de `sudo`, en el mismo comando, sí las deja pasar. Por eso el resultado esperado pone la variable después de `sudo`.
 
-```sh title="Resultado esperado" wrap
+```sh title="Resultado esperado"
 $ sudo MINI_CONTAINER_HOSTNAME=api ./target/debug/mini-container run /bin/hostname
 api
 $ sudo ./target/debug/mini-container run /bin/hostname
