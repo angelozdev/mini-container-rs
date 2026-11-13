@@ -236,7 +236,7 @@ Antes de escribir, una predicción.
    - `-C /var/lib/mini-container/alpine`: entra en esa carpeta antes de extraer.
    - Efecto: crea `bin`, `etc`, `usr` y las demás carpetas dentro de `/var/lib/mini-container/alpine`.
 
-   La carpeta va en el disco de Linux, no en la carpeta compartida con tu Mac. En la carpeta compartida, el dueño de los archivos siempre es tu usuario, aunque hagas `chown`, y los de Alpine son de `root`.
+   La carpeta va en el disco de Linux, no en la carpeta compartida con tu Mac. En la prueba, un archivo creado con `sudo` y cambiado con `chown` apareció en la carpeta compartida como de tu usuario, no de `root`. Los archivos de Alpine son de `root`.
 
    Alpine ya está en tu máquina. Puedes leer sus archivos desde fuera:
 
@@ -346,7 +346,7 @@ Antes de escribir, una predicción.
    - `Path::new(filesystem::ROOTFS)`: la ruta de la carpeta de Alpine, hecha una `Path`. `ROOTFS` también la escribes en el paso siguiente.
    - `?`: si cambiar de raíz falla, `init` sale con el error.
    - El orden importa, y tiene dos reglas:
-     - `enter_rootfs` va **después** de `make_mounts_private`. El kernel se niega a cambiar de raíz mientras los montajes estén compartidos. Sin `make_mounts_private`, el cambio falla con `EINVAL`.
+     - `enter_rootfs` va **después** de `make_mounts_private`. El kernel se niega a cambiar de raíz mientras los montajes estén compartidos. Sin `make_mounts_private`, el cambio falla con `EINVAL`, el código de error del sistema para «argumento inválido».
      - `enter_rootfs` va **antes** de `mount_proc`. `mount_proc` monta `/proc` en la raíz que esté vigente. Si montas antes, el `/proc` queda en la raíz vieja y se va con ella. La raíz nueva tiene un `/proc` vacío, y `ps` no ve ningún proceso.
 
    No compiles todavía: `enter_rootfs` no existe.
@@ -417,7 +417,7 @@ Antes de escribir, una predicción.
 
    Este paso es un <Term id="bind-mount">bind mount</Term>. Un *bind mount* muestra una carpeta que ya existe en un segundo sitio, sin copiar nada. Aquí el segundo sitio es la misma carpeta: los archivos no cambian, pero la carpeta pasa a tener una entrada propia en la lista de montajes.
 
-   Hace falta porque `pivot_root` solo acepta como raíz nueva un montaje. La carpeta de Alpine es solo una carpeta dentro del montaje de tu máquina. Sin este paso, `pivot_root` falla con `EBUSY`.
+   Hace falta porque `pivot_root` solo acepta como raíz nueva un montaje. La carpeta de Alpine es solo una carpeta dentro del montaje de tu máquina. Sin este paso, `pivot_root` falla con `EBUSY`, el código de error del sistema para «recurso ocupado».
 
    - `Some(rootfs)`: de dónde sale lo que se monta: la carpeta de Alpine.
    - `rootfs`: en qué carpeta se conecta: la misma.
@@ -776,10 +776,10 @@ Esto es lo que sale con tu programa sin esa línea. La salida es la de tu progra
 $ sudo ./target/debug/mini-container run /bin/sh -c 'ls -l /dev; echo hola > /dev/null; ls -l /dev; cat /dev/null; head -c 10 /dev/zero | wc -c'
 total 0
 total 4
--rw-r--r--    1 root     root             5 Nov 13 19:19 null
+-rw-r--r--    1 root     root             5 Nov 13 19:47 null
 hola
-0
 head: /dev/zero: No such file or directory
+0
 ```
 
 - `total 0`: el primer `ls -l /dev` no encuentra nada. El `/dev` está vacío.
@@ -787,7 +787,7 @@ head: /dev/zero: No such file or directory
 - `total 4` y `-rw-r--r--    1 root     root             5 ... null`: el segundo `ls -l /dev` ya muestra un archivo. La primera letra, `-`, dice «archivo normal». Pesa 5 bytes: `hola` y el salto de línea.
 - `hola`: `cat /dev/null` imprime lo que guardó la redirección. Con el `/dev/null` de verdad, no imprimiría nada.
 - `head: /dev/zero: No such file or directory`: `/dev/zero` tampoco existe. La demo de memoria de la parte 3 lo necesita.
-- `0`: `wc -c` cuenta cero bytes.
+- `0`: `wc -c` cuenta cero bytes. Sale después del error de `head`, porque `wc` imprime cuando `head` ya terminó.
 
 ## Comprueba tu código
 
@@ -912,7 +912,7 @@ sudo rm /var/lib/mini-container/alpine/dev/null /var/lib/mini-container/alpine/d
 - Las dos rutas: los dos archivos falsos, los que creó `mknod` en el disco.
 - Efecto: la carpeta `dev` de Alpine vuelve a estar vacía.
 
-Entre el bind mount y el tmpfs, en cambio, el orden no es obligatorio. Con `MS_REC`, un bind mount recursivo arrastra los montajes que ya cuelgan de la carpeta, y un tmpfs montado antes sería uno. Está comprobado: `/dev` salió completo. Sin `MS_REC`, el bind mount lo taparía. Dejar el tmpfs después no depende de ese detalle, y por eso `enter_rootfs` lo hace así.
+Entre el bind mount y el tmpfs, en cambio, el orden no es obligatorio. Con `MS_REC`, un bind mount recursivo arrastra los montajes que ya cuelgan de la carpeta, y un tmpfs montado antes sería uno. Está comprobado: `/dev` salió completo. Sin `MS_REC`, el bind mount no lo arrastra: también está comprobado, y `/dev` salió vacío. Dejar el tmpfs después no depende de ese detalle, y por eso `enter_rootfs` lo hace así.
 
 ## Resumen
 
@@ -986,14 +986,14 @@ Tu cambio queda en la línea de `unshare` de `src/namespaces.rs`. Las demás sec
 - `mount(2)`: un bind mount «makes a file or a directory subtree visible at another point within the single directory hierarchy». «By default, when a directory is bind mounted, only that directory is mounted; if there are any submounts under the directory tree, they are not bind mounted. If the MS_REC flag is also specified, then a recursive bind mount operation is performed». [man7.org/linux/man-pages/man2/mount.2.html](https://man7.org/linux/man-pages/man2/mount.2.html). Consultada el 2026-11-13.
 - `umount(2)`: `MNT_DETACH` hace un desmontaje perezoso: «make the mount unavailable for new accesses, immediately disconnect the filesystem and all filesystems mounted below it from each other and from the mount table, and actually perform the unmount when the mount ceases to be busy». [man7.org/linux/man-pages/man2/umount.2.html](https://man7.org/linux/man-pages/man2/umount.2.html). Consultada el 2026-11-13.
 - `chroot(2)`: «This call changes an ingredient in the pathname resolution process and does nothing else. In particular, it is not intended to be used for any kind of security purpose, neither to fully sandbox a process nor to restrict filesystem system calls.» [man7.org/linux/man-pages/man2/chroot.2.html](https://man7.org/linux/man-pages/man2/chroot.2.html). Consultada el 2026-11-13.
-- `mknod(2)`: crea un archivo especial en el sistema de archivos. [man7.org/linux/man-pages/man2/mknod.2.html](https://man7.org/linux/man-pages/man2/mknod.2.html). Consultada el 2026-11-13.
+- `mknod(2)`: «creates a filesystem node (file, device special file, or named pipe)», y «The file mode is modified by the process's umask in the usual way: in the absence of a default ACL, the permissions of the created node are (mode & ~umask)». [man7.org/linux/man-pages/man2/mknod.2.html](https://man7.org/linux/man-pages/man2/mknod.2.html). Consultada el 2026-11-13.
 - `umask(2)`: la máscara se usa en las llamadas que crean archivos para modificar los permisos que reciben. [man7.org/linux/man-pages/man2/umask.2.html](https://man7.org/linux/man-pages/man2/umask.2.html). Consultada el 2026-11-13. Que con `sudo` la máscara vale `022` y deja un dispositivo creado con `0o666` en `0o644`: comprobado en la máquina de pruebas, con `sudo sh -c umask` y con una variante sin `fs::set_permissions`, el 2026-11-13.
 - Kernel de Linux, lista de números de dispositivo: el mayor `1` es «Memory devices», con `3 = /dev/null` y `5 = /dev/zero`. [docs.kernel.org/admin-guide/devices.html](https://docs.kernel.org/admin-guide/devices.html). Consultada el 2026-11-13.
 - Kernel de Linux, `tmpfs`: «Tmpfs is a file system which keeps all of its files in virtual memory», y «no files will be created on your hard drive. If you unmount a tmpfs instance, everything stored therein is lost.» [docs.kernel.org/filesystems/tmpfs.html](https://docs.kernel.org/filesystems/tmpfs.html). Consultada el 2026-11-13.
 - `network_namespaces(7)`: los namespaces de red aíslan, entre otras cosas, los dispositivos de red. [man7.org/linux/man-pages/man7/network_namespaces.7.html](https://man7.org/linux/man-pages/man7/network_namespaces.7.html). Consultada el 2026-11-13. Que una lista de interfaces nueva solo trae `lo`, apagada: comprobado en la máquina de pruebas con `run /sbin/ip link` y la bandera `CLONE_NEWNET`, el 2026-11-13.
 - `nix` 0.31.3: las páginas de `nix::unistd::pivot_root`, `nix::unistd::chdir`, `nix::sys::stat::mknod`, `nix::sys::stat::makedev`, `nix::sys::stat::SFlag` y `nix::sys::stat::Mode` dicen «Available on crate feature `fs` only», y las de `nix::mount::umount2` y `nix::mount::MntFlags`, «Available on crate feature `mount` only». [docs.rs/nix/0.31.3/nix/unistd/fn.pivot_root.html](https://docs.rs/nix/0.31.3/nix/unistd/fn.pivot_root.html). Consultada el 2026-11-13. `cargo add` mostró que `fs` no activa ninguna feature más.
-- La carpeta compartida con tu Mac: con `sudo chown 1234 archivo` el dueño siguió siendo el usuario 501, y `sudo mknod dev-null c 1 3` falló con `Operation not permitted`. Comprobado en la máquina de pruebas, el 2026-11-13.
+- La carpeta compartida con tu Mac: un archivo creado con `sudo touch` y cambiado con `sudo chown 1234:1234` apareció en `ls -ln` con el usuario 501 y el grupo 501, y `sudo mknod dev-null c 1 3` falló con `Operation not permitted`. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Los programas de `/bin` de Alpine: 81 de 82 son enlaces a `/bin/busybox`, y no hay `bash`. Comprobado en la máquina de pruebas, el 2026-11-13.
-- `init` sin `make_mounts_private`: en un namespace de montajes desechable (`unshare -m`, con `mount --make-rshared /`), `pivot_root` falló con `EINVAL`. Sin el bind mount, falló con `EBUSY`. Con `mount_proc` antes de `enter_rootfs`, `ps` imprimió solo la cabecera. Sin la línea de `mount_dev`, `echo hola > /dev/null` creó un archivo de 5 bytes y `cat /dev/null` imprimió `hola`. Con `mknod` antes del tmpfs, la primera ejecución dio un `/dev` vacío y la segunda falló con `EEXIST`. Con el tmpfs montado antes del bind mount, con `MS_REC`, `/dev` salió completo. Todo comprobado en la máquina de pruebas, con la tabla de montajes de la máquina igual antes y después, el 2026-11-13.
+- `init` sin `make_mounts_private`: en un namespace de montajes desechable (`unshare -m`, con `mount --make-rshared /`), `pivot_root` falló con `EINVAL`. Sin el bind mount, falló con `EBUSY`. Con `mount_proc` antes de `enter_rootfs`, `ps` imprimió solo la cabecera. Sin la línea de `mount_dev`, `echo hola > /dev/null` creó un archivo de 5 bytes y `cat /dev/null` imprimió `hola`. Con `mknod` antes del tmpfs, la primera ejecución dio un `/dev` vacío y la segunda falló con `EEXIST`. Con el tmpfs montado antes del bind mount, con `MS_REC`, `/dev` salió completo, y con solo `MS_BIND`, sin `MS_REC`, salió vacío (`total 0`). Todo comprobado en la máquina de pruebas, con la tabla de montajes de la máquina igual antes y después, el 2026-11-13.
 - Sin `chdir("/")` al final de `switch_root`, `pwd` imprimió `/` y `ls -i -d . /` dio el mismo número para las dos: la carpeta actual ya era la raíz nueva. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.
