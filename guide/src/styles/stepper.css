@@ -124,24 +124,6 @@
   overflow-wrap: anywhere;
 }
 
-.stepper-lane .diagram-note {
-  margin: 0;
-}
-
-.stepper-output {
-  margin: 0;
-  color: var(--n-muted);
-  font-family: var(--__sl-font-mono);
-  font-size: 0.8125rem;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-
-.stepper-output b {
-  color: var(--n-text);
-  font-weight: 600;
-}
-
 .stepper-caption {
   margin: 0.875rem 0 0.25rem;
   padding: 0.625rem 0.75rem;

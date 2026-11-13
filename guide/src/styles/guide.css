@@ -346,6 +346,34 @@
   font-weight: 600;
 }
 
+.process[data-child] {
+  outline: 1px dashed var(--n-t-green);
+  outline-offset: 1px;
+}
+
+.process-launch {
+  color: var(--n-faint);
+  font-size: var(--sl-text-2xs);
+  text-align: center;
+}
+
+.process-launch::before {
+  content: "↓ ";
+}
+
+.process-output {
+  color: var(--n-muted);
+  font-family: var(--__sl-font-mono);
+  font-size: 0.8125rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.process-output b {
+  color: var(--n-text);
+  font-weight: 600;
+}
+
 .kernel-box {
   padding: 0.5rem;
   border: 1px dashed var(--n-faint);
@@ -359,6 +387,11 @@
 
 .kernel-box[data-copy] > .kernel-label {
   color: var(--n-t-green);
+}
+
+.kernel-empty {
+  color: var(--n-faint);
+  font-size: var(--sl-text-2xs);
 }
 
 .kernel-box + .kernel-box {

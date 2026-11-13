@@ -12,6 +12,8 @@ const inputTag = /<input\b[^>]*>/g;
 const idAttribute = /\sid="([^"]*)"/g;
 const stepperTag = /<Stepper[\s>]/g;
 const stepTag = /<Step[\s>]/g;
+const stepperBlock = /<Stepper[\s>][\s\S]*?<\/Stepper>/g;
+const rawClass = /\sclass=/;
 const restartMark = "↺";
 const backMark = "◀";
 const forwardMark = "▶";
@@ -64,6 +66,12 @@ for (const docsPath of listFiles(docsFolder).filter((path) => path.endsWith(".md
 
   test(`${name}: a Step is only written inside a Stepper`, () => {
     assert.ok(steppersWritten > 0 || stepsWritten === 0, `${name}: a Step is used outside a Stepper`);
+  });
+
+  test(`${name}: the steps use the diagram components, not raw class names`, () => {
+    for (const block of source.match(stepperBlock) ?? []) {
+      assert.ok(!rawClass.test(block), `${name}: a Stepper holds raw HTML with a class attribute: use Process, Lane or KernelBox props instead`);
+    }
   });
 
   test(`${name}: every written Stepper and Step appears in the built page`, () => {

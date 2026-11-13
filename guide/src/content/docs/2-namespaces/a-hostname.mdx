@@ -65,14 +65,11 @@ Hoy tu programa le pide al kernel su propia copia de esa lista. Escribe un nombr
 </Step>
 <Step>
 <Lane title="Fuera · tu terminal">
-<Process>hostname</Process>
-<p class="stepper-output">imprime <b>mini-container-dev</b></p>
+<Process output="mini-container-dev">hostname</Process>
 </Lane>
 <Lane title="Tu programa">
 <Process usesCopy>mini-container</Process>
-<p class="diagram-note">↓ lanza</p>
-<Process usesCopy>/bin/hostname</Process>
-<p class="stepper-output">imprime <b>container</b></p>
+<Process usesCopy isChild output="container">/bin/hostname</Process>
 </Lane>
 <KernelBox>
 <KernelEntry note="original">mini-container-dev</KernelEntry>

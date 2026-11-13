@@ -2,9 +2,11 @@
 interface Props {
   highlighted?: boolean;
   usesCopy?: boolean;
+  isChild?: boolean;
+  output?: string;
 }
 
-const { highlighted = false, usesCopy = false } = Astro.props;
+const { highlighted = false, usesCopy = false, isChild = false, output } = Astro.props;
 ---
 
-<span class="process" data-highlighted={highlighted || undefined} data-uses-copy={usesCopy || undefined}><slot /></span>
+{isChild && <span class="process-launch">lanza</span>}<span class="process" data-highlighted={highlighted || undefined} data-uses-copy={usesCopy || undefined} data-child={isChild || undefined}><slot /></span>{output && <span class="process-output">imprime <b>{output}</b></span>}

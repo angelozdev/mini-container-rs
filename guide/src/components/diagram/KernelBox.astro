@@ -9,5 +9,5 @@ const { label = "kernel", isCopy = false } = Astro.props;
 
 <div class="kernel-box" data-copy={isCopy || undefined}>
   <div class="kernel-label">{label}</div>
-  <div class="kernel-entries"><slot /></div>
+  <div class="kernel-entries"><slot><span class="kernel-empty">vacía</span></slot></div>
 </div>
