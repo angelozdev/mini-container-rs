@@ -1,0 +1,38 @@
+use std::os::unix::process::ExitStatusExt;
+use std::process::{Command, ExitCode, ExitStatus};
+
+use anyhow::{Context, Result};
+
+use crate::cli::CommandLine;
+
+const SIGNAL_EXIT_BASE: u8 = 128;
+
+pub fn run(command: &CommandLine) -> Result<ExitCode> {
+    let status = Command::new(&command.program)
+        .args(&command.args)
+        .status()
+        .context("no pude lanzar el programa")?;
+    Ok(ExitCode::from(exit_code(status)))
+}
+
+fn exit_code(status: ExitStatus) -> u8 {
+    match status.code() {
+        Some(code) => code as u8,
+        None => SIGNAL_EXIT_BASE + status.signal().unwrap_or_default() as u8,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normal_exit_keeps_its_code() {
+        assert_eq!(exit_code(ExitStatus::from_raw(3 << 8)), 3);
+    }
+
+    #[test]
+    fn signal_exit_is_128_plus_signal() {
+        assert_eq!(exit_code(ExitStatus::from_raw(9)), 137);
+    }
+}
