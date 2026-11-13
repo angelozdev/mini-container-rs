@@ -310,3 +310,17 @@
     animation: stepper-flash 1s ease;
   }
 }
+
+@media (max-width: 40rem) {
+  .stepper-lane:has(> .kernel-box) {
+    grid-column: 1 / -1;
+  }
+
+  .stepper-scene > .kernel-box .kernel-entries {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stepper-call {
+    font-size: 0.75rem;
+  }
+}
