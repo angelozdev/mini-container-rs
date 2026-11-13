@@ -555,7 +555,11 @@ Antes de escribir, una predicción.
    - Las dos líneas de `namespaces` no cambian: siguen pidiendo las copias y escribiendo el hostname en `run`, el padre. El hijo nace después. Queda en la copia del hostname y en la de montajes de su padre, y nace en la lista de procesos nueva. Por eso es el PID 1.
    - `.status()` y lo demás no cambian. Como `.exec()` mantiene el proceso, el código de salida del hijo es el del comando.
 
-   La ruta se lee antes de pedir las copias. Después de `unshare`, el kernel puede dar una ruta cortada si tu programa era el único que usaba su lista de montajes anterior, por ejemplo si lo lanzas con `unshare -m`, un comando que crea una copia de montajes y lanza el programa dentro de ella. Leerla antes evita ese caso.
+   La ruta se lee antes de pedir las copias, no después.
+
+   Después de `unshare`, el kernel puede dar una ruta cortada. Pasa cuando tu programa era el único proceso que usaba su lista de montajes anterior. Por ejemplo, si lo lanzas con `unshare -m`. Ese comando crea una copia de montajes y lanza el programa dentro de ella.
+
+   Leer la ruta antes evita ese caso.
 
    Si hiciste el ejercicio 1a.1, tu línea de `.context(...)` es otra. Si hiciste el 2a.1, lo es la de `set_hostname`. Déjalas como las tienes.
 
@@ -716,6 +720,43 @@ sudo umount /proc
 - `umount /proc`: desmonta lo que está montado en `/proc`. Quita el último montaje, el muerto, y vuelve a verse el `/proc` de debajo, el verdadero.
 - Efecto: tu máquina vuelve a ver su lista de procesos.
 
+## Comprueba tu código
+
+Compila con `cargo build`: la prueba usa el binario del último `cargo build`, así que sin compilar antes comprueba el viejo.
+
+Corre la prueba de esta sección sobre tu programa. Funciona igual que en 1a. En Linux, desde la raíz del repo:
+
+```sh title="En Linux"
+sudo guide/scripts/check-my-code.sh 2b
+```
+
+- `sudo`: corre el comando como administrador. Tu programa lo necesita, y la prueba también lo corre una vez sin él, para ver si el error dice qué falta.
+- `guide/scripts/check-my-code.sh`: el script de la guía que corre la prueba sobre tu programa.
+- `2b`: la sección cuya prueba se corre.
+- Efecto: corre `target/debug/mini-container`, tu binario, con las comprobaciones de 1a, 2a y 2b.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo guide/scripts/check-my-code.sh 2b
+OK 2b
+```
+
+</ShouldSee>
+
+`OK 2b` dice que tu programa pasó todas las comprobaciones. Si una falla, el script la nombra y sale con un código distinto de 0, como en 1a.
+
+Las comprobaciones de 2b añaden cuatro casos a las de 1a y 2a:
+
+- El comando es el PID 1 de su lista, y la lista solo tiene ese proceso.
+- Tu máquina conserva su lista de procesos y sus montajes.
+- Si matas al hijo desde fuera, `run` sale con 137.
+- Tu programa funciona cuando es el único proceso de su lista de montajes, el caso de `unshare -m` del paso 6.
+
+Hagas o no los ejercicios 1a.1 y 2a.1, la prueba da `OK`. El 2b.1 no escribe código.
+
+Si tu `init` monta `/proc` sin hacer privados los montajes antes, la prueba puede dejar tu `/proc` muerto, como en la trampa de más arriba. El `umount /proc` de esa sección lo arregla.
+
 ## Por qué el PID 1 ignora señales
 
 En 1a, `run /bin/sh -c 'kill -9 $$'` daba `137`. Pruébalo ahora:
@@ -741,7 +782,9 @@ Sale `0`, no `137`. El shell no murió: `kill` terminó bien y el shell salió c
 
 El PID 1 de una lista es especial. Solo recibe las señales para las que tiene un *manejador*, que es el código con el que un programa decide qué hacer al recibirlas. Las demás se pierden, incluso `SIGKILL`, si las manda un proceso de su misma lista. Aquí el PID 1 es el shell, y se la mandó a sí mismo.
 
-Hay una excepción: `SIGKILL` y `SIGSTOP` sí llegan si las manda un proceso de fuera de su lista. Por eso `sudo kill -9 <PID>`, desde tu máquina, sí lo mata. Es lo que haces al final del ejercicio 2b.1.
+Hay una excepción: `SIGKILL` y `SIGSTOP` sí llegan si las manda un proceso de fuera de su lista. `SIGSTOP` es la señal que pausa a un proceso, sin terminarlo.
+
+Por eso `sudo kill -9 <PID>`, desde tu máquina, sí lo mata. Es lo que haces al final del ejercicio 2b.1.
 
 Esto tiene dos consecuencias:
 
@@ -897,6 +940,7 @@ grep NSpid /proc/<PID>/status
 - Que `/` es `shared` en la máquina de pruebas: `findmnt -no PROPAGATION /` imprimió `shared`, el 2026-11-13.
 - La trampa de los montajes: comprobada en un namespace de montajes desechable, creado con `unshare -m` sobre la máquina de pruebas, y con `/` marcado como `shared` dentro de él (`mount --make-rshared /`) para imitar a la máquina. Allí, `init` sin `make_mounts_private` dejó `ps -e` con el error `Error, do this: mount -t proc proc /proc`, y `umount /proc` lo arregló. Con `sudo` desde un usuario normal también. La máquina no se tocó. El 2026-11-13.
 - `child` a mano: comprobado en el mismo tipo de namespace desechable. Dejó `/` en `private` y dos montajes en `/proc`. El 2026-11-13.
+- `signal(7)`: la tabla de señales dice «SIGKILL ... Kill signal» y «SIGSTOP ... Stop process», y que las dos «cannot be caught, blocked, or ignored». [man7.org/linux/man-pages/man7/signal.7.html](https://man7.org/linux/man-pages/man7/signal.7.html), Linux man-pages 6.19. Consultada el 2026-11-13.
 - `kill -9 $$` dentro del contenedor: `sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?` imprimió `0`, con el binario de 2b en la máquina de pruebas, el 2026-11-13. `sudo kill -9` sobre el PID real de un `sleep` del contenedor, desde la máquina, lo terminó, y `run` salió con 137.
 - Ctrl-C: comprobado en la máquina de pruebas con una terminal simulada. Tras Ctrl-C, `sudo` y `mini-container` desaparecen, pero `sleep`, el PID 1, sigue vivo. `SigCgt` en `/proc/<PID>/status` de ese `sleep` vale `0`: no tiene ningún manejador. El 2026-11-13.
 - Lanzar `mini-container` con `unshare -m`, donde es el único proceso de su namespace de montajes: sin leer la ruta antes de `unshare`, `current_exe()` devolvió una ruta cortada y el `run` falló con `No such file or directory`. Con la ruta leída antes, funciona. Comprobado en la máquina de pruebas, el 2026-11-13.

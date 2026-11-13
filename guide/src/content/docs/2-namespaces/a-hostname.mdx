@@ -449,6 +449,34 @@ sudo hostname mini-container-dev
 - `hostname mini-container-dev`: con un argumento, `hostname` escribe ese nombre en vez de imprimirlo. Usa el nombre de tu máquina.
 - Efecto: la máquina vuelve a llamarse como antes.
 
+## Comprueba tu código
+
+Compila con `cargo build`: la prueba usa el binario del último `cargo build`, así que sin compilar antes comprueba el viejo.
+
+Corre la prueba de esta sección sobre tu programa. Funciona igual que en 1a. En Linux, desde la raíz del repo:
+
+```sh title="En Linux"
+sudo guide/scripts/check-my-code.sh 2a
+```
+
+- `sudo`: corre el comando como administrador. Ahora tu programa también lo necesita, para pedir la copia del hostname.
+- `guide/scripts/check-my-code.sh`: el script de la guía que corre la prueba sobre tu programa.
+- `2a`: la sección cuya prueba se corre.
+- Efecto: corre `target/debug/mini-container`, tu binario. Repite las comprobaciones de 1a y añade las del hostname: dentro del contenedor es `container` y tu máquina conserva el suyo. También corre tu programa una vez sin permisos de administrador, para ver si el error dice qué falta.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo guide/scripts/check-my-code.sh 2a
+OK 2a
+```
+
+</ShouldSee>
+
+`OK 2a` dice que tu programa pasó todas las comprobaciones. Si una falla, el script la nombra y sale con un código distinto de 0, como en 1a.
+
+Hagas o no los ejercicios 1a.1 y 2a.1, la prueba da `OK`. El 1a.1 cambia un mensaje que la prueba mira, y la prueba acepta el de 1a y el del ejercicio. El 2a.1 no cambia nada que la prueba mire: sin la variable, el hostname sigue siendo `container`.
+
 ## El error que explica qué falta
 
 Ese error dice primero qué intentaba tu programa y después la causa. No tenía por qué ser así. Un `Result` se puede abrir con `.unwrap()`: si hubo un error, el programa se cae con un *panic*. Un panic es una caída: Rust imprime dónde pasó y sale con el código 101.

@@ -506,6 +506,50 @@ La primera línea es el texto `USAGE`, que sale por stderr. La segunda es el có
 Cambias el código, corres el comando y el resultado no cambia. Casi siempre es que olvidaste `cargo build`. `sudo ./target/debug/mini-container` ejecuta el binario que ya existe. Compilar y correr son dos pasos.
 </Aside>
 
+## Comprueba tu código
+
+Tu programa ya corre. Falta saber si hace todo lo que esta sección pide.
+
+La guía trae una prueba para eso. Es la misma con la que comprueba su propio código de esta sección. Corre tu programa con varios casos, uno por uno, y compara lo que hace con lo que debe hacer.
+
+Antes, compila. La prueba usa el binario que dejó el último `cargo build`, y `sudo` no tiene `cargo` para compilar por ti. Es la trampa de [0a](/0-setup/a-linux-machine/).
+
+Corre la prueba en Linux, desde la raíz del repo:
+
+```sh title="En Linux"
+sudo guide/scripts/check-my-code.sh 1a
+```
+
+- `sudo`: corre el comando como administrador. En esta sección tu programa todavía no lo necesita. La prueba lo pide siempre, para ser la misma en todas las secciones.
+- `guide/scripts/check-my-code.sh`: el script de la guía que corre la prueba sobre tu programa. La ruta empieza en la raíz del repo, así que hay que correrlo desde ahí.
+- `1a`: la sección cuya prueba se corre.
+- Efecto: corre `target/debug/mini-container`, tu binario, con casos buenos y malos. Comprueba lo que imprime y con qué código sale. Al final, comprueba que tu máquina quedó igual.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo guide/scripts/check-my-code.sh 1a
+OK 1a
+```
+
+</ShouldSee>
+
+`OK 1a` dice que tu programa pasó todas las comprobaciones. Si todo va bien, no imprime nada más.
+
+Si una comprobación falla, el script dice cuál y sale con un código distinto de 0. Este es el resultado de un programa que sale con 0 aunque el hijo falle:
+
+```sh title="Si falla"
+$ sudo guide/scripts/check-my-code.sh 1a; echo $?
+FAIL: the child exits with 3: expected [3] but got [0]
+1
+```
+
+- `FAIL: the child exits with 3`: el nombre de la comprobación que falló. Dice «el hijo sale con 3».
+- `expected [3] but got [0]`: lo que esperaba la prueba y lo que obtuvo. Dice «esperaba 3 y obtuvo 0».
+- `1`: el código de salida del script. Cualquier número distinto de 0 significa que falló.
+
+Más abajo está el ejercicio 1a.1, que cambia el mensaje de `could not launch the program`. La prueba acepta ese texto y el del ejercicio, y ningún otro. No comprueba si hiciste el ejercicio: eso lo dice su «Resultado esperado».
+
 ## Por qué 128 + señal
 
 Los shells quieren un solo número para todo. Por eso usan una convención: si el proceso murió por la señal N, el código es 128 + N. Con la señal 9 queda 128 + 9 = 137. Tu programa copia esa convención en `exit_code`.
