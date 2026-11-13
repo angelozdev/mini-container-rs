@@ -1,0 +1,36 @@
+---
+import { measurePage } from "../lib/page-metrics";
+
+interface Props {
+  position: number;
+  total: number;
+  body: string;
+}
+
+const { position, total, body } = Astro.props;
+const { words, codeLines, minutes, exercises } = measurePage(body);
+const segments = Array.from({ length: total }, (_, index) => index < position);
+---
+
+<dl class="page-props" data-words={words} data-code-lines={codeLines} data-pagefind-ignore>
+  <dt>
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3.5h12M2 8h12M2 12.5h7"></path></svg>
+    Sección
+  </dt>
+  <dd>
+    <span>{position} de {total}</span>
+    <span class="page-progress" aria-hidden="true">
+      {segments.map((filled) => <i data-filled={filled ? "" : undefined}></i>)}
+    </span>
+  </dd>
+  <dt>
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"></circle><path d="M8 4.5V8l2.5 1.5"></path></svg>
+    Lectura
+  </dt>
+  <dd>unos {minutes} min</dd>
+  <dt>
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4"></path></svg>
+    Ejercicios
+  </dt>
+  <dd>{exercises}</dd>
+</dl>

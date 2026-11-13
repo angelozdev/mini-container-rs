@@ -1,14 +1,9 @@
 ---
 import Default from "@astrojs/starlight/components/PageTitle.astro";
+import { findSectionPosition, type SidebarEntry } from "../lib/sections";
+import PageProperties from "./PageProperties.astro";
 
-interface Entry {
-  type: string;
-  label: string;
-  isCurrent?: boolean;
-  entries?: Entry[];
-}
-
-function groupsAbove(entries: Entry[]): string[] | undefined {
+function groupsAbove(entries: SidebarEntry[]): string[] | undefined {
   for (const entry of entries) {
     if (entry.type === "link" && entry.isCurrent) return [];
     if (entry.type === "group") {
@@ -21,7 +16,9 @@ function groupsAbove(entries: Entry[]): string[] | undefined {
 
 const { entry, sidebar } = Astro.locals.starlightRoute;
 const { icon, title } = entry.data;
-const groups = groupsAbove(sidebar as Entry[]) ?? [];
+const groups = groupsAbove(sidebar as SidebarEntry[]) ?? [];
+const section = findSectionPosition(sidebar as SidebarEntry[]);
+const body = entry.body ?? "";
 ---
 
 {
@@ -39,3 +36,8 @@ const groups = groupsAbove(sidebar as Entry[]) ?? [];
 }
 {icon && <div class="page-icon" aria-hidden="true">{icon}</div>}
 <Default {...Astro.props}><slot /></Default>
+{
+  section && (
+    <PageProperties position={section.position} total={section.total} body={body} />
+  )
+}
