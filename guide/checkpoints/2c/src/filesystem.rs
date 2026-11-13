@@ -54,9 +54,9 @@ fn bind_mount_onto_itself(rootfs: &Path) -> Result<()> {
 }
 
 fn mount_dev(dev: &Path) -> Result<()> {
-    const MEMORY_DEVICES: u64 = 1;
-    const NULL: u64 = 3;
-    const ZERO: u64 = 5;
+    const MEMORY_MAJOR: u64 = 1;
+    const NULL_MINOR: u64 = 3;
+    const ZERO_MINOR: u64 = 5;
 
     mount(
         Some("tmpfs"),
@@ -66,8 +66,8 @@ fn mount_dev(dev: &Path) -> Result<()> {
         None::<&str>,
     )
     .context("could not mount a tmpfs on /dev")?;
-    create_device(&dev.join("null"), MEMORY_DEVICES, NULL)?;
-    create_device(&dev.join("zero"), MEMORY_DEVICES, ZERO)
+    create_device(&dev.join("null"), MEMORY_MAJOR, NULL_MINOR)?;
+    create_device(&dev.join("zero"), MEMORY_MAJOR, ZERO_MINOR)
 }
 
 fn create_device(path: &Path, major: u64, minor: u64) -> Result<()> {
