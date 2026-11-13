@@ -41,7 +41,7 @@ Vas a instalar Rust con tu usuario, no como administrador. Rust quedará en tu c
 
 Después correrás `sudo cargo --version`. `sudo` corre un comando como administrador.
 
-Para razonarlo, hay que saber cómo se encuentra un programa. Un *shell* es el programa que lee lo que escribes en la terminal y lo ejecuta. Cuando escribes un nombre como `cargo`, el shell lo busca en una lista de carpetas llamada `PATH`. Tu `PATH` incluye `~/.cargo/bin`.
+Para razonarlo, hay que saber cómo se encuentra un programa. Un *shell* es el programa que lee lo que escribes en la terminal y lo ejecuta. Cuando escribes un nombre como `cargo`, el shell lo busca en una lista de carpetas llamada `PATH`. Después de instalar Rust, el `PATH` de tu usuario incluirá `~/.cargo/bin`.
 
 <Quiz kind="prediction">
 <Fragment slot="question">Con Rust instalado en `~/.cargo/bin`, corres `sudo cargo --version`. ¿Qué pasa?</Fragment>
@@ -290,10 +290,10 @@ which cargo
 $ sudo sh -c 'echo $PATH'
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 $ which cargo
-/home/TU_USUARIO/.cargo/bin/cargo
+/home/tu-usuario/.cargo/bin/cargo
 ```
 
-`TU_USUARIO` es tu nombre de usuario en Linux. Ninguna carpeta de la primera línea es `~/.cargo/bin`. Esa lista sale de la opción `secure_path` del archivo `/etc/sudoers`: cuando existe, `sudo` la usa en lugar de tu `PATH`.
+`/home/tu-usuario` es tu carpeta personal en Linux, la misma que `~`. Ninguna carpeta de la primera línea es `~/.cargo/bin`. Esa lista sale de la opción `secure_path` del archivo `/etc/sudoers`: cuando existe, `sudo` la usa en lugar de tu `PATH`.
 
 La salida correcta es compilar con tu usuario y correr solo el binario con `sudo`. Estos comandos son para 1a, cuando ya tengas un proyecto. No los corras todavía:
 
@@ -343,6 +343,6 @@ Tu lista debe incluir `cpu` y `memory`. Puede traer más o menos controladores q
 - Documentación de cgroup v2 del kernel, «Mounting» y `cgroup.controllers`: el sistema de archivos de cgroup v2 se llama `cgroup2`, y `cgroup.controllers` es un archivo de solo lectura que lista los controladores disponibles. [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-12.
 - `stat(1)`: `%T` imprime el tipo del sistema de archivos en texto. [man7.org/linux/man-pages/man1/stat.1.html](https://man7.org/linux/man-pages/man1/stat.1.html). Consultada el 2026-11-12.
 - `sudoers-rs(5)`, opción `secure_path`: «If set, sudo will use this value in place of the user's PATH environment variable». Página man del paquete `sudo-rs` 0.2.13 de Ubuntu 26.04, leída en la máquina el 2026-11-12. En esa máquina, `/etc/sudoers` define `secure_path` con la lista que muestra la trampa.
-- Las terminales nuevas encuentran `cargo`: comprobado en la máquina con `bash -ic 'command -v cargo'`, que imprime `/home/TU_USUARIO/.cargo/bin/cargo`, y con `grep cargo ~/.profile ~/.bashrc`, que muestra la línea `. "$HOME/.cargo/env"` en los dos archivos. El 2026-11-12.
+- Las terminales nuevas encuentran `cargo`: comprobado en la máquina con `bash -ic 'command -v cargo'`, que imprime `/home/tu-usuario/.cargo/bin/cargo`, y con `grep cargo ~/.profile ~/.bashrc`, que muestra la línea `. "$HOME/.cargo/env"` en los dos archivos. El 2026-11-12.
 - Sintaxis de `orb create` y de `orb -m`: salida de `orb create --help` y `orbctl run --help`, OrbStack 2.2.5, el 2026-11-12.
 - Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, el 2026-11-12. La fila de `orb list` es un ejemplo, con el nombre cambiado.
