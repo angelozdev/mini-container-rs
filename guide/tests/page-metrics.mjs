@@ -62,3 +62,7 @@ export function expectedProperties(source, position, total) {
     filled: Array.from({ length: total }, (_, index) => index < position),
   };
 }
+
+export function usesTildeFence(source) {
+  return /^[ \t]*~{3,}/m.test(source);
+}

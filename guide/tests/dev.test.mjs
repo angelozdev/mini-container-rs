@@ -6,7 +6,7 @@ import { join, relative } from "node:path";
 import { after, before, test } from "node:test";
 import { readHeaderBlocks, readSectionLinks } from "./header-html.mjs";
 import { expectedProperties } from "./page-metrics.mjs";
-import { docsFolder, guideRoot, listFiles } from "./support.mjs";
+import { docsFolder, guideRoot, listSectionPaths, pageUrlOf } from "./support.mjs";
 import { readSteppers } from "./stepper-html.mjs";
 
 const astroCli = join(guideRoot, "node_modules/astro/bin/astro.mjs");
@@ -18,11 +18,7 @@ const sequencePages = [
   { path: "/2-namespaces/c-filesystem/", source: "2-namespaces/c-filesystem.mdx" },
 ];
 const stepTag = /<Step[\s>]/g;
-const sectionPaths = listFiles(docsFolder)
-  .filter((path) => path.endsWith(".mdx"))
-  .filter((path) => relative(docsFolder, path).includes("/"))
-  .sort();
-const urlOf = (docsPath) => `/${relative(docsFolder, docsPath).replace(/\.mdx$/, "")}/`;
+const sectionPaths = listSectionPaths();
 
 let server;
 let baseUrl;
@@ -90,13 +86,13 @@ for (const page of sequencePages) {
 
 for (const docsPath of sectionPaths) {
   test(`${relative(docsFolder, docsPath)}: the properties block renders under astro dev`, async () => {
-    const response = await fetch(baseUrl + urlOf(docsPath));
+    const response = await fetch(baseUrl + pageUrlOf(docsPath));
     const html = await response.text();
-    assert.equal(response.status, 200, `${urlOf(docsPath)} answered ${response.status}`);
+    assert.equal(response.status, 200, `${pageUrlOf(docsPath)} answered ${response.status}`);
     assert.ok(html.includes("data-astro-source-file"), "astro dev should annotate the elements with their source file");
     const order = readSectionLinks(html);
-    const position = order.indexOf(urlOf(docsPath)) + 1;
-    assert.ok(position > 0, `${urlOf(docsPath)} is not among the sidebar sections ${order.join(", ")}`);
+    const position = order.indexOf(pageUrlOf(docsPath)) + 1;
+    assert.ok(position > 0, `${pageUrlOf(docsPath)} is not among the sidebar sections ${order.join(", ")}`);
     const blocks = readHeaderBlocks(html);
     assert.equal(blocks.length, 1, `expected exactly one properties block, found ${blocks.length}`);
     const [section, reading, exercises] = blocks[0].rows;

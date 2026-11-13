@@ -85,3 +85,14 @@ export function readBlockTitle(meta) {
 export function readBlockLanguage(meta) {
   return meta.trim().split(/\s+/)[0];
 }
+
+export function listSectionPaths() {
+  return listFiles(docsFolder)
+    .filter((path) => path.endsWith(".mdx"))
+    .filter((path) => relative(docsFolder, path).includes("/"))
+    .sort();
+}
+
+export function pageUrlOf(docsPath) {
+  return `/${relative(docsFolder, docsPath).replace(/\.mdx$/, "")}/`;
+}

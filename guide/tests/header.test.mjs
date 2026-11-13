@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
 import { readHeaderBlocks, readPageLandmarks, readSectionLinks } from "./header-html.mjs";
-import { countCodeLines, countWords, exerciseNumbers, pageId, readingMinutes } from "./page-metrics.mjs";
-import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles } from "./support.mjs";
+import { countCodeLines, countWords, exerciseNumbers, pageId, readingMinutes, usesTildeFence } from "./page-metrics.mjs";
+import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, listSectionPaths } from "./support.mjs";
 
 const expectedLabels = ["Sección", "Lectura", "Ejercicios"];
 const fence = "`".repeat(3);
@@ -87,10 +87,7 @@ test("the exercises of a page are the headings that carry its own id", () => {
   assert.equal(pageId(source), "2b");
 });
 
-const sectionPaths = listFiles(docsFolder)
-  .filter((path) => path.endsWith(".mdx"))
-  .filter((path) => relative(docsFolder, path).includes("/"))
-  .sort();
+const sectionPaths = listSectionPaths();
 
 function sourceOf(docsPath) {
   return readFileSync(docsPath, "utf8");
@@ -112,6 +109,17 @@ function readOnlyBlock(docsPath) {
   return blocks[0];
 }
 
+test("a ~~~ fence is detected, with or without indentation", () => {
+  assert.equal(usesTildeFence(mdx("Texto", "~~~sh", "ls", "~~~")), true);
+  assert.equal(usesTildeFence(mdx("1. Paso", "", "   ~~~sh", "   ls", "   ~~~")), true);
+  assert.equal(usesTildeFence(mdx("Texto", `${fence}sh`, "ls", fence, "Una tilde ~ suelta y ~~ dos")), false);
+});
+
+test("no section page uses a ~~~ fence, because the reading formula only recognises backtick fences", () => {
+  const offenders = sectionPaths.filter((path) => usesTildeFence(sourceOf(path))).map((path) => relative(docsFolder, path));
+  assert.deepEqual(offenders, [], "these pages use ~~~ fences: their code lines would count as prose");
+});
+
 test("the section pages are the ones the sidebar lists inside its groups", () => {
   assert.deepEqual([...menuOrder()].sort(), sectionPaths);
   assert.ok(sectionPaths.length >= 6, "the guide has at least the section pages 0a to 2c");
@@ -125,9 +133,8 @@ for (const docsPath of sectionPaths) {
   });
 
   test(`${name}: the properties block sits below the title and above the content`, () => {
-    const html = readBuilt(docsPath);
-    const { title, content } = readPageLandmarks(html);
-    const [block] = readHeaderBlocks(html);
+    const { title, content } = readPageLandmarks(readBuilt(docsPath));
+    const block = readOnlyBlock(docsPath);
     assert.ok(title >= 0 && content >= 0, "the page has no title or no content");
     assert.ok(title < block.index && block.index < content, "the block is not between the title and the content");
   });
