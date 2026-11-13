@@ -3,10 +3,13 @@ import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
 import { declares, readSiteCssRules } from "./css-rules.mjs";
-import { builtPageOf, docsFolder, hasClass, listSectionPaths } from "./support.mjs";
+import { builtFolder, builtPageOf, docsFolder, hasClass, listSectionPaths } from "./support.mjs";
 
 const sectionPaths = listSectionPaths();
-const otherPaths = ["index.mdx", "glossary.mdx"].map((name) => join(docsFolder, name));
+const otherPages = [
+  ...["index.mdx", "glossary.mdx"].map((name) => ({ name, builtPath: builtPageOf(join(docsFolder, name)) })),
+  { name: "404", builtPath: join(builtFolder, "404.html") },
+];
 const barClass = "reading-bar";
 const motionCondition = "(prefers-reduced-motion:no-preference)";
 const scrollTimelineCondition = "(animation-timeline:scroll())";
@@ -20,9 +23,9 @@ for (const docsPath of sectionPaths) {
   });
 }
 
-for (const docsPath of otherPaths) {
-  test(`${relative(docsFolder, docsPath)}: the cover and the glossary have no reading bar`, () => {
-    assert.equal(readFileSync(builtPageOf(docsPath), "utf8").includes(barClass), false);
+for (const page of otherPages) {
+  test(`${page.name}: the cover, the glossary and the 404 have no reading bar`, () => {
+    assert.equal(readFileSync(page.builtPath, "utf8").includes(barClass), false);
   });
 }
 
