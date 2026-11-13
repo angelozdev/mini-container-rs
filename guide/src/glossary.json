@@ -2,61 +2,109 @@
   {
     "id": "arm",
     "term": "brazo",
+    "match": [
+      "brazo",
+      "brazos"
+    ],
     "definition": "Cada línea `opción => resultado` de un `match`."
   },
   {
     "id": "attribute",
     "term": "atributo",
+    "match": [
+      "atributo",
+      "atributos"
+    ],
     "definition": "Una línea `#[...]` encima de un tipo: una instrucción para el compilador."
   },
   {
     "id": "cgroup",
     "term": "cgroup",
+    "match": [
+      "cgroup",
+      "cgroups"
+    ],
     "definition": "Los archivos de `/sys/fs/cgroup`, como `memory.max` y `cgroup.procs`. Con ellos el kernel limita lo que un grupo de procesos puede gastar."
   },
   {
     "id": "closure",
     "term": "closure",
+    "match": [
+      "closure",
+      "closures"
+    ],
     "definition": "Una función sin nombre, escrita así: `|| ...`."
   },
   {
     "id": "controller",
     "term": "controlador",
+    "match": [
+      "controlador",
+      "controladores"
+    ],
     "definition": "La pieza del kernel que gobierna un recurso. `memory` gobierna la RAM y `cpu` gobierna el uso del procesador."
   },
   {
     "id": "crate",
     "term": "crate",
+    "match": [
+      "crate",
+      "crates"
+    ],
     "definition": "Un paquete de Rust, el tuyo o uno ajeno."
   },
   {
     "id": "destructor",
     "term": "destructor",
+    "match": [
+      "destructor",
+      "destructores"
+    ],
     "definition": "El código que Rust ejecuta para limpiar cuando algo deja de usarse."
   },
   {
     "id": "environment-variable",
     "term": "variable de entorno",
+    "match": [
+      "variable de entorno",
+      "variables de entorno"
+    ],
     "definition": "Un nombre con un valor que un programa recibe de quien lo lanza. Se escribe `NOMBRE=valor`."
   },
   {
     "id": "exit-code",
     "term": "código de salida",
+    "match": [
+      "código de salida",
+      "códigos de salida"
+    ],
     "definition": "El número que deja un programa al terminar. `0` significa «todo salió bien». Cualquier otro número significa «hubo un problema»."
   },
   {
     "id": "feature",
     "term": "feature",
+    "match": [
+      "feature",
+      "features"
+    ],
     "definition": "Una pieza opcional de un crate que solo se compila si la pides."
   },
   {
     "id": "flag",
     "term": "bandera",
+    "match": [
+      "bandera",
+      "banderas"
+    ],
     "definition": "Una opción que se enciende o se apaga."
   },
   {
     "id": "hostname",
     "term": "hostname",
+    "match": [
+      "hostname",
+      "hostnames"
+    ],
     "definition": "El nombre de la máquina. El comando `hostname` lo imprime."
   },
   {
@@ -67,16 +115,28 @@
   {
     "id": "language-server",
     "term": "language server",
+    "match": [
+      "language server",
+      "language servers"
+    ],
     "definition": "Un programa que lee tu código y le dice al editor qué marcar."
   },
   {
     "id": "macro",
     "term": "macro",
+    "match": [
+      "macro",
+      "macros"
+    ],
     "definition": "Código que Rust expande mientras compila. El `!` al final del nombre la marca."
   },
   {
     "id": "mount",
     "term": "montaje",
+    "match": [
+      "montaje",
+      "montajes"
+    ],
     "definition": "Lo que conecta un conjunto de archivos a una carpeta, para que se vean ahí. El kernel guarda la lista de todos los montajes de la máquina."
   },
   {
@@ -87,6 +147,10 @@
   {
     "id": "namespace",
     "term": "namespace",
+    "match": [
+      "namespace",
+      "namespaces"
+    ],
     "definition": "Una copia privada de una lista del kernel. El kernel filtra lo que ve cada proceso según su etiqueta."
   },
   {
@@ -97,26 +161,46 @@
   {
     "id": "orphan-process",
     "term": "proceso huérfano",
+    "match": [
+      "huérfano",
+      "huérfanos"
+    ],
     "definition": "Un proceso que sigue corriendo sin el proceso que lo lanzó."
   },
   {
     "id": "panic",
     "term": "panic",
+    "match": [
+      "panic",
+      "panics"
+    ],
     "definition": "Una caída del programa: Rust imprime dónde pasó y sale con el código 101."
   },
   {
     "id": "pid",
     "term": "PID",
+    "match": [
+      "PID",
+      "PIDs"
+    ],
     "definition": "El número de un proceso. El primero de la lista es el número 1."
   },
   {
     "id": "placeholder",
     "term": "hueco",
+    "match": [
+      "hueco",
+      "huecos"
+    ],
     "definition": "El `{}` de un texto de Rust, que Rust rellena con un valor."
   },
   {
     "id": "process",
     "term": "proceso",
+    "match": [
+      "proceso",
+      "procesos"
+    ],
     "definition": "Un programa en ejecución."
   },
   {
@@ -127,16 +211,28 @@
   {
     "id": "shell",
     "term": "shell",
+    "match": [
+      "shell",
+      "shells"
+    ],
     "definition": "El programa que lee lo que escribes en la terminal y lo ejecuta. `/bin/sh` es el shell básico de Linux."
   },
   {
     "id": "signal",
     "term": "señal",
+    "match": [
+      "señal",
+      "señales"
+    ],
     "definition": "Un aviso que el kernel le manda a un proceso. La señal 9, `SIGKILL`, lo mata en el acto."
   },
   {
     "id": "signal-handler",
     "term": "manejador",
+    "match": [
+      "manejador",
+      "manejadores"
+    ],
     "definition": "El código con el que un programa decide qué hacer al recibir una señal."
   },
   {
@@ -152,31 +248,55 @@
   {
     "id": "subcommand",
     "term": "subcomando",
+    "match": [
+      "subcomando",
+      "subcomandos"
+    ],
     "definition": "La palabra que va después del nombre del programa, como `run`."
   },
   {
     "id": "system-call",
     "term": "llamada al sistema",
+    "match": [
+      "llamada al sistema",
+      "llamadas al sistema"
+    ],
     "definition": "Un pedido que un programa le hace al kernel: abrir un archivo, lanzar un proceso o cambiar el hostname."
   },
   {
     "id": "target",
     "term": "target",
+    "match": [
+      "target",
+      "targets"
+    ],
     "definition": "La plataforma para la que se compila."
   },
   {
     "id": "target-triple",
     "term": "tripleta",
+    "match": [
+      "tripleta",
+      "tripletas"
+    ],
     "definition": "El nombre de un target. Tiene cuatro partes: la arquitectura, el fabricante, el sistema operativo y la librería de C. Por ejemplo, `aarch64-unknown-linux-gnu`."
   },
   {
     "id": "terminal",
     "term": "terminal",
+    "match": [
+      "terminal",
+      "terminales"
+    ],
     "definition": "La ventana donde escribes comandos."
   },
   {
     "id": "trait",
     "term": "trait",
+    "match": [
+      "trait",
+      "traits"
+    ],
     "definition": "Una capacidad que un tipo puede tener."
   },
   {
