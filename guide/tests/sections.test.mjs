@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { findSectionPosition, groupsAbove } from "../src/lib/sections.ts";
+import { findSectionPosition, groupsAbove, isSectionPage } from "../src/lib/sections.ts";
 
 const link = (label, isCurrent = false) => ({ type: "link", label, isCurrent });
 const group = (label, ...entries) => ({ type: "group", label, entries });
@@ -22,6 +22,14 @@ test("a top-level link or an unknown page has no section position", () => {
   assert.equal(findSectionPosition(sidebar("Portada")), undefined);
   assert.equal(findSectionPosition(sidebar("Glosario")), undefined);
   assert.equal(findSectionPosition(sidebar(undefined)), undefined);
+});
+
+test("only a link inside a group is a section page", () => {
+  assert.equal(isSectionPage(sidebar("0a")), true);
+  assert.equal(isSectionPage(sidebar("1a")), true);
+  assert.equal(isSectionPage(sidebar("Portada")), false);
+  assert.equal(isSectionPage(sidebar("Glosario")), false);
+  assert.equal(isSectionPage(sidebar(undefined)), false);
 });
 
 test("the groups above a page are the labels of the groups that hold it", () => {

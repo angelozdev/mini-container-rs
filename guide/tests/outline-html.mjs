@@ -1,16 +1,20 @@
-import { attributeOf, readDiv, readElement } from "./support.mjs";
+import { attributeOf, readDiv, readElement, textOf } from "./support.mjs";
 
 const contentOpening = /<div\b[^>]*\bclass="sl-markdown-content"[^>]*>/;
-const sectionHeading = /<div\b[^>]*\bclass="sl-heading-wrapper level-h2"[^>]*><h2\b[^>]*\sid="([^"]*)"/g;
+const sectionHeading = /<div\b[^>]*\bclass="sl-heading-wrapper level-h2"[^>]*><h2\b[^>]*\sid="([^"]*)"[^>]*>([\s\S]*?)<\/h2>/g;
 const listOpening = /<ul\b[^>]*>/;
 const linkOpening = /<a\b[^>]*>/;
 const overviewHref = "#_top";
 
-export function readSectionIds(html) {
+export function readSectionHeadings(html) {
   const content = html.match(contentOpening);
   if (!content) return [];
   const body = readDiv(html, content.index);
-  return [...body.matchAll(sectionHeading)].map((heading) => heading[1]);
+  return [...body.matchAll(sectionHeading)].map((heading) => ({ id: heading[1], text: textOf(heading[2]) }));
+}
+
+export function readSectionIds(html) {
+  return readSectionHeadings(html).map((heading) => heading.id);
 }
 
 function readTopLevelItems(list) {

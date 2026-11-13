@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { countCodeLines, countWords } from "./page-metrics.mjs";
+import { countCodeLines, countWords, hintCount } from "./page-metrics.mjs";
 import { measurePage } from "../src/lib/page-metrics.ts";
 
 const fence = "`".repeat(3);
@@ -53,4 +53,38 @@ test("the published code agrees with the independent count on a mixed page", () 
   assert.equal(measured.words, countWords(body));
   assert.equal(measured.codeLines, countCodeLines(body));
   assert.equal(measured.minutes, 5);
+});
+
+test("the published code counts every Hint component of the page", () => {
+  const body = mdx('<Hint n={1}>Uno</Hint>', "", '<Hint n={2}>', "Dos", "</Hint>", '<Hint n={3}>Tres</Hint>');
+  assert.equal(measurePage(body, "9z · Página").hints, 3);
+});
+
+test("the published code does not count a Hint inside a code block or inline code", () => {
+  const body = mdx("Escribe `<Hint n={1}>` así.", `${fence}mdx`, '<Hint n={2}>Dentro de un bloque</Hint>', fence, '<Hint n={3}>Real</Hint>');
+  assert.equal(measurePage(body, "9z · Página").hints, 1);
+});
+
+test("the published code counts a Hint whose tag spans several lines, and not a component that only starts with the name", () => {
+  const body = mdx("<Hint", "  n={1}", ">", "Uno", "</Hint>", "<Hints>Otro</Hints>", "<HintBox>Otro</HintBox>");
+  assert.equal(measurePage(body, "9z · Página").hints, 1);
+});
+
+test("a page without hints has zero", () => {
+  assert.equal(measurePage("## Ejercicios\n\n### 9z.1 Uno", "9z · Página").hints, 0);
+});
+
+test("the published code counts the same hints as the independent count on a mixed page", () => {
+  const body = mdx(
+    "## Ejercicios",
+    "",
+    "### 9z.1 Uno",
+    '<Hint n={1}>Escribe `<Hint n={9}>` en el texto.</Hint>',
+    `${fence}sh`,
+    '<Hint n={8}>No es una pista</Hint>',
+    fence,
+    '<Hint n={2}>Dos</Hint>',
+  );
+  assert.equal(measurePage(body, "9z · Página").hints, hintCount(body));
+  assert.equal(hintCount(body), 2);
 });

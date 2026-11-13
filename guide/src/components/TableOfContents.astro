@@ -1,0 +1,17 @@
+---
+import Default from "@astrojs/starlight/components/TableOfContents.astro";
+import { measurePage } from "../lib/page-metrics";
+import { isSectionPage, type SidebarEntry } from "../lib/sections";
+import ExercisesCard from "./ExercisesCard.astro";
+
+const exercisesHeadingText = "Ejercicios";
+
+const { entry, sidebar, toc } = Astro.locals.starlightRoute;
+const exercisesHeading = isSectionPage(sidebar as SidebarEntry[])
+  ? toc?.items.find((item) => item.text === exercisesHeadingText)
+  : undefined;
+const { exercises, hints } = measurePage(entry.body ?? "", entry.data.title);
+---
+
+<Default {...Astro.props}><slot /></Default>
+{exercisesHeading && <ExercisesCard href={`#${exercisesHeading.slug}`} exercises={exercises} hints={hints} />}

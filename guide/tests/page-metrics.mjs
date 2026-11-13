@@ -54,6 +54,19 @@ export function exerciseNumbers(source) {
   return [...prose.matchAll(heading)].map((match) => Number(match[1]));
 }
 
+const hintTag = /<Hint[\s/>]/g;
+
+export function hintCount(source) {
+  const prose = bodyOf(source).replace(fencedBlock, "\n").replace(inlineCode, " ");
+  return (prose.match(hintTag) ?? []).length;
+}
+
+const counted = (count, singular, plural) => `${count} ${count === 1 ? singular : plural}`;
+
+export function expectedCardLine(source) {
+  return `${counted(exerciseNumbers(source).length, "ejercicio", "ejercicios")} · ${counted(hintCount(source), "pista", "pistas")}`;
+}
+
 export function expectedProperties(source, position, total) {
   return {
     section: `${position} de ${total}`,

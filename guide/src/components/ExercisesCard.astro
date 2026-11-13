@@ -1,0 +1,13 @@
+---
+import { summarizeExercises } from "../lib/exercises-card";
+
+interface Props {
+  href: string;
+  exercises: number;
+  hints: number;
+}
+
+const { href, exercises, hints } = Astro.props;
+---
+
+<a class="exercises-card" href={href}><b>Ir a los ejercicios</b><span>{summarizeExercises(exercises, hints)}</span></a>

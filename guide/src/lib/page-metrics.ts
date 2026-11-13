@@ -5,7 +5,11 @@ const minimumMinutes = 5;
 
 const fenceOpening = /^\s*(`{3,})/;
 const moduleLine = /^\s*(?:import|export)\s/;
-const inlineCodeOrTag = /(`+)(?!`)[\s\S]*?[^`]\1(?!`)|<\/?[A-Za-z][\w.:-]*(?:"[^"]*"|'[^']*'|\{[^}]*\}|[^>"'{}])*>/g;
+const inlineCodePattern = /(`+)(?!`)[\s\S]*?[^`]\1(?!`)/;
+const componentTagPattern = /<\/?[A-Za-z][\w.:-]*(?:"[^"]*"|'[^']*'|\{[^}]*\}|[^>"'{}])*>/;
+const inlineCodeOrTag = new RegExp(`${inlineCodePattern.source}|${componentTagPattern.source}`, "g");
+const inlineCode = new RegExp(inlineCodePattern.source, "g");
+const hintTag = /<Hint[\s/>]/g;
 const leadingMarkers = /^\s*(?:>\s*)*(?:(?:[-*+]|\d+[.)])\s+)?/;
 const wordCharacter = /[\p{L}\p{N}]/u;
 const pageIdPattern = /^(\d+[a-z])\s/;
@@ -39,6 +43,10 @@ function ownExerciseHeading(title: string): (line: string) => boolean {
   return (line) => heading.test(line);
 }
 
+function countHints(proseLines: string[]): number {
+  return (proseLines.join("\n").replace(inlineCode, " ").match(hintTag) ?? []).length;
+}
+
 function countWords(proseLines: string[]): number {
   const text = proseLines
     .filter((line) => !moduleLine.test(line))
@@ -62,6 +70,7 @@ export interface PageMetrics {
   codeLines: number;
   minutes: number;
   exercises: number;
+  hints: number;
 }
 
 export function measurePage(body: string, title: string): PageMetrics {
@@ -72,5 +81,6 @@ export function measurePage(body: string, title: string): PageMetrics {
     codeLines,
     minutes: readingMinutes(words, codeLines),
     exercises: proseLines.filter(ownExerciseHeading(title)).length,
+    hints: countHints(proseLines),
   };
 }

@@ -39,10 +39,11 @@ export default defineConfig({
         root: { label: "Español", lang: "es" },
       },
       plugins: [starlightLinksValidator()],
-      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css", "./src/styles/glossary.css", "./src/styles/page-props.css", "./src/styles/section-marks.css", "./src/styles/reading-bar.css", "./src/styles/diagram-grid.css"],
+      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css", "./src/styles/glossary.css", "./src/styles/page-props.css", "./src/styles/section-marks.css", "./src/styles/reading-bar.css", "./src/styles/diagram-grid.css", "./src/styles/exercises-card.css"],
       components: {
         Header: "./src/components/Header.astro",
         PageTitle: "./src/components/PageTitle.astro",
+        TableOfContents: "./src/components/TableOfContents.astro",
       },
       expressiveCode: {
         defaultProps: { wrap: true },

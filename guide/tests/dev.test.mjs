@@ -4,8 +4,10 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join, relative } from "node:path";
 import { after, before, test } from "node:test";
+import { readExercisesCards } from "./card-html.mjs";
 import { readHeaderBlocks, readSectionLinks } from "./header-html.mjs";
-import { expectedProperties } from "./page-metrics.mjs";
+import { readSectionHeadings } from "./outline-html.mjs";
+import { expectedCardLine, expectedProperties } from "./page-metrics.mjs";
 import { docsFolder, guideRoot, listSectionPaths, pageUrlOf } from "./support.mjs";
 import { readSteppers } from "./stepper-html.mjs";
 
@@ -104,6 +106,29 @@ for (const docsPath of sectionPaths) {
     assert.equal(exercises.value, expected.exercises);
   });
 }
+
+for (const docsPath of sectionPaths) {
+  test(`${relative(docsFolder, docsPath)}: the exercises card renders under astro dev, linked to the Ejercicios heading`, async () => {
+    const response = await fetch(baseUrl + pageUrlOf(docsPath));
+    const html = await response.text();
+    assert.equal(response.status, 200, `${pageUrlOf(docsPath)} answered ${response.status}`);
+    assert.ok(html.includes("data-astro-source-file"), "astro dev should annotate the elements with their source file");
+    const cards = readExercisesCards(html);
+    assert.equal(cards.length, 1, `expected exactly one card, found ${cards.length}`);
+    const heading = readSectionHeadings(html).find((candidate) => candidate.text === "Ejercicios");
+    assert.ok(heading, "the page has no Ejercicios heading");
+    assert.equal(cards[0].href, `#${heading.id}`);
+    assert.equal(cards[0].title, "Ir a los ejercicios");
+    assert.equal(cards[0].summary, expectedCardLine(readFileSync(docsPath, "utf8")));
+  });
+}
+
+test("the cover and the glossary have no exercises card under astro dev", async () => {
+  for (const path of ["/", "/glossary/"]) {
+    const html = await (await fetch(baseUrl + path)).text();
+    assert.equal(readExercisesCards(html).length, 0, `${path} has an exercises card`);
+  }
+});
 
 test("the cover and the glossary have no properties block under astro dev", async () => {
   for (const path of ["/", "/glossary/"]) {

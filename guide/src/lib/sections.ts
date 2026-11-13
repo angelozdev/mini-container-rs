@@ -30,3 +30,7 @@ export function findSectionPosition(sidebar: SidebarEntry[]): SectionPosition | 
   const index = sections.findIndex((entry) => entry.isCurrent);
   return index === -1 ? undefined : { position: index + 1, total: sections.length };
 }
+
+export function isSectionPage(sidebar: SidebarEntry[]): boolean {
+  return findSectionPosition(sidebar) !== undefined;
+}
