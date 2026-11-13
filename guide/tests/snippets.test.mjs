@@ -2,12 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
-import { guideRoot, listFiles } from "./support.mjs";
+import { guideRoot, listFiles, readBlockTitle, readCodeBlocks } from "./support.mjs";
 
 const docsFolder = join(guideRoot, "src/content/docs");
 const checkpointsFolder = join(guideRoot, "checkpoints");
-const fence = /^(\s*)(`{3,})(.*)$/;
-const closingFence = /^\s*`{3,}\s*$/;
 
 function readCheckpointId(source) {
   const frontmatter = source.match(/^---\n([\s\S]*?)\n---/);
@@ -29,32 +27,13 @@ function readMarkedLines(meta, name) {
   return marked;
 }
 
-function readCodeBlocks(source) {
-  const blocks = [];
-  let open = null;
-  for (const line of source.split("\n")) {
-    if (!open) {
-      const start = line.match(fence);
-      if (start) open = { indent: start[1], meta: start[3], lines: [] };
-      continue;
-    }
-    if (closingFence.test(line)) {
-      blocks.push(open);
-      open = null;
-      continue;
-    }
-    open.lines.push(line.startsWith(open.indent) ? line.slice(open.indent.length) : line);
-  }
-  return blocks;
-}
-
 function isCheckpointFile(title) {
   return title.startsWith("src/") || title === "Cargo.toml";
 }
 
 function readSnippets(source) {
   return readCodeBlocks(source)
-    .map((block) => ({ title: block.meta.match(/\btitle="([^"]*)"/)?.[1], block }))
+    .map((block) => ({ title: readBlockTitle(block.meta), block }))
     .filter(({ title }) => title !== undefined && isCheckpointFile(title))
     .map(({ title, block }) => {
       const removed = readMarkedLines(block.meta, "del");
