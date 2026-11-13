@@ -40,10 +40,10 @@ export function readGlossaryEntries() {
   return JSON.parse(readFileSync(glossaryFile, "utf8"));
 }
 
-const entityValues = { "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&amp;": "&" };
+const entityValues = { "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&amp;": "&", "&#x26;": "&" };
 
 export function decodeEntities(text) {
-  return text.replace(/&(?:lt|gt|quot|#39|amp);/g, (entity) => entityValues[entity]);
+  return text.replace(/&(?:lt|gt|quot|#39|amp|#x26);/g, (entity) => entityValues[entity]);
 }
 
 const ignoredFolders = new Set(["node_modules", "dist", ".astro", "target"]);

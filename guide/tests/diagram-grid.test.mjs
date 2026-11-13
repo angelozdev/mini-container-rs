@@ -29,6 +29,12 @@ const expectedOutcomes = [
     ok: { label: "No vuelve", note: "este proceso ya es otro programa" },
     error: { label: "Vuelve con el error", note: "el programa no se pudo ejecutar" },
   },
+  {
+    page: "3-cgroups/a-memory.mdx",
+    call: 'fs::write(&path, "50M")',
+    ok: { label: "Ok(())", note: "el kernel guarda el tope: 52428800" },
+    error: { label: "Err(EINVAL)", note: "el kernel no entiende el valor: sale con 1" },
+  },
 ];
 
 test("every diagram of every page carries the dot grid class", () => {

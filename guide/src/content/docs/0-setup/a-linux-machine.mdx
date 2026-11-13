@@ -364,7 +364,7 @@ Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las du
 
 ### 0a.1 Descubre qué controladores de cgroup tiene tu máquina
 
-**Objetivo:** un <Term id="controller">controlador</Term> es la pieza del kernel que gobierna un recurso. `memory` gobierna la RAM y `cpu` gobierna el uso del procesador. Averigua cuáles controladores tiene tu máquina y confirma que están `memory` y `cpu`, que usarás en la parte 3.
+**Objetivo:** un <Term id="controller">controlador</Term> es la pieza del kernel que gobierna un recurso. `memory` gobierna la <Term id="ram">RAM</Term> y `cpu` gobierna el uso del procesador. Averigua cuáles controladores tiene tu máquina y confirma que están `memory` y `cpu`, que usarás en la parte 3.
 
 ```sh title="Resultado esperado"
 $ cat /sys/fs/cgroup/cgroup.controllers

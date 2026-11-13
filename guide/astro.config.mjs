@@ -64,6 +64,10 @@ export default defineConfig({
           label: "2 · Namespaces",
           items: [{ autogenerate: { directory: "2-namespaces" } }],
         },
+        {
+          label: "3 · cgroups",
+          items: [{ autogenerate: { directory: "3-cgroups" } }],
+        },
         { label: "Glosario", slug: "glossary" },
       ],
     }),

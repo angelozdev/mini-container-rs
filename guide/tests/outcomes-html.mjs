@@ -1,4 +1,4 @@
-import { attributeOf, hasClass, readDiv, textOf } from "./support.mjs";
+import { attributeOf, decodeEntities, hasClass, readDiv, textOf } from "./support.mjs";
 
 const divOpening = /<div\b[^>]*>/g;
 const callElement = /<code\b[^>]*\bclass="outcomes-call"[^>]*>([\s\S]*?)<\/code>/;
@@ -21,7 +21,7 @@ function readBlock(html) {
     .map((opening) => readOutcome(readDiv(html, opening.index)));
   return {
     html,
-    call: textOf(html.match(callElement)?.[1] ?? ""),
+    call: decodeEntities(textOf(html.match(callElement)?.[1] ?? "")),
     arrowHidden: arrow !== undefined && attributeOf(arrow, "aria-hidden") === "true",
     outcomes,
   };
