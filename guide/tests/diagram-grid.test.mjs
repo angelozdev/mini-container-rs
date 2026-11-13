@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { test } from "node:test";
 import { declares, readSiteCssRules } from "./css-rules.mjs";
 import { readDiagrams, readOutcomeBlocks } from "./outcomes-html.mjs";
-import { builtPageOf, docsFolder, listSectionPaths } from "./support.mjs";
+import { builtPageOf, docsFolder, listSectionPaths, textOf } from "./support.mjs";
 
 const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx"].map((name) => join(docsFolder, name))];
 const readPage = (docsPath) => readFileSync(builtPageOf(docsPath), "utf8");
@@ -84,4 +84,29 @@ test("every outcome diagram has a call, hides its arrow and marks one ok and one
     }
   }
   assert.ok(found >= expectedOutcomes.length, `found ${found} outcome diagrams`);
+});
+
+function readParagraphBefore(html, end) {
+  const head = html.slice(0, end).trimEnd();
+  if (!head.endsWith("</p>")) return undefined;
+  return textOf(head.slice([...head.matchAll(/<p\b[^>]*>/g)].at(-1).index));
+}
+
+test("every outcome diagram follows the paragraph that introduces it, which ends with a colon", () => {
+  for (const docsPath of allPaths) {
+    const html = readPage(docsPath);
+    for (const block of readOutcomeBlocks(html)) {
+      const introduction = readParagraphBefore(html, html.indexOf(block.html));
+      assert.ok(introduction?.endsWith(":"), `${nameOf(docsPath)}: ${block.call} is not right after a paragraph ending with a colon`);
+    }
+  }
+});
+
+test("1-process/a-launch-a-shell.mdx: the .status() outcome diagram comes after the last sentence about the error output", () => {
+  const html = readPage(join(docsFolder, "1-process/a-launch-a-shell.mdx"));
+  const block = readOutcomeBlocks(html).find((candidate) => candidate.call === ".status()");
+  assert.ok(block, "no outcome diagram for .status()");
+  const sentence = html.indexOf("<p>El mensaje no dice qué programa falló. Lo arreglas en el ejercicio.</p>");
+  assert.notEqual(sentence, -1, "the sentence about the error message is not in the page");
+  assert.ok(sentence < html.indexOf(block.html), "the diagram splits the explanation of the error output");
 });
