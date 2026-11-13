@@ -6,10 +6,13 @@ interface Props {
 const { correct = false } = Astro.props;
 ---
 
-<details class="quiz-option" data-correct={correct || undefined}>
-  <summary class="quiz-choice"><slot /></summary>
+<div class="quiz-option" data-correct={correct || undefined}>
+  <label class="quiz-choice">
+    <input class="quiz-radio" type="radio" name="answer" />
+    <span class="quiz-text"><slot /></span>
+  </label>
   <div class="quiz-answer">
     <strong class="quiz-verdict">{correct ? "Correcto." : "No."}</strong>
     <div class="quiz-feedback"><slot name="feedback" /></div>
   </div>
-</details>
+</div>

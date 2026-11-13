@@ -6,10 +6,12 @@ import { guideRoot, listFiles } from "./support.mjs";
 
 const docsFolder = join(guideRoot, "src/content/docs");
 const builtFolder = join(guideRoot, "dist");
-const quizSection = /<section\b[^>]*\bclass="quiz"[^>]*>[\s\S]*?<\/section>/g;
-const quizOption = /<details\b[^>]*\bclass="quiz-option"[^>]*>[\s\S]*?<\/details>/g;
-const correctMark = /^<details\b[^>]*\sdata-correct[\s>=]/;
+const quizForm = /<form\b[^>]*\bclass="quiz"[^>]*>[\s\S]*?<\/form>/g;
+const optionStart = /(?=<div\b[^>]*\bclass="quiz-option")/;
+const correctMark = /^<div\b[^>]*\sdata-correct[\s>=]/;
 const feedback = /<div\b[^>]*\bclass="quiz-feedback"[^>]*>([\s\S]*?)<\/div>/;
+const inputTag = /<input\b[^>]*>/g;
+const formTag = /<form\b/g;
 const quizTag = /<Quiz[\s>]/g;
 const frontmatter = /^---\n([\s\S]*?)\n---/;
 const checkpointField = /^checkpoint:\s*\S/m;
@@ -30,14 +32,35 @@ function frontmatterOf(source) {
   return source.match(frontmatter)?.[1] ?? "";
 }
 
+function attributeOf(tag, name) {
+  return tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
+}
+
 function describeQuizzes(page) {
   const html = readFileSync(page, "utf8");
-  return (html.match(quizSection) ?? []).map((section) => ({
-    options: (section.match(quizOption) ?? []).map((option) => ({
-      isCorrect: correctMark.test(option),
-      feedback: textOf(option.match(feedback)?.[1] ?? ""),
-    })),
+  return (html.match(quizForm) ?? []).map((form) => ({
+    forms: (form.match(formTag) ?? []).length,
+    inputs: form.match(inputTag) ?? [],
+    options: form
+      .split(optionStart)
+      .slice(1)
+      .map((option) => ({
+        isCorrect: correctMark.test(option),
+        inputs: option.match(inputTag) ?? [],
+        feedback: textOf(option.match(feedback)?.[1] ?? ""),
+      })),
   }));
+}
+
+function builtQuizzes(page, written) {
+  const quizzes = describeQuizzes(page);
+  assert.equal(quizzes.length, written, `${relative(guideRoot, page)}: found ${quizzes.length} quiz forms, wrote ${written}`);
+  return quizzes;
+}
+
+function radiosOf(page) {
+  const html = readFileSync(page, "utf8");
+  return (html.match(inputTag) ?? []).filter((tag) => attributeOf(tag, "type") === "radio");
 }
 
 test("the site is built before checking the quizzes", () => {
@@ -66,26 +89,48 @@ for (const docsPath of listFiles(docsFolder).filter((path) => path.endsWith(".md
   test(`${name}: every written Quiz appears in the built page`, () => {
     const page = builtPageOf(docsPath);
     assert.ok(existsSync(page), `${relative(guideRoot, page)} is missing: run astro build`);
-    assert.equal(describeQuizzes(page).length, quizzesWritten);
+    builtQuizzes(page, quizzesWritten);
   });
 
   test(`${name}: every quiz has exactly one correct option`, () => {
     const page = builtPageOf(docsPath);
     if (!existsSync(page)) return;
-    for (const [index, quiz] of describeQuizzes(page).entries()) {
+    for (const [index, quiz] of builtQuizzes(page, quizzesWritten).entries()) {
       const correct = quiz.options.filter((option) => option.isCorrect).length;
       assert.ok(quiz.options.length >= 2, `quiz ${index + 1}: needs at least two options`);
       assert.equal(correct, 1, `quiz ${index + 1}: has ${correct} correct options`);
     }
   });
 
-  test(`${name}: every quiz option has feedback`, () => {
+  test(`${name}: every quiz option has a radio input and feedback`, () => {
     const page = builtPageOf(docsPath);
     if (!existsSync(page)) return;
-    for (const [index, quiz] of describeQuizzes(page).entries()) {
+    for (const [index, quiz] of builtQuizzes(page, quizzesWritten).entries()) {
       for (const [position, option] of quiz.options.entries()) {
-        assert.notEqual(option.feedback, "", `quiz ${index + 1}, option ${position + 1}: empty feedback`);
+        const where = `quiz ${index + 1}, option ${position + 1}`;
+        assert.equal(option.inputs.length, 1, `${where}: needs exactly one input`);
+        assert.equal(attributeOf(option.inputs[0], "type"), "radio", `${where}: the input is not a radio`);
+        assert.notEqual(option.feedback, "", `${where}: empty feedback`);
       }
     }
+  });
+
+  test(`${name}: the radios of one quiz form one group, apart from the other quizzes`, () => {
+    const page = builtPageOf(docsPath);
+    if (!existsSync(page)) return;
+    const quizzes = builtQuizzes(page, quizzesWritten);
+    for (const [index, quiz] of quizzes.entries()) {
+      const where = `quiz ${index + 1}`;
+      const names = new Set(quiz.inputs.map((tag) => attributeOf(tag, "name")));
+      assert.equal(quiz.forms, 1, `${where}: must be one form, not nested in another`);
+      assert.equal(quiz.inputs.length, quiz.options.length, `${where}: every input belongs to an option`);
+      assert.equal(names.size, 1, `${where}: its radios must share one name`);
+      assert.ok([...names][0], `${where}: its radios need a name`);
+      for (const tag of quiz.inputs) {
+        assert.equal(attributeOf(tag, "form"), undefined, `${where}: a form attribute moves a radio to another group`);
+      }
+    }
+    const inQuizzes = quizzes.reduce((total, quiz) => total + quiz.inputs.length, 0);
+    assert.equal(radiosOf(page).length, inQuizzes, "every radio of the page belongs to a quiz form");
   });
 }

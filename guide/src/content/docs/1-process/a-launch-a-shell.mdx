@@ -57,11 +57,11 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
 <Quiz kind="prediction">
 <Fragment slot="question">Tu programa lanza `/bin/sh -c 'exit 3'`. El shell termina con el código 3. Después corres `echo $?` en tu terminal. ¿Qué quieres que imprima?</Fragment>
 
-<QuizOption>`0`.<Fragment slot="feedback">Eso esconde el fallo. `0` significa «todo salió bien», y el shell dijo que no. Si tu programa siempre devolviera `0`, los scripts que lo usen no sabrían cuándo algo falló.</Fragment></QuizOption>
+<QuizOption>`0`<Fragment slot="feedback">Eso esconde el fallo. `0` significa «todo salió bien», y el shell dijo que no. Si tu programa siempre devolviera `0`, los scripts que lo usen no sabrían cuándo algo falló.</Fragment></QuizOption>
 
-<QuizOption correct>`3`.<Fragment slot="feedback">Tu programa devuelve el código del hijo. Para quien lo lanzó, tu programa se comporta igual que el shell que está dentro.</Fragment></QuizOption>
+<QuizOption correct>`3`<Fragment slot="feedback">Tu programa devuelve el código del hijo. Para quien lo lanzó, tu programa se comporta igual que el shell que está dentro.</Fragment></QuizOption>
 
-<QuizOption>`1`.<Fragment slot="feedback">`1` es el código que devuelve tu programa cuando falla él mismo, por ejemplo si no encuentra el programa que debía lanzar. Aquí el que habló fue el hijo, y dijo `3`.</Fragment></QuizOption>
+<QuizOption>`1`<Fragment slot="feedback">`1` es el código que devuelve tu programa cuando falla él mismo, por ejemplo si no encuentra el programa que debía lanzar. Aquí el que habló fue el hijo, y dijo `3`.</Fragment></QuizOption>
 </Quiz>
 
 ## Los trozos

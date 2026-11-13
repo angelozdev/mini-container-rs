@@ -7,8 +7,13 @@ const { kind } = Astro.props;
 const labels = { prediction: "Predicción", closing: "Cierre" };
 ---
 
-<section class="quiz" data-kind={kind}>
-  <p class="quiz-kind">{labels[kind]}</p>
-  <div class="quiz-question"><slot name="question" /></div>
-  <div class="quiz-options"><slot /></div>
-</section>
+<form class="quiz" data-kind={kind}>
+  <div class="quiz-head">
+    <span class="quiz-kind">{labels[kind]}</span>
+    <span class="quiz-hint">Elige una respuesta</span>
+  </div>
+  <fieldset class="quiz-group">
+    <legend class="quiz-question"><slot name="question" /></legend>
+    <slot />
+  </fieldset>
+</form>
