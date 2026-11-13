@@ -5,8 +5,6 @@ use anyhow::{Context, Result};
 
 use crate::cli::CommandLine;
 
-const SIGNAL_EXIT_BASE: u8 = 128;
-
 pub fn run(command: &CommandLine) -> Result<ExitCode> {
     let status = Command::new(&command.program)
         .args(&command.args)
@@ -16,6 +14,8 @@ pub fn run(command: &CommandLine) -> Result<ExitCode> {
 }
 
 fn exit_code(status: ExitStatus) -> u8 {
+    const SIGNAL_EXIT_BASE: u8 = 128;
+
     match status.code() {
         Some(code) => code as u8,
         None => SIGNAL_EXIT_BASE + status.signal().unwrap_or_default() as u8,
