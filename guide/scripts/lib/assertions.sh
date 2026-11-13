@@ -43,6 +43,13 @@ capture_stdout() {
   printf '%s' "$output"
 }
 
+assert_stdout_equals() {
+  local expected=$1 label=$2 actual
+  shift 2
+  actual=$(capture_stdout "$label" "$@")
+  assert_equals "$expected" "$actual" "$label"
+}
+
 assert_exit_code() {
   local expected=$1 label=$2
   shift 2

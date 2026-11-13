@@ -3,12 +3,11 @@ set -euo pipefail
 
 checkpoint_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$checkpoint_dir/../../scripts/lib/assertions.sh"
+source "$checkpoint_dir/../../scripts/lib/exercise-texts.sh"
 
 binary="${MINI_CONTAINER_BIN:-$checkpoint_dir/target/debug/mini-container}"
 usage="usage: mini-container run <program> [args...]"
 missing_program=holaa
-launch_error_main_line="could not launch the program"
-launch_error_exercise_1a1="could not launch \`$missing_program\`"
 
 capture_stderr() {
   status=0
@@ -19,8 +18,7 @@ snapshot_host_state
 
 assert_exit_code 3 "the child exits with 3" "$binary" run /bin/sh -c 'exit 3'
 
-echoed=$(capture_stdout "the child prints hello" "$binary" run /bin/echo hello)
-assert_equals "hello" "$echoed" "the child prints hello"
+assert_stdout_equals hello "the child prints hello" "$binary" run /bin/echo hello
 
 capture_stderr "$binary"
 assert_equals "$usage" "$stderr" "no arguments prints the usage on stderr"
@@ -31,7 +29,7 @@ assert_equals "$usage" "$stderr" "run without a program prints the usage on stde
 assert_equals 2 "$status" "run without a program exits with 2"
 
 capture_stderr "$binary" run "$missing_program"
-assert_contains_either "$launch_error_main_line" "$launch_error_exercise_1a1" "$stderr" "a missing program says it could not be launched"
+assert_launch_error "$missing_program" "$stderr" "a missing program says it could not be launched"
 assert_contains "No such file or directory (os error 2)" "$stderr" "a missing program shows the cause from the system"
 assert_equals 1 "$status" "a missing program exits with 1"
 
