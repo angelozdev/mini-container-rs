@@ -1,0 +1,9 @@
+---
+interface Props {
+  isCopy?: boolean;
+}
+
+const { isCopy = false } = Astro.props;
+---
+
+<span class="kernel-entry" data-copy={isCopy || undefined}><slot /></span>

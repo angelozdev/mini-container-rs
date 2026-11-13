@@ -1,0 +1,20 @@
+---
+interface Props {
+  beforeTitle: string;
+  afterTitle: string;
+}
+
+const { beforeTitle, afterTitle } = Astro.props;
+---
+
+<div class="diagram not-content">
+  <div class="diagram-side">
+    <div class="diagram-title">{beforeTitle}</div>
+    <slot name="before" />
+  </div>
+  <div class="diagram-arrow" aria-hidden="true"></div>
+  <div class="diagram-side">
+    <div class="diagram-title">{afterTitle}</div>
+    <slot name="after" />
+  </div>
+</div>

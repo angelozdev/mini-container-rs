@@ -1,0 +1,36 @@
+---
+title: 1a · Lanzar un shell
+description: Tu programa lanza un shell y devuelve su código de salida.
+checkpoint: 1a
+---
+
+Borrador.
+
+```rust title="src/main.rs"
+mod cli;
+mod container;
+
+use std::env;
+use std::process::ExitCode;
+
+fn main() -> anyhow::Result<ExitCode> {
+    match cli::parse(env::args().skip(1)) {
+        Some(cli::Invocation::Run(command)) => container::run(&command),
+        None => {
+            eprintln!("{}", cli::USAGE);
+            Ok(ExitCode::from(2))
+        }
+    }
+}
+```
+
+import Quiz from "../../../components/Quiz.astro";
+import QuizOption from "../../../components/QuizOption.astro";
+
+<Quiz kind="prediction">
+<Fragment slot="question">Si el shell sale con `exit 3`, ¿qué imprime `echo $?` en tu terminal?</Fragment>
+
+<QuizOption correct>Imprime `3`.<Fragment slot="feedback">El programa devuelve el código del **hijo**.</Fragment></QuizOption>
+
+<QuizOption>Imprime `0`.<Fragment slot="feedback">No. `0` significa que el programa terminó bien, y aquí el shell terminó con `3`.</Fragment></QuizOption>
+</Quiz>

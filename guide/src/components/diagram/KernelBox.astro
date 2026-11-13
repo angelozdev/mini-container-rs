@@ -1,0 +1,12 @@
+---
+interface Props {
+  label?: string;
+}
+
+const { label = "kernel" } = Astro.props;
+---
+
+<div class="kernel-box">
+  <div class="kernel-label">{label}</div>
+  <div class="kernel-entries"><slot /></div>
+</div>

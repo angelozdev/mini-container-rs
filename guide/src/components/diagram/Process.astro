@@ -1,0 +1,9 @@
+---
+interface Props {
+  highlighted?: boolean;
+}
+
+const { highlighted = false } = Astro.props;
+---
+
+<span class="process" data-highlighted={highlighted || undefined}><slot /></span>

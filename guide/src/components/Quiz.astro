@@ -1,0 +1,14 @@
+---
+interface Props {
+  kind: "prediction" | "closing";
+}
+
+const { kind } = Astro.props;
+const labels = { prediction: "Predicción", closing: "Cierre" };
+---
+
+<section class="quiz" data-kind={kind}>
+  <p class="quiz-kind">{labels[kind]}</p>
+  <div class="quiz-question"><slot name="question" /></div>
+  <div class="quiz-options"><slot /></div>
+</section>

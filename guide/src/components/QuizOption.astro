@@ -1,0 +1,15 @@
+---
+interface Props {
+  correct?: boolean;
+}
+
+const { correct = false } = Astro.props;
+---
+
+<details class="quiz-option" data-correct={correct || undefined}>
+  <summary class="quiz-choice"><slot /></summary>
+  <div class="quiz-answer">
+    <strong class="quiz-verdict">{correct ? "Correcto." : "No."}</strong>
+    <div class="quiz-feedback"><slot name="feedback" /></div>
+  </div>
+</details>
