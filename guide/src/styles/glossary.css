@@ -1,19 +1,11 @@
 .term {
-  display: inline;
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
   font: inherit;
   text-align: inherit;
-  text-decoration: underline dotted var(--n-muted);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.term:hover {
-  text-decoration-color: var(--n-t-purple);
+  white-space: normal;
 }
 
 .term:focus-visible,
@@ -25,9 +17,11 @@
 }
 
 .term-card {
+  display: none;
   box-sizing: border-box;
   width: min(21.25rem, calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
   margin: auto;
   padding: 0.875rem 1rem;
   border: 1px solid var(--n-line);
@@ -43,12 +37,25 @@
   text-align: left;
 }
 
-.term-card:popover-open {
-  display: block;
-}
-
 .term-card::backdrop {
   background: var(--n-backdrop);
+}
+
+@supports selector(:popover-open) {
+  .term {
+    text-decoration: underline dotted var(--n-muted);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  .term:hover {
+    text-decoration-color: var(--n-t-purple);
+  }
+
+  .term-card:popover-open {
+    display: block;
+  }
 }
 
 .term-card-title {
