@@ -13,10 +13,11 @@ import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
 import QuizOption from "../../../components/QuizOption.astro";
 import ShouldSee from "../../../components/ShouldSee.astro";
+import Term from "../../../components/Term.astro";
 
 **Al terminar:** el repo tiene un proyecto de Rust llamado `mini-container` que compila y corre en Linux, y Zed analiza tu código como código de Linux.
 
-El código se escribe en el Mac, con Zed, dentro de la carpeta del repo: `/Users/tu-usuario/mini-container-rs`. Se compila y se corre en Linux. La máquina de OrbStack ve esa misma carpeta, en la misma ruta, así que los dos lados trabajan sobre los mismos archivos. Falta un detalle: Zed usa un programa llamado *rust-analyzer*, que lee tu código mientras escribes y marca los errores. Por defecto lo lee con las reglas de macOS.
+El código se escribe en el Mac, con Zed, dentro de la carpeta del repo: `/Users/tu-usuario/mini-container-rs`. Se compila y se corre en Linux. La máquina de <Term id="orbstack">OrbStack</Term> ve esa misma carpeta, en la misma ruta, así que los dos lados trabajan sobre los mismos archivos. Falta un detalle: Zed usa un programa llamado <Term id="rust-analyzer">rust-analyzer</Term>, que lee tu código mientras escribes y marca los errores. Por defecto lo lee con las reglas de macOS.
 
 <BeforeAfter beforeTitle="ANTES · rust-analyzer revisa para macOS" afterTitle="DESPUÉS · revisa para Linux">
 <Fragment slot="before">
@@ -47,7 +48,7 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
 
    - `cargo`: la herramienta de Rust que compila, corre y administra proyectos.
    - `init`: crea un proyecto de Rust en la carpeta actual, la raíz del repo. `new` haría lo mismo pero en una carpeta nueva.
-   - `--name mini-container`: el nombre del *crate*. Un crate es un paquete de Rust: aquí, tu programa. Sin esta opción, `cargo` usaría el nombre de la carpeta, `mini-container-rs`. En Rust el sufijo `-rs` suele marcar el lenguaje del repo y no va en el nombre del crate.
+   - `--name mini-container`: el nombre del <Term id="crate">crate</Term>. Un crate es un paquete de Rust: aquí, tu programa. Sin esta opción, `cargo` usaría el nombre de la carpeta, `mini-container-rs`. En Rust el sufijo `-rs` suele marcar el lenguaje del repo y no va en el nombre del crate.
    - Efecto: crea `Cargo.toml` y `src/main.rs` en la raíz del repo, y deja un `Cargo.lock` cuando compilas por primera vez.
 
    <ShouldSee>
@@ -125,7 +126,7 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    ./target/debug/mini-container
    ```
 
-   - `./target/debug/mini-container`: la ruta del binario. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
+   - `./target/debug/mini-container`: la ruta del binario. El `.` es la carpeta actual. Como la ruta lleva `/`, el <Term id="shell">shell</Term> la usa tal cual y no la busca en el `PATH`.
    - Efecto: corre el programa, sin `cargo` de por medio.
 
    <ShouldSee>
@@ -137,7 +138,7 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
 
    </ShouldSee>
 
-3. **Instala el target de Linux en el Mac.** Un *target* es la plataforma para la que se compila. Su nombre, la *tripleta*, tiene partes:
+3. **Instala el target de Linux en el Mac.** Un <Term id="target">target</Term> es la plataforma para la que se compila. Su nombre, la <Term id="target-triple">tripleta</Term>, tiene partes:
 
    - `aarch64`: la arquitectura del procesador, la misma de tu Mac.
    - `unknown`: el fabricante. Aquí no importa.
@@ -214,7 +215,7 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    }
    ```
 
-   - `lsp`: los ajustes de los *language servers*. Un language server es un programa que lee tu código y le dice al editor qué marcar. rust-analyzer es el de Rust.
+   - `lsp`: los ajustes de los <Term id="language-server">language servers</Term>. Un language server es un programa que lee tu código y le dice al editor qué marcar. rust-analyzer es el de Rust.
    - `rust-analyzer`: el servidor al que se refieren los ajustes de abajo.
    - `initialization_options`: las opciones que Zed le entrega a rust-analyzer al arrancarlo.
    - `cargo`: el grupo de opciones sobre cómo rust-analyzer llama a `cargo`.
@@ -229,7 +230,7 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    use std::os::linux::fs::MetadataExt;
    ```
 
-   Sin el ajuste, rust-analyzer revisa para macOS y la marca como error. Con el ajuste revisa para Linux y solo avisa de que no se usa. Puedes ver los mismos dos resultados con `cargo check` en la terminal del Mac. Primero, revisando para macOS:
+   Sin el ajuste, rust-analyzer revisa para macOS y la marca como error. Con el ajuste revisa para Linux y solo avisa de que no se usa. Puedes ver los mismos dos resultados con `cargo check` en la <Term id="terminal">terminal</Term> del Mac. Primero, revisando para macOS:
 
    ```sh title="En el Mac"
    cargo check

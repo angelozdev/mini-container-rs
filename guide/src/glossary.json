@@ -10,9 +10,19 @@
     "definition": "La pieza del kernel que gobierna un recurso. `memory` gobierna la RAM y `cpu` gobierna el uso del procesador."
   },
   {
+    "id": "crate",
+    "term": "crate",
+    "definition": "Un paquete de Rust, el tuyo o uno ajeno."
+  },
+  {
     "id": "kernel",
     "term": "kernel",
     "definition": "El núcleo del sistema operativo: el programa que reparte la máquina entre todos los procesos. En esta guía, el de Linux."
+  },
+  {
+    "id": "language-server",
+    "term": "language server",
+    "definition": "Un programa que lee tu código y le dice al editor qué marcar."
   },
   {
     "id": "namespace",
@@ -30,9 +40,24 @@
     "definition": "Un programa en ejecución."
   },
   {
+    "id": "rust-analyzer",
+    "term": "rust-analyzer",
+    "definition": "Un programa que lee tu código mientras escribes y marca los errores. Zed lo usa."
+  },
+  {
     "id": "shell",
     "term": "shell",
     "definition": "El programa que lee lo que escribes en la terminal y lo ejecuta. `/bin/sh` es el shell básico de Linux."
+  },
+  {
+    "id": "target",
+    "term": "target",
+    "definition": "La plataforma para la que se compila."
+  },
+  {
+    "id": "target-triple",
+    "term": "tripleta",
+    "definition": "El nombre de un target. Tiene cuatro partes: la arquitectura, el fabricante, el sistema operativo y la librería de C. Por ejemplo, `aarch64-unknown-linux-gnu`."
   },
   {
     "id": "terminal",
