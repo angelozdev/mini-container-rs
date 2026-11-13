@@ -236,6 +236,27 @@ mobile-starlight-toc a[aria-current="true"] {
   font-size: 85%;
 }
 
+.sl-markdown-content table:not(:where(.not-content *)) {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--n-line);
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.sl-markdown-content th:not(:where(.not-content *)) {
+  background: var(--n-side);
+  color: var(--n-muted);
+  font-size: var(--sl-text-sm);
+  font-weight: 600;
+}
+
 .starlight-aside {
   position: relative;
   padding: 0.875rem 1rem 0.875rem 2.75rem;
