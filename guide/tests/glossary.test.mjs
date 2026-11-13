@@ -8,6 +8,7 @@ import {
   builtPageOf,
   decodeEntities,
   docsFolder,
+  glossaryFile,
   guideRoot,
   listFiles,
   readElement,
@@ -26,6 +27,7 @@ const validTermTag = /^<Term id="([a-z0-9]+(?:-[a-z0-9]+)*)">$/;
 const termButton = /<button\b[^>]*\bclass="term"[^>]*>([\s\S]*?)<\/button>/g;
 const cardOpening = /<span\b[^>]*\bclass="term-card(?:\s[^"]*)?"[^>]*>/g;
 const cardTitle = /<strong\b[^>]*\bclass="term-card-title"[^>]*>([\s\S]*?)<\/strong>/;
+const cardTitleOpening = /<strong\b[^>]*\bclass="term-card-title"[^>]*>/;
 const cardDefinition = /<span\b[^>]*\bclass="term-card-definition"[^>]*>([\s\S]*?)<\/span>/;
 const cardLink = /<a\b[^>]*\bclass="term-card-link"[^>]*>([\s\S]*?)<\/a>/;
 const cardClose = /<button\b[^>]*\bclass="term-card-close"[^>]*>([\s\S]*?)<\/button>/;
@@ -38,21 +40,13 @@ const seenLink = /<a\b[^>]*>([\s\S]*?)<\/a>/;
 const titleField = /^title:\s*(.+)$/m;
 const sectionSeparator = " · ";
 
-const entries = readGlossaryEntriesOrNothing();
+const entries = existsSync(glossaryFile) ? readGlossaryEntries() : [];
 const entryById = new Map(entries.map((entry) => [entry.id, entry]));
 const pages = listFiles(docsFolder)
   .filter((path) => path.endsWith(".mdx") && path !== glossaryDocs)
   .map((path) => ({ path, name: relative(docsFolder, path), source: readFileSync(path, "utf8") }))
   .map((page) => ({ ...page, tags: page.source.match(termTag) ?? [] }))
   .map((page) => ({ ...page, ids: page.tags.map((tag) => tag.match(validTermTag)?.[1]) }));
-
-function readGlossaryEntriesOrNothing() {
-  try {
-    return readGlossaryEntries();
-  } catch {
-    return [];
-  }
-}
 
 function plainText(definition) {
   return definition.replaceAll("`", "");
@@ -93,6 +87,9 @@ function readTerms(html) {
       return {
         id: attributeOf(opening[0], "id"),
         isPopover: /\spopover[\s>=]/.test(opening[0]),
+        role: attributeOf(opening[0], "role"),
+        labelledBy: attributeOf(opening[0], "aria-labelledby"),
+        titleId: attributeOf(card.match(cardTitleOpening)?.[0] ?? "", "id"),
         title: textOf(card.match(cardTitle)?.[1] ?? ""),
         definition: decodeEntities(textOf(card.match(cardDefinition)?.[1] ?? "")),
         linkHref: link ? attributeOf(link[0], "href") : undefined,
@@ -119,6 +116,12 @@ function readGlossaryPage(html) {
       seenLabel: link ? textOf(link[1]) : "",
     };
   });
+}
+
+function readBuiltPage(page) {
+  const built = builtPageOf(page.path);
+  assert.ok(existsSync(built), `${relative(guideRoot, built)} is missing: run astro build`);
+  return readFileSync(built, "utf8");
 }
 
 function readBuiltGlossary() {
@@ -166,9 +169,7 @@ for (const page of pages) {
   });
 
   test(`${page.name}: every written Term is a button that opens a card of its own`, () => {
-    const built = builtPageOf(page.path);
-    assert.ok(existsSync(built), `${relative(guideRoot, built)} is missing: run astro build`);
-    const { buttons, cards } = readTerms(readFileSync(built, "utf8"));
+    const { buttons, cards } = readTerms(readBuiltPage(page));
     assert.equal(buttons.length, page.ids.length, `${page.name}: found ${buttons.length} term buttons, wrote ${page.ids.length}`);
     assert.equal(cards.length, page.ids.length, `${page.name}: found ${cards.length} term cards, wrote ${page.ids.length}`);
     for (const button of buttons) {
@@ -179,9 +180,7 @@ for (const page of pages) {
   });
 
   test(`${page.name}: every card has its term, a definition, a link to its glossary entry and a close button`, () => {
-    const built = builtPageOf(page.path);
-    if (!existsSync(built)) return;
-    const { cards } = readTerms(readFileSync(built, "utf8"));
+    const { cards } = readTerms(readBuiltPage(page));
     assert.deepEqual(
       cards.map((card) => card.linkHref?.replace(`${glossaryHref}#`, "")),
       page.ids,
@@ -191,6 +190,9 @@ for (const page of pages) {
       const entry = entryById.get(card.linkHref.replace(`${glossaryHref}#`, ""));
       const where = `${page.name}: card ${card.id}`;
       assert.ok(card.isPopover, `${where}: must be a popover`);
+      assert.equal(card.role, "dialog", `${where}: the role`);
+      assert.ok(card.titleId, `${where}: the title has no id`);
+      assert.equal(card.labelledBy, card.titleId, `${where}: aria-labelledby must point to the id of the title`);
       assert.equal(card.title, entry.term, `${where}: the title is not the term`);
       assert.notEqual(card.definition, "", `${where}: empty definition`);
       assert.equal(card.definition, plainText(entry.definition), `${where}: the definition differs from the glossary data`);
@@ -202,9 +204,7 @@ for (const page of pages) {
   });
 
   test(`${page.name}: every id of the built page is unique`, () => {
-    const built = builtPageOf(page.path);
-    if (!existsSync(built)) return;
-    const ids = [...readFileSync(built, "utf8").matchAll(idAttribute)].map((id) => id[1]);
+    const ids = [...readBuiltPage(page).matchAll(idAttribute)].map((id) => id[1]);
     const repeated = ids.filter((id, position) => ids.indexOf(id) !== position);
     assert.deepEqual(repeated, [], `${page.name}: these ids appear more than once`);
   });
@@ -217,13 +217,26 @@ test("the sidebar lists the glossary after the sections", () => {
   assert.ok(links.length > 2, "the sidebar lost its sections");
 });
 
-test("the glossary page lists every entry in alphabetical order", () => {
+const sortKey = (term) => term.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+test("the glossary page lists every entry once, in alphabetical order", () => {
   const listed = readBuiltGlossary();
-  const alphabetical = [...entries].sort((left, right) => left.term.localeCompare(right.term, "es")).map((entry) => entry.id);
   assert.deepEqual(
-    listed.map((entry) => entry.id),
-    alphabetical,
+    listed.map((entry) => entry.id).sort(),
+    entries.map((entry) => entry.id).sort(),
+    "the page must list exactly the entries of the data",
   );
+  for (let position = 1; position < listed.length; position += 1) {
+    const [before, after] = [listed[position - 1].term, listed[position].term];
+    assert.ok(sortKey(before) <= sortKey(after), `"${before}" must not come before "${after}"`);
+  }
+});
+
+test("every id of the glossary page is unique", () => {
+  readBuiltGlossary();
+  const ids = [...readFileSync(glossaryBuilt, "utf8").matchAll(idAttribute)].map((id) => id[1]);
+  const repeated = ids.filter((id, position) => ids.indexOf(id) !== position);
+  assert.deepEqual(repeated, [], "these ids appear more than once in the glossary page");
 });
 
 test("each glossary entry shows its term and the definition of the data", () => {
