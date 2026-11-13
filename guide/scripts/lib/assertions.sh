@@ -19,6 +19,11 @@ assert_contains_either() {
     fail "$label: contains neither [$first] nor [$second], got [$haystack]"
 }
 
+assert_has_line() {
+  local expected=$1 text=$2 label=$3
+  grep -qxF -- "$expected" <<<"$text" || fail "$label: no line is [$expected], got [$text]"
+}
+
 assert_not_contains() {
   local needle=$1 haystack=$2 label=$3
   [[ "$haystack" != *"$needle"* ]] || fail "$label: contains [$needle], got [$haystack]"
