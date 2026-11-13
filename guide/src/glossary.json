@@ -1,5 +1,15 @@
 [
   {
+    "id": "arm",
+    "term": "brazo",
+    "definition": "Cada línea `opción => resultado` de un `match`."
+  },
+  {
+    "id": "attribute",
+    "term": "atributo",
+    "definition": "Una línea `#[...]` encima de un tipo: una instrucción para el compilador."
+  },
+  {
     "id": "cgroup",
     "term": "cgroup",
     "definition": "Los archivos de `/sys/fs/cgroup`, como `memory.max` y `cgroup.procs`. Con ellos el kernel limita lo que un grupo de procesos puede gastar."
@@ -15,6 +25,11 @@
     "definition": "Un paquete de Rust, el tuyo o uno ajeno."
   },
   {
+    "id": "exit-code",
+    "term": "código de salida",
+    "definition": "El número que deja un programa al terminar. `0` significa «todo salió bien». Cualquier otro número significa «hubo un problema»."
+  },
+  {
     "id": "kernel",
     "term": "kernel",
     "definition": "El núcleo del sistema operativo: el programa que reparte la máquina entre todos los procesos. En esta guía, el de Linux."
@@ -25,6 +40,11 @@
     "definition": "Un programa que lee tu código y le dice al editor qué marcar."
   },
   {
+    "id": "macro",
+    "term": "macro",
+    "definition": "Código que Rust expande mientras compila. El `!` al final del nombre la marca."
+  },
+  {
     "id": "namespace",
     "term": "namespace",
     "definition": "Una copia privada de una lista del kernel. El kernel filtra lo que ve cada proceso según su etiqueta."
@@ -33,6 +53,16 @@
     "id": "orbstack",
     "term": "OrbStack",
     "definition": "Un programa para Mac que crea máquinas Linux ligeras y las comparte con el Mac. Su comando es `orb`."
+  },
+  {
+    "id": "pid",
+    "term": "PID",
+    "definition": "El número de un proceso. El primero de la lista es el número 1."
+  },
+  {
+    "id": "placeholder",
+    "term": "hueco",
+    "definition": "El `{}` de un texto de Rust, que Rust rellena con un valor."
   },
   {
     "id": "process",
@@ -50,6 +80,26 @@
     "definition": "El programa que lee lo que escribes en la terminal y lo ejecuta. `/bin/sh` es el shell básico de Linux."
   },
   {
+    "id": "signal",
+    "term": "señal",
+    "definition": "Un aviso que el kernel le manda a un proceso. La señal 9, `SIGKILL`, lo mata en el acto."
+  },
+  {
+    "id": "stderr",
+    "term": "stderr",
+    "definition": "El canal por donde un programa escribe sus errores."
+  },
+  {
+    "id": "stdout",
+    "term": "stdout",
+    "definition": "El canal por donde un programa escribe su salida normal."
+  },
+  {
+    "id": "subcommand",
+    "term": "subcomando",
+    "definition": "La palabra que va después del nombre del programa, como `run`."
+  },
+  {
     "id": "target",
     "term": "target",
     "definition": "La plataforma para la que se compila."
@@ -63,5 +113,10 @@
     "id": "terminal",
     "term": "terminal",
     "definition": "La ventana donde escribes comandos."
+  },
+  {
+    "id": "trait",
+    "term": "trait",
+    "definition": "Una capacidad que un tipo puede tener."
   }
 ]

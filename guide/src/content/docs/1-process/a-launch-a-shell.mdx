@@ -14,10 +14,11 @@ import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
 import QuizOption from "../../../components/QuizOption.astro";
 import ShouldSee from "../../../components/ShouldSee.astro";
+import Term from "../../../components/Term.astro";
 
-**Al terminar:** tu programa lanza `/bin/sh`, espera a que termine y devuelve el mismo código de salida que el shell.
+**Al terminar:** tu programa lanza `/bin/sh`, espera a que termine y devuelve el mismo <Term id="exit-code">código de salida</Term> que el <Term id="shell">shell</Term>.
 
-Todavía no hay aislamiento. Este paso construye la base: un programa que lanza a otro y le cuenta a tu terminal cómo le fue.
+Todavía no hay aislamiento. Este paso construye la base: un programa que lanza a otro y le cuenta a tu <Term id="terminal">terminal</Term> cómo le fue.
 
 <BeforeAfter beforeTitle="ANTES · lo lanzas tú" afterTitle="DESPUÉS · lo lanza tu programa">
 <Fragment slot="before">
@@ -32,7 +33,7 @@ Todavía no hay aislamiento. Este paso construye la base: un programa que lanza 
 </Fragment>
 </BeforeAfter>
 
-El *kernel* es el núcleo de Linux: el programa que reparte la máquina entre todos los procesos. Un *proceso* es un programa en ejecución. Un *shell* es un programa que lee comandos y los ejecuta, y `/bin/sh` es el shell básico de Linux. Hoy tu programa solo agrega un eslabón entre la terminal y el shell.
+El <Term id="kernel">kernel</Term> es el núcleo de Linux: el programa que reparte la máquina entre todos los <Term id="process">procesos</Term>. Un *proceso* es un programa en ejecución. Un *shell* es un programa que lee comandos y los ejecuta, y `/bin/sh` es el shell básico de Linux. Hoy tu programa solo agrega un eslabón entre la terminal y el shell.
 
 <Aside type="note" title="Analogía">
 Tu programa es un jefe de obra. Manda a un albañil, el shell, a hacer un trabajo y se queda esperando. Cuando el albañil termina, le dice con un número cómo le fue: 0 es «bien» y cualquier otro número es «hubo un problema». El jefe repite ese número a quien lo contrató, que es tu terminal.
@@ -70,14 +71,14 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
 
 1. **Añade la dependencia `anyhow`.**
 
-   Un *crate* es un paquete de Rust, el tuyo o uno ajeno. `anyhow` es un crate que facilita el manejo de errores. Estando en la raíz del repo, en Linux:
+   Un <Term id="crate">crate</Term> es un paquete de Rust, el tuyo o uno ajeno. `anyhow` es un crate que facilita el manejo de errores. Estando en la raíz del repo, en Linux:
 
    ```sh title="En Linux"
    cargo add anyhow@1.0.104
    ```
 
    - `cargo`: la herramienta de Rust que compila, prueba y administra el proyecto.
-   - `add`: el subcomando que añade una dependencia a `Cargo.toml`.
+   - `add`: el <Term id="subcommand">subcomando</Term> que añade una dependencia a `Cargo.toml`.
    - `anyhow@1.0.104`: el nombre del crate, una arroba y la versión. Fijamos la versión para que tu pantalla coincida con la de la guía.
    - Efecto: escribe una línea en `Cargo.toml`. Todavía no descarga el crate.
 
@@ -139,9 +140,9 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    - `pub const USAGE`: un texto fijo que se imprimirá cuando alguien use mal el programa. `&str` es un texto prestado que dura todo el programa.
    - El texto dice, en español: `uso: mini-container run <programa> [argumentos...]`. Lo que va entre `<>` es obligatorio, y lo que va entre `[]` es opcional.
 
-   Las líneas `#[derive(...)]` merecen su propia explicación. Una línea `#[...]` encima de un tipo es un *atributo*: una instrucción para el compilador. `derive` le pide a Rust que escriba por ti el código de ciertos *traits*. Un *trait* es una capacidad que un tipo puede tener.
+   Las líneas `#[derive(...)]` merecen su propia explicación. Una línea `#[...]` encima de un tipo es un <Term id="attribute">atributo</Term>: una instrucción para el compilador. `derive` le pide a Rust que escriba por ti el código de ciertos <Term id="trait">traits</Term>. Un *trait* es una capacidad que un tipo puede tener.
 
-   - `Debug`: el tipo se puede imprimir para depurarlo, es decir, para ver su contenido cuando buscas un fallo. Un texto de Rust puede llevar *huecos*, que son `{}` que Rust rellena con un valor. El hueco `{:?}` pide esa forma de imprimir. Tu programa todavía no lo usa: en el paso 4 verás un hueco simple, `{}`.
+   - `Debug`: el tipo se puede imprimir para depurarlo, es decir, para ver su contenido cuando buscas un fallo. Un texto de Rust puede llevar <Term id="placeholder">huecos</Term>, que son `{}` que Rust rellena con un valor. El hueco `{:?}` pide esa forma de imprimir. Tu programa todavía no lo usa: en el paso 4 verás un hueco simple, `{}`.
    - `PartialEq`: dos valores del tipo se pueden comparar con `==`.
    - `Eq`: promete que un valor siempre es igual a sí mismo. `String` y `Vec` lo cumplen. Un número decimal no, por el valor `NaN`. `Eq` solo se puede derivar junto con `PartialEq`.
 
@@ -183,7 +184,7 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    - `let mut args = args.into_iter();`: convierte los argumentos en algo del que puedes sacar un elemento a la vez. `mut` porque sacar un elemento lo cambia.
    - `args.next()?`: saca el siguiente elemento. Si no hay ninguno, el `?` sale de la función devolviendo `None`.
    - `.as_str()`: presta ese `String` como texto, para compararlo con `"run"`.
-   - `match ... { ... }`: un `match` compara un valor con una lista de opciones, de arriba abajo, y corre la primera que coincide. Cada línea `opción => resultado` se llama *brazo*.
+   - `match ... { ... }`: un `match` compara un valor con una lista de opciones, de arriba abajo, y corre la primera que coincide. Cada línea `opción => resultado` se llama <Term id="arm">brazo</Term>.
    - `"run" => { ... }`: el primer brazo. Si la primera palabra es `run`, sigue por aquí.
    - `let program = args.next()?;`: la segunda palabra es el programa. Si falta, el `?` devuelve `None`: `run` sin programa no sirve.
    - `args: args.collect()`: junta todo lo que queda en un `Vec<String>`. Esos son los argumentos del programa.
@@ -283,7 +284,7 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
 
    La primera: el proceso llama a `exit(código)`. Entonces deja un código de salida, de 0 a 255.
 
-   La segunda: el proceso recibe una *señal* que lo mata. Una señal es un aviso que el kernel le manda a un proceso. La señal 9, llamada `SIGKILL`, lo mata en el acto, y el proceso no puede evitarlo. Entonces no hay código de salida: solo queda el número de la señal.
+   La segunda: el proceso recibe una <Term id="signal">señal</Term> que lo mata. Una señal es un aviso que el kernel le manda a un proceso. La señal 9, llamada `SIGKILL`, lo mata en el acto, y el proceso no puede evitarlo. Entonces no hay código de salida: solo queda el número de la señal.
 
    `status.code()` es el método de `ExitStatus` que pregunta por el código de salida. Devuelve un `Option`: `Some(código)` si el proceso llamó a `exit`, y `None` si no hay código.
 
@@ -403,14 +404,14 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    }
    ```
 
-   - `fn main() -> anyhow::Result<ExitCode>`: `main` puede devolver un `Result`. Si devuelve `Err`, Rust imprime `Error: ...` por *stderr* y sale con el código 1. *stderr* es el canal por donde un programa escribe sus errores. El otro canal, *stdout*, es para su salida normal. Así un aviso no se mezcla con lo que el programa produce.
+   - `fn main() -> anyhow::Result<ExitCode>`: `main` puede devolver un `Result`. Si devuelve `Err`, Rust imprime `Error: ...` por <Term id="stderr">stderr</Term> y sale con el código 1. *stderr* es el canal por donde un programa escribe sus errores. El otro canal, <Term id="stdout">stdout</Term>, es para su salida normal. Así un aviso no se mezcla con lo que el programa produce.
    - `env::args()`: las palabras que escribiste en la terminal. La primera es la ruta del propio programa.
    - `.skip(1)`: se salta esa primera palabra, que a `parse` no le sirve.
    - `match cli::parse(...)`: el tercer `match`. Compara lo que devuelve `parse` con dos opciones.
    - `Some(cli::Invocation::Run(command)) => container::run(&command)`: si `parse` entendió un `run`, lanza el programa.
    - `None => { ... }`: si no entendió, imprime el uso y sale con el código 2.
    - `eprintln!`: imprime una línea por stderr, no por stdout. La salida normal del programa queda libre.
-   - El `!` al final de `eprintln!` marca una *macro*: código que Rust expande mientras compila.
+   - El `!` al final de `eprintln!` marca una <Term id="macro">macro</Term>: código que Rust expande mientras compila.
    - `"{}"`: la plantilla de `eprintln!`, con un solo hueco `{}`. Rust lo rellena con el valor que sigue, aquí `cli::USAGE`. Hace falta la plantilla porque Rust exige que el primer argumento sea un texto escrito a mano, no una constante.
    - El 2 es nuestra elección: separa «me usaron mal» (2) de «falló al ejecutar» (1).
 
@@ -560,7 +561,7 @@ Compruébalo:
 sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 ```
 
-- `kill -9 $$`: `kill` manda una señal. `-9` es el número de la señal. `$$` es el número de proceso, el PID, del shell que lo ejecuta. El shell se mata a sí mismo.
+- `kill -9 $$`: `kill` manda una señal. `-9` es el número de la señal. `$$` es el número de proceso, el <Term id="pid">PID</Term>, del shell que lo ejecuta. El shell se mata a sí mismo.
 - Las comillas simples son obligatorias. Con comillas dobles, tu shell cambiaría `$$` por su propio PID antes de lanzar nada, y el `kill` mataría a tu terminal en vez de al hijo.
 - `; echo $?`: imprime el código de salida del comando anterior.
 
