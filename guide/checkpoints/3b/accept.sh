@@ -48,8 +48,11 @@ kill_child_from_outside() {
   wait "$launcher" || status=$?
 }
 
+launcher_output=$(mktemp)
+trap 'rm -f "$launcher_output"' EXIT
+
 launch_in_own_group() {
-  setsid env --default-signal=INT "$binary" run "$@" >/dev/null 2>&1 &
+  setsid env --default-signal=INT "$binary" run "$@" >"$launcher_output" 2>&1 &
   launcher=$!
 }
 
@@ -81,8 +84,10 @@ assert_not_running() {
 }
 
 press_ctrl_c() {
-  launch_in_own_group /bin/sleep 3
-  wait_until_running "/bin/sleep 3"
+  local running=$1
+  shift
+  launch_in_own_group "$@"
+  wait_until_running "$running"
   kill -INT -- "-$launcher"
   status=0
   wait "$launcher" || status=$?
@@ -190,10 +195,15 @@ assert_equals ok "$output" "a command within the limit prints its output and no 
 assert_equals 0 "$status" "a command within the limit exits with 0"
 assert_no_cgroup_left "a command within the limit leaves no cgroup"
 
-press_ctrl_c
+press_ctrl_c "/bin/sleep 3" /bin/sleep 3
 assert_equals 0 "$status" "Ctrl-C does not stop the program: it waits for the command and exits with 0"
 assert_not_running "/bin/sleep 3" "after Ctrl-C the command has ended"
 assert_no_cgroup_left "Ctrl-C leaves no cgroup"
+
+press_ctrl_c "sleep 4" /bin/sh -c 'trap "echo got" INT; sleep 4'
+assert_equals got "$(cat "$launcher_output")" "a command that handles SIGINT receives Ctrl-C"
+assert_not_running "sleep 4" "Ctrl-C stops the processes of the command"
+assert_no_cgroup_left "Ctrl-C on a command that handles SIGINT leaves no cgroup"
 
 kill_the_parent
 assert_equals 137 "$status" "a parent killed with SIGKILL exits with 137"

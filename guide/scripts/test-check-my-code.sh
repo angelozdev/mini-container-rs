@@ -25,10 +25,17 @@ cpu_limit_method_edit='$a impl Cgroup { pub fn limit_cpu(&self) -> Result<()> { 
 use_cpu_limit_edit='s/cgroup.limit_memory(MEMORY_MAX)?;/cgroup.limit_memory(MEMORY_MAX)?; cgroup.limit_cpu()?;/'
 skip_memory_limit_edit='s/cgroup.limit_memory(MEMORY_MAX)?;/let _ = (Cgroup::limit_memory, MEMORY_MAX);/'
 exit_without_drop_edit='s/Ok(ExitCode::from(exit_code(status)))/std::process::exit(i32::from(exit_code(status)))/'
+sigterm_in_the_mask_edit='s/signals.add(Signal::SIGINT);/signals.add(Signal::SIGINT); signals.add(Signal::SIGTERM);/'
+skip_interrupt_block_edit='s/signals::block_interrupts()?;/let _ = signals::block_interrupts;/'
+skip_interrupt_unblock_edit='s/signals::unblock_interrupts()?;/let _ = signals::unblock_interrupts;/'
+skip_die_with_parent_edit='s/signals::die_with_parent()?;/let _ = signals::die_with_parent;/'
 dev_zero_check="the container has /dev/zero"
 dev_modes_check="the devices are open to everyone"
 oom_check="a command over the memory limit gets the out-of-memory warning"
 leftover_cgroup_check="a missing program leaves no cgroup"
+ctrl_c_check="Ctrl-C does not stop the program: it waits for the command and exits with 0"
+handler_check="a command that handles SIGINT receives Ctrl-C"
+parent_kill_check="a parent killed with SIGKILL takes its command with it"
 launch_text_edit_prefix='s/\.context("could not launch the program")/'
 
 reference_binary() {
@@ -250,10 +257,22 @@ cgroup_names() {
   ls -d /sys/fs/cgroup/mini-container-* 2>/dev/null || true
 }
 
+stop_processes_of() {
+  local cgroup=$1 pids attempts=0
+  pids=$(cat "$cgroup/cgroup.procs")
+  [ -z "$pids" ] || sudo kill -KILL $pids
+  while [ -n "$(cat "$cgroup/cgroup.procs")" ] && [ "$attempts" -lt 40 ]; do
+    attempts=$((attempts + 1))
+    sleep 0.05
+  done
+}
+
 remove_new_cgroups() {
   local before=$1 leftover
   for leftover in $(cgroup_names); do
-    [[ " $before " == *" $leftover "* ]] || sudo rmdir "$leftover"
+    [[ " $before " == *" $leftover "* ]] && continue
+    stop_processes_of "$leftover"
+    sudo rmdir "$leftover"
   done
 }
 
@@ -307,7 +326,68 @@ test_names_the_check_of_a_leftover_cgroup() {
   assert_refused "$leftover_cgroup_check" "a program that exits without dropping its cgroup"
 }
 
-for id in 1a 2a 2b 2c 3a; do
+status_after_sigterm_of_the_variant() {
+  sudo sh -c '"$0" run /bin/sleep 2 & pid=$!; sleep 0.5; kill $pid; wait $pid; echo $?' "$variant_binary"
+}
+
+test_accepts_every_exercise_up_to_3b1() {
+  local root="$work_dir/exercises-up-to-3b1"
+  make_repo "$root" 3b
+  start_variant 3b
+  edit_variant "${launch_text_edit_prefix}.with_context(|| format!(\"could not launch \`{}\`\", command.program))/" container.rs
+  edit_variant "$hostname_from_variable_edit" namespaces.rs
+  edit_variant "$use_hostname_function_edit" container.rs
+  edit_variant "$network_namespace_edit" namespaces.rs
+  edit_variant "$cpu_limit_method_edit" cgroup.rs
+  edit_variant "$use_cpu_limit_edit" container.rs
+  edit_variant "$sigterm_in_the_mask_edit" signals.rs
+  build_variant
+  assert_not_contains eth0 "$(sudo "$variant_binary" run /sbin/ip link)" "the variant has no network interface but lo"
+  assert_greater_than 0 "$(throttled_periods_of_the_variant)" "the variant throttles a command that wants more than half a core"
+  assert_equals 0 "$(status_after_sigterm_of_the_variant)" "the variant waits for its command after SIGTERM"
+  install_student_binary "$root" "$variant_binary"
+  run_script "$root" MINI_CONTAINER_HOSTNAME=api guide/scripts/check-my-code.sh 3b
+  assert_equals "OK 3b" "$output" "the solutions of the exercises up to 3b.1 pass the check of 3b"
+}
+
+test_names_the_check_of_a_program_that_dies_with_ctrl_c() {
+  local root="$work_dir/no-interrupt-block" before
+  make_repo "$root" 3b
+  start_variant 3b
+  edit_variant "$skip_interrupt_block_edit" container.rs
+  build_variant
+  install_student_binary "$root" "$variant_binary"
+  before=$(cgroup_names | tr '\n' ' ')
+  run_check "$root" 3b
+  remove_new_cgroups "$before"
+  assert_refused "$ctrl_c_check" "a program that does not block SIGINT"
+}
+
+test_names_the_check_of_a_command_that_never_sees_ctrl_c() {
+  local root="$work_dir/no-interrupt-unblock"
+  make_repo "$root" 3b
+  start_variant 3b
+  edit_variant "$skip_interrupt_unblock_edit" container.rs
+  build_variant
+  install_student_binary "$root" "$variant_binary"
+  run_check "$root" 3b
+  assert_refused "$handler_check" "a program that leaves SIGINT blocked for the command"
+}
+
+test_names_the_check_of_an_orphaned_command() {
+  local root="$work_dir/no-die-with-parent" before
+  make_repo "$root" 3b
+  start_variant 3b
+  edit_variant "$skip_die_with_parent_edit" container.rs
+  build_variant
+  install_student_binary "$root" "$variant_binary"
+  before=$(cgroup_names | tr '\n' ' ')
+  run_check "$root" 3b
+  remove_new_cgroups "$before"
+  assert_refused "$parent_kill_check" "a program whose command outlives its parent"
+}
+
+for id in 1a 2a 2b 2c 3a 3b; do
   build_reference "$id"
 done
 
@@ -317,7 +397,7 @@ test_refuses_the_wrong_number_of_ids
 test_refuses_an_id_that_is_a_path
 test_refuses_an_unknown_id
 test_asks_for_cargo_build
-for id in 1a 2a 2b 2c 3a; do
+for id in 1a 2a 2b 2c 3a 3b; do
   test_accepts_the_reference_program "$id"
 done
 test_names_the_failed_check
@@ -331,5 +411,9 @@ test_names_the_check_of_the_device_modes
 test_accepts_every_exercise_up_to_3a1
 test_names_the_check_of_a_missing_memory_limit
 test_names_the_check_of_a_leftover_cgroup
+test_accepts_every_exercise_up_to_3b1
+test_names_the_check_of_a_program_that_dies_with_ctrl_c
+test_names_the_check_of_a_command_that_never_sees_ctrl_c
+test_names_the_check_of_an_orphaned_command
 
 echo "OK test-check-my-code"
