@@ -1,13 +1,15 @@
+#[derive(Debug, PartialEq, Eq)]
 pub struct CommandLine {
     pub program: String,
     pub args: Vec<String>,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Invocation {
     Run(CommandLine),
 }
 
-pub const USAGE: &str = "uso: mini-container run <programa> [argumentos...]";
+pub const USAGE: &str = "usage: mini-container run <program> [args...]";
 
 pub fn parse(args: impl IntoIterator<Item = String>) -> Option<Invocation> {
     let mut args = args.into_iter();
@@ -33,27 +35,29 @@ mod tests {
 
     #[test]
     fn parses_run_with_program_and_args() {
-        let Some(Invocation::Run(command)) = parse(strings(&["run", "/bin/sh", "-c", "exit 3"]))
-        else {
-            panic!("expected a run invocation");
-        };
+        let invocation = parse(strings(&["run", "/bin/sh", "-c", "exit 3"]));
 
-        assert_eq!(command.program, "/bin/sh");
-        assert_eq!(command.args, strings(&["-c", "exit 3"]));
+        assert_eq!(
+            invocation,
+            Some(Invocation::Run(CommandLine {
+                program: "/bin/sh".to_string(),
+                args: strings(&["-c", "exit 3"]),
+            }))
+        );
     }
 
     #[test]
     fn rejects_empty_args() {
-        assert!(parse(strings(&[])).is_none());
+        assert_eq!(parse(strings(&[])), None);
     }
 
     #[test]
     fn rejects_run_without_program() {
-        assert!(parse(strings(&["run"])).is_none());
+        assert_eq!(parse(strings(&["run"])), None);
     }
 
     #[test]
     fn rejects_unknown_subcommand() {
-        assert!(parse(strings(&["start", "/bin/sh"])).is_none());
+        assert_eq!(parse(strings(&["start", "/bin/sh"])), None);
     }
 }

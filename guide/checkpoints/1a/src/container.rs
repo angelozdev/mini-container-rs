@@ -9,7 +9,7 @@ pub fn run(command: &CommandLine) -> Result<ExitCode> {
     let status = Command::new(&command.program)
         .args(&command.args)
         .status()
-        .context("no pude lanzar el programa")?;
+        .context("could not launch the program")?;
     Ok(ExitCode::from(exit_code(status)))
 }
 

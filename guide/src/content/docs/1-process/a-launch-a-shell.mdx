@@ -30,7 +30,7 @@ Todavía no hay aislamiento. Este paso construye la base: un programa que lanza 
 </Fragment>
 </BeforeAfter>
 
-El *kernel* es el núcleo de Linux: el programa que reparte la máquina entre todos los procesos. Un *proceso* es un programa en ejecución. Hoy tu programa solo agrega un eslabón entre la terminal y el shell.
+El *kernel* es el núcleo de Linux: el programa que reparte la máquina entre todos los procesos. Un *proceso* es un programa en ejecución. Un *shell* es un programa que lee comandos y los ejecuta, y `/bin/sh` es el shell básico de Linux. Hoy tu programa solo agrega un eslabón entre la terminal y el shell.
 
 <Aside type="note" title="Analogía">
 Tu programa es un jefe de obra. Manda a un albañil, el shell, a hacer un trabajo y se queda esperando. Cuando el albañil termina, le dice con un número cómo le fue: 0 es «bien» y cualquier otro número es «hubo un problema». El jefe repite ese número a quien lo contrató, que es tu terminal.
@@ -44,7 +44,13 @@ Tres archivos, de lo más pequeño a lo que los junta:
 2. `src/container.rs` lanza el programa y espera.
 3. `src/main.rs` conecta los dos.
 
+Los archivos se escriben en el Mac, con Zed, dentro de `/Users/tu-usuario/mini-container-rs`. Los comandos de `cargo` y de `sudo` se corren en Linux. La máquina Linux ve la misma carpeta, así que lo que guardas en Zed ya está allí.
+
+Todo el código va en inglés, también los textos que el programa imprime. La página te explica en español qué dice cada texto la primera vez que aparece.
+
 Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia no.
+
+Una última cosa antes de la predicción. Cuando un programa termina, deja un número: su *código de salida*. `0` significa «todo salió bien». Cualquier otro número significa «hubo un problema». Tu shell guarda el código del último comando en `$?`, y `echo $?` lo imprime. `echo` escribe en pantalla lo que le des.
 
 <Quiz kind="prediction">
 <Fragment slot="question">Tu programa lanza `/bin/sh -c 'exit 3'`. El shell termina con el código 3. Después corres `echo $?` en tu terminal. ¿Qué quieres que imprima?</Fragment>
@@ -84,7 +90,7 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
         Locking 1 package to highest Rust 1.99.1 compatible version
    ```
 
-   Abre `Cargo.toml`. Debe tener una línea nueva, la 7:
+   Abre `Cargo.toml` en Zed. Debe tener una línea nueva, la 7:
 
    ```toml title="Cargo.toml" ins={7}
    [package]
@@ -102,19 +108,21 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
 
 2. **Describe lo que el usuario escribe: `src/cli.rs`.**
 
-   Crea el archivo `src/cli.rs`. Primero, los tipos y el mensaje de uso:
+   En Zed, crea el archivo `src/cli.rs`. Primero, los tipos y el mensaje de uso:
 
    ```rust title="src/cli.rs"
+   #[derive(Debug, PartialEq, Eq)]
    pub struct CommandLine {
        pub program: String,
        pub args: Vec<String>,
    }
 
+   #[derive(Debug, PartialEq, Eq)]
    pub enum Invocation {
        Run(CommandLine),
    }
 
-   pub const USAGE: &str = "uso: mini-container run <programa> [argumentos...]";
+   pub const USAGE: &str = "usage: mini-container run <program> [args...]";
    ```
 
    - `pub struct CommandLine`: un `struct` junta varios datos con nombre en un solo valor. `pub` lo deja ver desde otros archivos.
@@ -123,20 +131,31 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
    - `pub enum Invocation`: un `enum` es un valor que es una de varias opciones. Hoy hay una sola, `Run`. Con un `enum` ya queda el sitio para añadir más sin cambiar el resto.
    - `Run(CommandLine)`: la opción `Run` trae dentro una `CommandLine`.
    - `pub const USAGE`: un texto fijo que se imprimirá cuando alguien use mal el programa. `&str` es un texto prestado que dura todo el programa.
+   - El texto dice, en español: `uso: mini-container run <programa> [argumentos...]`. Lo que va entre `<>` es obligatorio, y lo que va entre `[]` es opcional.
+
+   Las líneas `#[derive(...)]` merecen su propia explicación. Una línea `#[...]` encima de un tipo es un *atributo*: una instrucción para el compilador. `derive` le pide a Rust que escriba por ti el código de ciertos *traits*. Un *trait* es una capacidad que un tipo puede tener.
+
+   - `Debug`: el tipo se puede imprimir para depurarlo, con `{:?}`.
+   - `PartialEq`: dos valores del tipo se pueden comparar con `==`.
+   - `Eq`: promete que un valor siempre es igual a sí mismo. `String` y `Vec` lo cumplen. Un número decimal no, por el valor `NaN`. `Eq` solo se puede derivar junto con `PartialEq`.
+
+   Tu programa todavía no usa estas capacidades. Las pones ahora porque en Rust un tipo público casi siempre las lleva: las guías de la API de Rust piden `Debug` en todos los tipos públicos y los traits comunes en los tipos nuevos.
 
    Ahora la función que lee los argumentos. Añade las líneas nuevas debajo de `USAGE`:
 
-   ```rust title="src/cli.rs" ins={11-24}
+   ```rust title="src/cli.rs" ins={13-26}
+   #[derive(Debug, PartialEq, Eq)]
    pub struct CommandLine {
        pub program: String,
        pub args: Vec<String>,
    }
 
+   #[derive(Debug, PartialEq, Eq)]
    pub enum Invocation {
        Run(CommandLine),
    }
 
-   pub const USAGE: &str = "uso: mini-container run <programa> [argumentos...]";
+   pub const USAGE: &str = "usage: mini-container run <program> [args...]";
 
    pub fn parse(args: impl IntoIterator<Item = String>) -> Option<Invocation> {
        let mut args = args.into_iter();
@@ -158,15 +177,52 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
    - `let mut args = args.into_iter();`: convierte los argumentos en algo del que puedes sacar un elemento a la vez. `mut` porque sacar un elemento lo cambia.
    - `args.next()?`: saca el siguiente elemento. Si no hay ninguno, el `?` sale de la función devolviendo `None`.
    - `.as_str()`: presta ese `String` como texto, para compararlo con `"run"`.
-   - `"run" => { ... }`: si la primera palabra es `run`, sigue por aquí.
+   - `match ... { ... }`: un `match` compara un valor con una lista de opciones, de arriba abajo, y corre la primera que coincide. Cada línea `opción => resultado` se llama *brazo*.
+   - `"run" => { ... }`: el primer brazo. Si la primera palabra es `run`, sigue por aquí.
    - `let program = args.next()?;`: la segunda palabra es el programa. Si falta, el `?` devuelve `None`: `run` sin programa no sirve.
    - `args: args.collect()`: junta todo lo que queda en un `Vec<String>`. Esos son los argumentos del programa.
    - `program,` solo, sin `program: program`: Rust lo permite cuando el campo y la variable se llaman igual.
-   - `_ => None`: cualquier otra primera palabra no se entiende.
+   - `_ => None`: el guion bajo significa «cualquier otro valor». Cualquier otra primera palabra no se entiende.
+
+   Rust solo compila los archivos que `main.rs` declara. Abre `src/main.rs`. Añade esta línea al principio, encima de `fn main`, y deja una línea en blanco debajo:
+
+   ```rust title="src/main.rs" ins={1}
+   mod cli;
+   ```
+
+   - `mod cli;`: le dice a Rust que el proyecto tiene un archivo más, `cli.rs`. Sin esto, Rust no lo mira.
+
+   Compila para comprobar que lo que tecleaste es correcto. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila el proyecto y deja el binario en `target/debug/`. No lo corre.
+   - Efecto: descarga `anyhow` y crea la carpeta `target/`.
+
+   ```sh title="Deberías ver"
+   $ cargo build
+    Downloading crates ...
+     Downloaded anyhow v1.0.104
+      Compiling anyhow v1.0.104
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+   warning: struct `CommandLine` is never constructed
+    --> src/cli.rs:2:12
+   ...
+   warning: `mini-container` (bin "mini-container") generated 4 warnings
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s
+   ```
+
+   - `Downloading` y `Downloaded`: bajó `anyhow`. Solo pasa la primera vez.
+   - `Compiling`: compiló `anyhow` y después tu crate.
+   - `warning: ... is never constructed`: un aviso. Rust te dice que escribiste algo que nadie usa todavía. En total son cuatro avisos del mismo tipo. Aquí va solo el primero.
+   - `Finished`: terminó bien. Los avisos no son errores. Desaparecen en el paso 4, cuando `main` use todo.
+   - El tiempo del final cambia en cada máquina.
 
 3. **Lanza el programa y espera: `src/container.rs`.**
 
-   Crea `src/container.rs`. Empieza por lo que el archivo necesita traer:
+   En Zed, crea `src/container.rs`. Empieza por lo que el archivo necesita traer:
 
    ```rust title="src/container.rs"
    use std::os::unix::process::ExitStatusExt;
@@ -199,7 +255,7 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
        let status = Command::new(&command.program)
            .args(&command.args)
            .status()
-           .context("no pude lanzar el programa")?;
+           .context("could not launch the program")?;
        Ok(ExitCode::from(exit_code(status)))
    }
    ```
@@ -209,12 +265,20 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
    - `Command::new(&command.program)`: prepara el lanzamiento de ese programa.
    - `.args(&command.args)`: le añade sus argumentos.
    - `.status()`: lo lanza, espera a que termine y entrega su `ExitStatus`. Falla si el programa no se pudo lanzar, por ejemplo porque no existe.
-   - `.context("no pude lanzar el programa")`: si hubo un fallo, le pone este mensaje por delante. El error original queda como la causa.
+   - `.context("could not launch the program")`: si hubo un fallo, le pone este mensaje por delante. Dice «no pude lanzar el programa». El error original queda como la causa.
    - `?`: si hubo un error, sale de `run` devolviéndolo. Si no, sigue con el valor.
    - `Ok(ExitCode::from(exit_code(status)))`: `exit_code` es la función que escribes a continuación. Convierte el estado en un número, `ExitCode::from` lo vuelve un `ExitCode` y `Ok(...)` lo envuelve.
 
+   Antes de escribir `exit_code`, hay que saber cómo termina un proceso. Hay dos maneras.
+
+   La primera: el proceso llama a `exit(código)`. Entonces deja un código de salida, de 0 a 255.
+
+   La segunda: el proceso recibe una *señal* que lo mata. Una señal es un aviso que el kernel le manda a un proceso. La señal 9, llamada `SIGKILL`, lo mata en el acto, y el proceso no puede evitarlo. Entonces no hay código de salida: solo queda el número de la señal.
+
+   `status.code()` es el método de `ExitStatus` que pregunta por el código de salida. Devuelve un `Option`: `Some(código)` si el proceso llamó a `exit`, y `None` si no hay código.
+
    <Quiz kind="prediction">
-   <Fragment slot="question">Escribes `kill -9 $$` dentro de un shell. Ese comando mata al shell con la señal 9. El shell no llega a llamar a `exit`. ¿Qué devuelve `status.code()` para ese hijo?</Fragment>
+   <Fragment slot="question">Un shell corre `kill -9 $$`. Ese comando le manda al propio shell la señal 9: `kill` manda una señal, `-9` es el número y `$$` es el número de proceso del shell. El shell no llega a llamar a `exit`. ¿Qué devuelve `status.code()` para ese hijo?</Fragment>
 
    <QuizOption>`Some(9)`.<Fragment slot="feedback">El 9 es el número de la señal, no un código de salida. Un código de salida solo existe si el proceso termina llamando a `exit`.</Fragment></QuizOption>
 
@@ -237,7 +301,7 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
        let status = Command::new(&command.program)
            .args(&command.args)
            .status()
-           .context("no pude lanzar el programa")?;
+           .context("could not launch the program")?;
        Ok(ExitCode::from(exit_code(status)))
    }
 
@@ -253,20 +317,45 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
 
    - `fn exit_code`: sin `pub`, solo se usa dentro de este archivo.
    - `-> u8`: un número de 0 a 255, que es lo que cabe en un código de salida.
-   - `const SIGNAL_EXIT_BASE: u8 = 128;`: un nombre para el 128, para que no sea un número suelto. Lo explico en la sección siguiente.
-   - `status.code()`: devuelve un `Option<i32>`. Es `Some(código)` si el hijo terminó por sí mismo y `None` si lo mató una señal.
-   - `Some(code) => code as u8`: `as u8` convierte el número a `u8`. Cabe porque un código de salida tiene 8 bits.
+   - `const SIGNAL_EXIT_BASE: u8 = 128;`: un nombre para el 128, para que no sea un número suelto. Lo explico en la sección «Por qué 128 + señal».
+   - `match status.code()`: otro `match`. Esta vez compara el `Option` con sus dos formas.
+   - `Some(code) => code as u8`: el hijo llamó a `exit`. `as u8` convierte el número a `u8`. Cabe porque un código de salida tiene 8 bits.
    - `None => ...`: aquí lo mató una señal. `status.signal()` entrega el número de la señal, y por eso hacía falta `ExitStatusExt`.
    - `.unwrap_or_default()`: si no hubiera señal, usa 0. En este caso no puede pasar. No usamos `.unwrap()` porque haría que el programa se cayera con un `panic` si el valor faltara.
 
+   Declara el módulo. En `src/main.rs`, añade debajo de `mod cli;`:
+
+   ```rust title="src/main.rs" ins={2}
+   mod cli;
+   mod container;
+   ```
+
+   Y compila otra vez. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+   - Efecto: crea o actualiza lo que hay en `target/debug/`.
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+   warning: struct `CommandLine` is never constructed
+    --> src/cli.rs:2:12
+   ...
+   warning: `mini-container` (bin "mini-container") generated 6 warnings
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+   ```
+
+   Son seis avisos: los cuatro de antes y dos más, de `run` y de `exit_code`. Siguen siendo avisos de código que nadie usa todavía. `Finished` dice que compiló.
+
 4. **Júntalo todo: `src/main.rs`.**
 
-   `cargo init` escribió aquí un «hola mundo». Bórralo y empieza por declarar los dos archivos nuevos:
+   Tu `main.rs` tiene ahora los dos `mod` y el «hola mundo» que escribió `cargo init`. Añade, debajo de los `mod`, lo que `main` necesita traer:
 
-   ```rust title="src/main.rs" del={1-3} ins={4-8}
-   fn main() {
-       println!("Hello, world!");
-   }
+   ```rust title="src/main.rs" ins={4-5}
    mod cli;
    mod container;
 
@@ -274,19 +363,21 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
    use std::process::ExitCode;
    ```
 
-   - `mod cli;` y `mod container;`: le dicen a Rust que el proyecto tiene dos archivos más, `cli.rs` y `container.rs`. Sin esto, Rust no los mira.
    - `use std::env;`: `env` da acceso a lo que rodea al programa, como sus argumentos.
    - `use std::process::ExitCode;`: el mismo `ExitCode` de antes.
 
-   Y ahora la función `main`:
+   Ahora reemplaza el `fn main` de ejemplo por el tuyo:
 
-   ```rust title="src/main.rs" ins={6-15}
+   ```rust title="src/main.rs" del={7-9} ins={10-18}
    mod cli;
    mod container;
 
    use std::env;
    use std::process::ExitCode;
 
+   fn main() {
+       println!("Hello, world!");
+   }
    fn main() -> anyhow::Result<ExitCode> {
        match cli::parse(env::args().skip(1)) {
            Some(cli::Invocation::Run(command)) => container::run(&command),
@@ -301,50 +392,53 @@ Teclea cada trozo. No lo copies: el que teclea lee cada línea, y el que copia n
    - `fn main() -> anyhow::Result<ExitCode>`: `main` puede devolver un `Result`. Si devuelve `Err`, Rust imprime `Error: ...` por stderr y sale con el código 1.
    - `env::args()`: las palabras que escribiste en la terminal. La primera es la ruta del propio programa.
    - `.skip(1)`: se salta esa primera palabra, que a `parse` no le sirve.
+   - `match cli::parse(...)`: el tercer `match`. Compara lo que devuelve `parse` con dos opciones.
    - `Some(cli::Invocation::Run(command)) => container::run(&command)`: si `parse` entendió un `run`, lanza el programa.
    - `None => { ... }`: si no entendió, imprime el uso y sale con el código 2.
-   - `eprintln!`: imprime por *stderr*, el canal de los errores. El canal normal, *stdout*, queda libre para la salida del programa.
+   - `eprintln!`: imprime una línea por *stderr*, el canal de los errores. El canal normal, *stdout*, queda libre para la salida del programa.
+   - El `!` al final de `eprintln!` marca una *macro*: código que Rust expande mientras compila.
+   - `"{}"`: la plantilla de `eprintln!`. Cada `{}` es un hueco que Rust rellena con el valor que sigue, aquí `cli::USAGE`. Hace falta la plantilla porque Rust exige que el primer argumento sea un texto escrito a mano, no una constante.
    - El 2 es nuestra elección: separa «me usaron mal» (2) de «falló al ejecutar» (1).
+
+   Compila por última vez. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+   - Efecto: deja en `target/debug/mini-container` el binario completo.
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
+   ```
+
+   Ya no hay avisos: `main` usa todo lo que escribiste.
 
 </Steps>
 
-## Compila y corre
+## Corre tu programa
 
-Compila siempre como tu usuario, en Linux:
-
-```sh title="En Linux"
-cargo build
-```
-
-- `cargo build`: compila el proyecto y deja el binario en `target/debug/`. No lo corre.
-
-```sh title="Deberías ver"
-$ cargo build
- Downloading crates ...
-  Downloaded anyhow v1.0.104
-   Compiling anyhow v1.0.104
-   Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.40s
-```
-
-El tiempo del final cambia en cada máquina. Ahora corre tu programa:
+Compilas siempre como tu usuario, con `cargo build`. Y corres el binario con `sudo`. Corre tu programa en Linux:
 
 ```sh title="En Linux"
-sudo ./target/debug/mini-container run /bin/echo hola
+sudo ./target/debug/mini-container run /bin/echo hello
 ```
 
 - `sudo`: corre el comando como administrador. En este paso todavía no hace falta. Lo usamos ya para no cambiar el comando cuando lo pida el aislamiento.
-- `./target/debug/mini-container`: la ruta de tu binario. El `./` es necesario: sin él, el shell lo buscaría en el `PATH` y no lo encontraría.
+- `./target/debug/mini-container`: la ruta de tu binario. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
 - `run`: la palabra que `parse` espera primero.
-- `/bin/echo hola`: el programa que se lanza y su argumento.
+- `/bin/echo hello`: el programa que se lanza y su argumento.
 - Efecto: tu programa lanza `echo`, espera a que termine y sale con su código.
 
 ```sh title="Deberías ver"
-$ sudo ./target/debug/mini-container run /bin/echo hola
-hola
+$ sudo ./target/debug/mini-container run /bin/echo hello
+hello
 ```
 
-Ahora el código de salida. En el shell, `$?` guarda el código del último comando:
+Ahora el código de salida:
 
 ```sh title="En Linux"
 sudo ./target/debug/mini-container run /bin/sh -c 'exit 3'; echo $?
@@ -362,21 +456,27 @@ $ sudo ./target/debug/mini-container run /bin/sh -c 'exit 3'; echo $?
 
 Por último, sin argumentos:
 
+```sh title="En Linux"
+sudo ./target/debug/mini-container; echo $?
+```
+
+- `sudo ./target/debug/mini-container`: el programa sin `run` ni programa que lanzar.
+- `; echo $?`: igual que antes, imprime el código de salida del comando anterior.
+- Efecto: `parse` devuelve `None` y `main` imprime el uso.
+
 ```sh title="Deberías ver"
 $ sudo ./target/debug/mini-container; echo $?
-uso: mini-container run <programa> [argumentos...]
+usage: mini-container run <program> [args...]
 2
 ```
+
+La primera línea es el texto `USAGE`, que sale por stderr. La segunda es el código de salida, 2. Pasa lo mismo con `run` solo, sin programa: `parse` también devuelve `None`.
 
 <Aside type="caution" title="Trampa típica">
 Cambias el código, corres el comando y el resultado no cambia. Casi siempre es que olvidaste `cargo build`. `sudo ./target/debug/mini-container` ejecuta el binario que ya existe. Compilar y correr son dos pasos.
 </Aside>
 
 ## Por qué 128 + señal
-
-Un proceso puede terminar de dos maneras. La primera es llamar a `exit(código)`: entonces hay un código de salida, de 0 a 255. La segunda es recibir una señal que lo mata: entonces no hay código, solo el número de la señal.
-
-Una *señal* es un aviso que el kernel le manda a un proceso. La señal 9, `SIGKILL`, lo mata en el acto y el proceso no puede evitarlo.
 
 Los shells quieren un solo número para todo. Por eso usan una convención: si el proceso murió por la señal N, el código es 128 + N. Con la señal 9 queda 128 + 9 = 137. Tu programa copia esa convención en `exit_code`.
 
@@ -388,6 +488,7 @@ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 
 - `kill -9 $$`: `kill` manda una señal. `-9` es el número de la señal. `$$` es el número de proceso, el PID, del shell que lo ejecuta. El shell se mata a sí mismo.
 - Las comillas simples son obligatorias. Con comillas dobles, tu shell cambiaría `$$` por su propio PID antes de lanzar nada, y el `kill` mataría a tu terminal en vez de al hijo.
+- `; echo $?`: imprime el código de salida del comando anterior.
 
 ```sh title="Deberías ver"
 $ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
@@ -395,6 +496,34 @@ $ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 ```
 
 Un código de salida tiene solo 8 bits. Un proceso que llama a `exit(256)` devuelve 0, porque solo se guarda el byte bajo del número.
+
+## Cuando el programa no existe
+
+Prueba con un nombre mal escrito:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run holaa; echo $?
+```
+
+- `run holaa`: pide lanzar un programa llamado `holaa`, que no existe.
+- `; echo $?`: imprime el código de salida del comando anterior.
+- Efecto: `.status()` falla y `run` devuelve el error con el mensaje que le pusiste.
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run holaa; echo $?
+Error: could not launch the program
+
+Caused by:
+    No such file or directory (os error 2)
+1
+```
+
+- `Error: could not launch the program`: es el mensaje que pusiste con `.context(...)`. Dice «no pude lanzar el programa». `main` añade el `Error:` por delante.
+- `Caused by:`: significa «causado por». Introduce la causa, el error original que dio el sistema.
+- `No such file or directory (os error 2)`: «no existe el archivo o directorio». El 2 es el código de error del sistema para eso.
+- El último `1` es el código de salida de tu programa.
+
+El mensaje no dice qué programa falló. Lo arreglas en el ejercicio.
 
 <Quiz kind="closing">
 <Fragment slot="question">Tu programa devuelve 137 cuando el hijo muere con `kill -9`. ¿De dónde sale ese 137?</Fragment>
@@ -406,30 +535,6 @@ Un código de salida tiene solo 8 bits. Un proceso que llama a `exit(256)` devue
 <QuizOption>Es el PID del hijo.<Fragment slot="feedback">El PID cambia en cada ejecución y el 137 siempre es el mismo. Además el PID no tiene relación con los códigos de salida.</Fragment></QuizOption>
 </Quiz>
 
-## Cuando el programa no existe
-
-Prueba con un nombre mal escrito:
-
-```sh title="En Linux"
-sudo ./target/debug/mini-container run holaa
-```
-
-El resultado es:
-
-```sh title="Resultado actual"
-$ sudo ./target/debug/mini-container run holaa
-Error: no pude lanzar el programa
-
-Caused by:
-    No such file or directory (os error 2)
-```
-
-- `Error: ...` es el mensaje que pusiste con `.context(...)`.
-- `Caused by:` introduce la causa: el error original que dio el sistema.
-- El programa salió con el código 1.
-
-El mensaje no dice qué programa falló. Lo arreglas en el ejercicio.
-
 ## Ejercicios
 
 Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
@@ -440,15 +545,15 @@ Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las du
 
 ```sh title="Resultado esperado"
 $ sudo ./target/debug/mini-container run holaa
-Error: no pude lanzar `holaa`
+Error: could not launch `holaa`
 
 Caused by:
     No such file or directory (os error 2)
 ```
 
-<Hint n={1}>Fíjate en la línea de `run` que dice `.context("no pude lanzar el programa")`. El texto es siempre el mismo. Necesitas que incluya el nombre del programa, que está en `command.program`.</Hint>
+<Hint n={1}>Fíjate en la línea de `run` que dice `.context("could not launch the program")`. El texto es siempre el mismo. Necesitas que incluya el nombre del programa, que está en `command.program`.</Hint>
 
-<Hint n={2}>Para armar un texto con un valor dentro se usa `format!`. Por ejemplo, `format!("hola {}", nombre)`. Las comillas invertidas del resultado esperado son caracteres normales dentro del texto.</Hint>
+<Hint n={2}>Para armar un texto con un valor dentro se usa `format!`. Por ejemplo, `format!("hello {}", name)`. Las comillas invertidas del resultado esperado son caracteres normales dentro del texto.</Hint>
 
 <Hint n={3}>`anyhow` tiene `.with_context(...)`, que recibe una función que arma el texto: `|| format!(...)`. A diferencia de `.context(...)`, el texto solo se arma si hubo un error.</Hint>
 
@@ -457,4 +562,8 @@ Caused by:
 - Rust, `ExitStatus::code`: devuelve el código solo si el proceso llamó a `exit`, lo trunca a 8 bits y devuelve `None` si lo mató una señal. [doc.rust-lang.org/1.99.1/std/process/struct.ExitStatus.html](https://doc.rust-lang.org/1.99.1/std/process/struct.ExitStatus.html). Consultada el 2026-11-12.
 - Manual de Bash, «Exit Status»: cuando un comando termina por una señal fatal de número N, el código es 128+N. [gnu.org/software/bash/manual/html_node/Exit-Status.html](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html). Consultada el 2026-11-12.
 - `exit(3)`: del estado de salida se devuelve al padre solo el byte menos significativo. [man7.org/linux/man-pages/man3/exit.3.html](https://man7.org/linux/man-pages/man3/exit.3.html). Consultada el 2026-11-12.
+- The Rust Programming Language, apéndice C, «Derivable Traits»: `derive` genera el código de un trait con su implementación por defecto. `Debug` permite imprimir con `{:?}`, `PartialEq` permite comparar con `==` y `!=`, y `Eq` señala que todo valor es igual a sí mismo. [doc.rust-lang.org/book/appendix-03-derivable-traits.html](https://doc.rust-lang.org/book/appendix-03-derivable-traits.html). Consultada el 2026-11-12.
+- Rust API Guidelines, «Types eagerly implement common traits» (C-COMMON-TRAITS) y «All public types implement `Debug`» (C-DEBUG). [rust-lang.github.io/api-guidelines/interoperability.html](https://rust-lang.github.io/api-guidelines/interoperability.html) y [rust-lang.github.io/api-guidelines/debuggability.html](https://rust-lang.github.io/api-guidelines/debuggability.html). Consultadas el 2026-11-12.
+- El primer argumento de `eprintln!` debe ser un texto literal: lo comprobó el compilador de Rust 1.99.1 con `error: format argument must be a string literal`. El 2026-11-12.
+- Las rutas con `/` no se buscan en el `PATH`: comprobado en la máquina con `sudo target/debug/mini-container run /bin/echo hello`, que funciona sin el `./`, y con `sudo mini-container ...`, que dice `command not found`. El 2026-11-12.
 - Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-12.
