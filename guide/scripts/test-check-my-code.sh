@@ -18,11 +18,17 @@ check_usage="usage: sudo guide/scripts/check-my-code.sh <id>"
 exercise_launch_text='could not launch `holaa`'
 hostname_from_variable_edit='$a pub fn hostname() -> String { std::env::var("MINI_CONTAINER_HOSTNAME").unwrap_or_else(|_| HOSTNAME.to_string()) }'
 use_hostname_function_edit='s/namespaces::set_hostname(namespaces::HOSTNAME)/namespaces::set_hostname(\&namespaces::hostname())/'
-network_namespace_edit='s/CloneFlags::CLONE_NEWNS)/CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET)/'
+network_namespace_edit='s/CLONE_NEWPID | CloneFlags::CLONE_NEWNS)/CLONE_NEWPID | CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET)/'
 skip_dev_edit='s/mount_dev(&rootfs.join("dev"))?;/let _ = mount_dev;/'
 keep_default_modes_edit='/^use std::fs::/d;/PermissionsExt/d;/fs::set_permissions(path/,/to everyone/c Ok(())'
+cpu_limit_method_edit='$a impl Cgroup { pub fn limit_cpu(&self) -> Result<()> { self.write("cpu.max", "50000 100000") } }'
+use_cpu_limit_edit='s/cgroup.limit_memory(MEMORY_MAX)?;/cgroup.limit_memory(MEMORY_MAX)?; cgroup.limit_cpu()?;/'
+skip_memory_limit_edit='s/cgroup.limit_memory(MEMORY_MAX)?;/let _ = (Cgroup::limit_memory, MEMORY_MAX);/'
+exit_without_drop_edit='s/Ok(ExitCode::from(exit_code(status)))/std::process::exit(i32::from(exit_code(status)))/'
 dev_zero_check="the container has /dev/zero"
 dev_modes_check="the devices are open to everyone"
+oom_check="a command over the memory limit gets the out-of-memory warning"
+leftover_cgroup_check="a missing program leaves no cgroup"
 launch_text_edit_prefix='s/\.context("could not launch the program")/'
 
 reference_binary() {
@@ -240,7 +246,68 @@ test_names_the_check_of_the_device_modes() {
   assert_refused "$dev_modes_check" "a program that leaves the devices with the mode the umask gives"
 }
 
-for id in 1a 2a 2b 2c; do
+cgroup_names() {
+  ls -d /sys/fs/cgroup/mini-container-* 2>/dev/null || true
+}
+
+remove_new_cgroups() {
+  local before=$1 leftover
+  for leftover in $(cgroup_names); do
+    [[ " $before " == *" $leftover "* ]] || sudo rmdir "$leftover"
+  done
+}
+
+throttled_periods_of_the_variant() {
+  sudo "$variant_binary" run /bin/sh -c 'timeout 2 yes > /dev/null; sleep 3' >/dev/null 2>&1 &
+  local launcher=$!
+  sleep 3
+  awk '$1 == "nr_throttled" { print $2 }' /sys/fs/cgroup/mini-container-*/cpu.stat
+  wait "$launcher" || true
+}
+
+test_accepts_every_exercise_up_to_3a1() {
+  local root="$work_dir/exercises-up-to-3a1"
+  make_repo "$root" 3a
+  start_variant 3a
+  edit_variant "${launch_text_edit_prefix}.with_context(|| format!(\"could not launch \`{}\`\", command.program))/" container.rs
+  edit_variant "$hostname_from_variable_edit" namespaces.rs
+  edit_variant "$use_hostname_function_edit" container.rs
+  edit_variant "$network_namespace_edit" namespaces.rs
+  edit_variant "$cpu_limit_method_edit" cgroup.rs
+  edit_variant "$use_cpu_limit_edit" container.rs
+  build_variant
+  assert_not_contains eth0 "$(sudo "$variant_binary" run /sbin/ip link)" "the variant has no network interface but lo"
+  assert_greater_than 0 "$(throttled_periods_of_the_variant)" "the variant throttles a command that wants more than half a core"
+  install_student_binary "$root" "$variant_binary"
+  run_script "$root" MINI_CONTAINER_HOSTNAME=api guide/scripts/check-my-code.sh 3a
+  assert_equals "OK 3a" "$output" "the solutions of the exercises up to 3a.1 pass the check of 3a"
+}
+
+test_names_the_check_of_a_missing_memory_limit() {
+  local root="$work_dir/no-memory-limit"
+  make_repo "$root" 3a
+  start_variant 3a
+  edit_variant "$skip_memory_limit_edit" container.rs
+  build_variant
+  install_student_binary "$root" "$variant_binary"
+  run_check "$root" 3a
+  assert_refused "$oom_check" "a program that sets no memory limit"
+}
+
+test_names_the_check_of_a_leftover_cgroup() {
+  local root="$work_dir/leftover-cgroup" before
+  make_repo "$root" 3a
+  start_variant 3a
+  edit_variant "$exit_without_drop_edit" container.rs
+  build_variant
+  install_student_binary "$root" "$variant_binary"
+  before=$(cgroup_names | tr '\n' ' ')
+  run_check "$root" 3a
+  remove_new_cgroups "$before"
+  assert_refused "$leftover_cgroup_check" "a program that exits without dropping its cgroup"
+}
+
+for id in 1a 2a 2b 2c 3a; do
   build_reference "$id"
 done
 
@@ -250,7 +317,7 @@ test_refuses_the_wrong_number_of_ids
 test_refuses_an_id_that_is_a_path
 test_refuses_an_unknown_id
 test_asks_for_cargo_build
-for id in 1a 2a 2b 2c; do
+for id in 1a 2a 2b 2c 3a; do
   test_accepts_the_reference_program "$id"
 done
 test_names_the_failed_check
@@ -261,5 +328,8 @@ test_ignores_the_hostname_variable
 test_accepts_every_exercise_up_to_2c1
 test_names_the_check_of_an_empty_dev
 test_names_the_check_of_the_device_modes
+test_accepts_every_exercise_up_to_3a1
+test_names_the_check_of_a_missing_memory_limit
+test_names_the_check_of_a_leftover_cgroup
 
 echo "OK test-check-my-code"
