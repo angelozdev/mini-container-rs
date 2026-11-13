@@ -24,7 +24,7 @@
       "cgroup",
       "cgroups"
     ],
-    "definition": "Los archivos de `/sys/fs/cgroup`, como `memory.max` y `cgroup.procs`. Con ellos el kernel limita lo que un grupo de procesos puede gastar."
+    "definition": "Una función del kernel que limita lo que un grupo de procesos puede gastar."
   },
   {
     "id": "closure",
@@ -110,7 +110,7 @@
   {
     "id": "kernel",
     "term": "kernel",
-    "definition": "El núcleo del sistema operativo: el programa que reparte la máquina entre todos los procesos. En esta guía, el de Linux."
+    "definition": "El núcleo de Linux: el programa que reparte la máquina entre todos los procesos."
   },
   {
     "id": "language-server",
@@ -151,12 +151,12 @@
       "namespace",
       "namespaces"
     ],
-    "definition": "Una copia privada de una lista del kernel. El kernel filtra lo que ve cada proceso según su etiqueta."
+    "definition": "Una copia privada de una lista del kernel."
   },
   {
     "id": "orbstack",
     "term": "OrbStack",
-    "definition": "Un programa para Mac que crea máquinas Linux ligeras y las comparte con el Mac. Su comando es `orb`."
+    "definition": "Un programa para Mac que crea máquinas Linux ligeras y las comparte con el Mac."
   },
   {
     "id": "orphan-process",
@@ -183,7 +183,7 @@
       "PID",
       "PIDs"
     ],
-    "definition": "El número de un proceso. El primero de la lista es el número 1."
+    "definition": "El número de un proceso."
   },
   {
     "id": "placeholder",
@@ -206,7 +206,7 @@
   {
     "id": "rust-analyzer",
     "term": "rust-analyzer",
-    "definition": "Un programa que lee tu código mientras escribes y marca los errores. Zed lo usa."
+    "definition": "Un programa que lee tu código mientras escribes y marca los errores."
   },
   {
     "id": "shell",
@@ -215,7 +215,7 @@
       "shell",
       "shells"
     ],
-    "definition": "El programa que lee lo que escribes en la terminal y lo ejecuta. `/bin/sh` es el shell básico de Linux."
+    "definition": "El programa que lee lo que escribes en la terminal y lo ejecuta."
   },
   {
     "id": "signal",
@@ -252,7 +252,7 @@
       "subcomando",
       "subcomandos"
     ],
-    "definition": "La palabra que va después del nombre del programa, como `run`."
+    "definition": "La palabra que va después del nombre del programa, como `add` en `cargo add`."
   },
   {
     "id": "system-call",
