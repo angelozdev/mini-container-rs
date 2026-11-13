@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { test } from "node:test";
 import { attributeOf, builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, readDiv, textOf } from "./support.mjs";
 
-const sequencePages = ["2-namespaces/a-hostname.mdx"];
+const sequencePages = ["2-namespaces/a-hostname.mdx", "2-namespaces/b-processes.mdx"];
 const minimumSteps = 2;
 const maximumSteps = 8;
 

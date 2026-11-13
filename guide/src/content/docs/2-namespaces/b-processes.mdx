@@ -6,10 +6,11 @@ icon: 🪪
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
-import BeforeAfter from "../../../components/diagram/BeforeAfter.astro";
 import KernelBox from "../../../components/diagram/KernelBox.astro";
 import KernelEntry from "../../../components/diagram/KernelEntry.astro";
-import Process from "../../../components/diagram/Process.astro";
+import Lane from "../../../components/diagram/Lane.astro";
+import Step from "../../../components/diagram/Step.astro";
+import Stepper from "../../../components/diagram/Stepper.astro";
 import Compare from "../../../components/Compare.astro";
 import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
@@ -22,30 +23,65 @@ Un *proceso* es un programa en ejecución. Cada proceso tiene un número, su *PI
 
 Hoy tu programa le pide al kernel su propia copia de esa lista. La copia se numera desde 1.
 
-<BeforeAfter beforeTitle="ANTES · hay una sola lista" afterTitle="DESPUÉS · hay dos listas">
-<Fragment slot="before">
-<div class="diagram-row"><Process>terminal</Process><Process highlighted>mini-container</Process></div>
-<p class="diagram-note">↓ los dos están en la misma lista ↓</p>
-<KernelBox label="lista de procesos">
-<KernelEntry>1 systemd</KernelEntry>
-<KernelEntry>…</KernelEntry>
-<KernelEntry>4172 mini-container</KernelEntry>
-</KernelBox>
-</Fragment>
-<Fragment slot="after">
-<div class="diagram-row"><Process>mini-container</Process><Process highlighted>ps</Process></div>
-<p class="diagram-note">↓ ps está en las dos listas, con dos números ↓</p>
+<Stepper name="processes">
+<Step>
+<Lane>
 <KernelBox label="lista de la máquina">
 <KernelEntry>1 systemd</KernelEntry>
 <KernelEntry>…</KernelEntry>
-<KernelEntry>4172 mini-container</KernelEntry>
-<KernelEntry>4173 ps</KernelEntry>
+<KernelEntry highlighted note="tu programa">4172 mini-container</KernelEntry>
 </KernelBox>
-<KernelBox label="lista nueva">
-<KernelEntry isCopy>1 ps</KernelEntry>
+</Lane>
+<Fragment slot="caption">Tu programa arranca. Todos los procesos de la máquina, el tuyo incluido, están en **una** lista. Tu programa es el 4172.</Fragment>
+</Step>
+<Step call="unshare(CloneFlags::CLONE_NEWPID)">
+<Lane>
+<KernelBox label="lista de la máquina">
+<KernelEntry>1 systemd</KernelEntry>
+<KernelEntry>…</KernelEntry>
+<KernelEntry highlighted note="tu programa">4172 mini-container</KernelEntry>
 </KernelBox>
-</Fragment>
-</BeforeAfter>
+</Lane>
+<Lane>
+<KernelBox label="lista nueva" isCopy>
+<p class="diagram-note">vacía</p>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">Tu programa pide una lista de procesos nueva. Nace vacía. Y tu programa **no entra en ella**: sigue en la lista de la máquina. Tu código pide a la vez otras copias. Aquí solo miras la de procesos.</Fragment>
+</Step>
+<Step call='Command::new(executable).arg("child")'>
+<Lane>
+<KernelBox label="lista de la máquina">
+<KernelEntry>1 systemd</KernelEntry>
+<KernelEntry>…</KernelEntry>
+<KernelEntry note="tu programa">4172 mini-container</KernelEntry>
+<KernelEntry highlighted change="new" note="el hijo">4173 mini-container</KernelEntry>
+</KernelBox>
+</Lane>
+<Lane>
+<KernelBox label="lista nueva" isCopy>
+<KernelEntry highlighted change="new" note="el hijo">1 mini-container</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">Tu programa lanza un **hijo**: un proceso nuevo que corre el mismo programa, con la palabra `child` delante. El hijo nace dentro de la lista nueva: es el primero, así que recibe el **1**. La máquina lo sigue viendo con su número real, el 4173. Es un solo proceso con dos números.</Fragment>
+</Step>
+<Step call="Command::new(&command.program).exec()">
+<Lane>
+<KernelBox label="lista de la máquina">
+<KernelEntry>1 systemd</KernelEntry>
+<KernelEntry>…</KernelEntry>
+<KernelEntry note="tu programa">4172 mini-container</KernelEntry>
+<KernelEntry highlighted change="edited" note="el hijo">4173 ps</KernelEntry>
+</KernelBox>
+</Lane>
+<Lane>
+<KernelBox label="lista nueva" isCopy>
+<KernelEntry highlighted change="edited" note="el hijo">1 ps</KernelEntry>
+</KernelBox>
+</Lane>
+<Fragment slot="caption">El hijo pasa a ser el comando. `.exec()` cambia el programa de un proceso sin crear otro. Sigue siendo el 1 en la lista nueva y el 4173 en la de la máquina. Solo cambia su nombre: ahora es `ps`.</Fragment>
+</Step>
+</Stepper>
 
 Los números `4172` y `4173` son un ejemplo. En tu máquina serán otros.
 
