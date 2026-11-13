@@ -25,9 +25,29 @@
     "definition": "Un paquete de Rust, el tuyo o uno ajeno."
   },
   {
+    "id": "environment-variable",
+    "term": "variable de entorno",
+    "definition": "Un nombre con un valor que un programa recibe de quien lo lanza. Se escribe `NOMBRE=valor`."
+  },
+  {
     "id": "exit-code",
     "term": "código de salida",
     "definition": "El número que deja un programa al terminar. `0` significa «todo salió bien». Cualquier otro número significa «hubo un problema»."
+  },
+  {
+    "id": "feature",
+    "term": "feature",
+    "definition": "Una pieza opcional de un crate que solo se compila si la pides."
+  },
+  {
+    "id": "flag",
+    "term": "bandera",
+    "definition": "Una opción que se enciende o se apaga."
+  },
+  {
+    "id": "hostname",
+    "term": "hostname",
+    "definition": "El nombre de la máquina. El comando `hostname` lo imprime."
   },
   {
     "id": "kernel",
@@ -53,6 +73,11 @@
     "id": "orbstack",
     "term": "OrbStack",
     "definition": "Un programa para Mac que crea máquinas Linux ligeras y las comparte con el Mac. Su comando es `orb`."
+  },
+  {
+    "id": "panic",
+    "term": "panic",
+    "definition": "Una caída del programa: Rust imprime dónde pasó y sale con el código 101."
   },
   {
     "id": "pid",
@@ -100,6 +125,11 @@
     "definition": "La palabra que va después del nombre del programa, como `run`."
   },
   {
+    "id": "system-call",
+    "term": "llamada al sistema",
+    "definition": "Un pedido que un programa le hace al kernel: abrir un archivo, lanzar un proceso o cambiar el hostname."
+  },
+  {
     "id": "target",
     "term": "target",
     "definition": "La plataforma para la que se compila."
@@ -118,5 +148,10 @@
     "id": "trait",
     "term": "trait",
     "definition": "Una capacidad que un tipo puede tener."
+  },
+  {
+    "id": "uts",
+    "term": "UTS",
+    "definition": "El tipo de namespace que guarda el hostname. Es solo un nombre técnico."
   }
 ]
