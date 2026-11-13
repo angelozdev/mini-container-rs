@@ -1,0 +1,29 @@
+---
+import entries from "../glossary.json";
+import DefinitionText from "./DefinitionText.astro";
+
+interface Props {
+  id: string;
+}
+
+const { id } = Astro.props;
+const entry = entries.find((candidate) => candidate.id === id);
+if (!entry) throw new Error(`Term: "${id}" is not in src/glossary.json`);
+
+const cardId = `term-${id}`;
+const titleId = `${cardId}-title`;
+---
+<button class="term" type="button" popovertarget={cardId}><slot /></button><span
+  class="term-card not-content"
+  id={cardId}
+  popover
+  role="dialog"
+  aria-labelledby={titleId}
+  data-pagefind-ignore
+><strong class="term-card-title" id={titleId}>{entry.term}</strong><span
+  class="term-card-definition"><DefinitionText text={entry.definition} /></span><span
+  class="term-card-actions"><a class="term-card-link" href={`/glossary/#${id}`}>Ver en el glosario →</a><button
+  class="term-card-close"
+  type="button"
+  popovertarget={cardId}
+  popovertargetaction="hide">Cerrar</button></span></span>

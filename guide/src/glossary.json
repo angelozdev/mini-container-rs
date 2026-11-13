@@ -1,0 +1,42 @@
+[
+  {
+    "id": "cgroup",
+    "term": "cgroup",
+    "definition": "Los archivos de `/sys/fs/cgroup`, como `memory.max` y `cgroup.procs`. Con ellos el kernel limita lo que un grupo de procesos puede gastar."
+  },
+  {
+    "id": "controller",
+    "term": "controlador",
+    "definition": "La pieza del kernel que gobierna un recurso. `memory` gobierna la RAM y `cpu` gobierna el uso del procesador."
+  },
+  {
+    "id": "kernel",
+    "term": "kernel",
+    "definition": "El núcleo del sistema operativo: el programa que reparte la máquina entre todos los procesos. En esta guía, el de Linux."
+  },
+  {
+    "id": "namespace",
+    "term": "namespace",
+    "definition": "Una copia privada de una lista del kernel. El kernel filtra lo que ve cada proceso según su etiqueta."
+  },
+  {
+    "id": "orbstack",
+    "term": "OrbStack",
+    "definition": "Un programa para Mac que crea máquinas Linux ligeras y las comparte con el Mac. Su comando es `orb`."
+  },
+  {
+    "id": "process",
+    "term": "proceso",
+    "definition": "Un programa en ejecución."
+  },
+  {
+    "id": "shell",
+    "term": "shell",
+    "definition": "El programa que lee lo que escribes en la terminal y lo ejecuta. `/bin/sh` es el shell básico de Linux."
+  },
+  {
+    "id": "terminal",
+    "term": "terminal",
+    "definition": "La ventana donde escribes comandos."
+  }
+]

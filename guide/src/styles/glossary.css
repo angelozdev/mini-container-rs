@@ -1,0 +1,121 @@
+.term {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted var(--n-muted);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.term:hover {
+  text-decoration-color: var(--n-t-purple);
+}
+
+.term:focus-visible,
+.term-card-link:focus-visible,
+.term-card-close:focus-visible {
+  outline: 2px solid var(--n-t-purple);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.term-card {
+  box-sizing: border-box;
+  width: min(21.25rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  margin: auto;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--n-line);
+  border-radius: 8px;
+  background: var(--n-side);
+  box-shadow: 0 12px 40px var(--n-shadow);
+  color: var(--n-text);
+  font-family: var(--sl-font);
+  font-size: 0.9375rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.term-card:popover-open {
+  display: block;
+}
+
+.term-card::backdrop {
+  background: var(--n-backdrop);
+}
+
+.term-card-title {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.term-card-definition {
+  display: block;
+}
+
+.term-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.625rem;
+}
+
+.sl-markdown-content .term-card a.term-card-link {
+  color: var(--n-t-blue);
+  font-size: 0.875rem;
+  text-decoration-color: currentColor;
+}
+
+.term-card-close {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--n-line);
+  border-radius: 6px;
+  background: none;
+  color: var(--n-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.term-card-close:hover {
+  background: var(--n-hover);
+}
+
+.glossary {
+  margin: 0;
+}
+
+.glossary-entry {
+  padding: 0.5rem 0.625rem;
+  border-radius: 6px;
+  scroll-margin-top: calc(var(--sl-nav-height) + 1rem);
+}
+
+.glossary-entry:target {
+  background: var(--n-hover);
+}
+
+.glossary-entry dt {
+  font-weight: 600;
+}
+
+.glossary-entry dd {
+  margin: 0.125rem 0 0;
+}
+
+.glossary-seen {
+  display: block;
+  color: var(--n-muted);
+  font-size: 0.8125rem;
+}

@@ -39,7 +39,7 @@ export default defineConfig({
         root: { label: "Español", lang: "es" },
       },
       plugins: [starlightLinksValidator()],
-      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css"],
+      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css", "./src/styles/glossary.css"],
       components: {
         PageTitle: "./src/components/PageTitle.astro",
       },
@@ -62,6 +62,7 @@ export default defineConfig({
           label: "2 · Namespaces",
           items: [{ autogenerate: { directory: "2-namespaces" } }],
         },
+        { label: "Glosario", slug: "glossary" },
       ],
     }),
   ],

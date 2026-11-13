@@ -13,10 +13,11 @@ import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
 import QuizOption from "../../../components/QuizOption.astro";
 import ShouldSee from "../../../components/ShouldSee.astro";
+import Term from "../../../components/Term.astro";
 
-**Al terminar:** tienes una máquina Linux dentro de OrbStack, con las herramientas de Rust instaladas, y sabes que usa cgroups v2.
+**Al terminar:** tienes una máquina Linux dentro de <Term id="orbstack">OrbStack</Term>, con las herramientas de Rust instaladas, y sabes que usa <Term id="cgroup">cgroups</Term> v2.
 
-Los namespaces y los cgroups son funciones del *kernel* de Linux. El kernel es el núcleo del sistema operativo: el programa que reparte la máquina entre los procesos. macOS tiene otro kernel y no trae esas funciones. Por eso tu programa se compila y corre dentro de Linux.
+Los <Term id="namespace">namespaces</Term> y los cgroups son funciones del <Term id="kernel">kernel</Term> de Linux. El kernel es el núcleo del sistema operativo: el programa que reparte la máquina entre los <Term id="process">procesos</Term>. macOS tiene otro kernel y no trae esas funciones. Por eso tu programa se compila y corre dentro de Linux.
 
 <BeforeAfter beforeTitle="ANTES · solo el Mac" afterTitle="DESPUÉS · el Mac y una máquina Linux">
 <Fragment slot="before">
@@ -43,7 +44,7 @@ Vas a instalar Rust con tu usuario, no como administrador. Rust quedará en tu c
 
 Después correrás `sudo cargo --version`. `sudo` corre un comando como administrador.
 
-Para razonarlo, hay que saber cómo se encuentra un programa. Un *shell* es el programa que lee lo que escribes en la terminal y lo ejecuta. Cuando escribes un nombre como `cargo`, el shell lo busca en una lista de carpetas llamada `PATH`. Después de instalar Rust, el `PATH` de tu usuario incluirá `~/.cargo/bin`.
+Para razonarlo, hay que saber cómo se encuentra un programa. Un <Term id="shell">shell</Term> es el programa que lee lo que escribes en la <Term id="terminal">terminal</Term> y lo ejecuta. Cuando escribes un nombre como `cargo`, el shell lo busca en una lista de carpetas llamada `PATH`. Después de instalar Rust, el `PATH` de tu usuario incluirá `~/.cargo/bin`.
 
 <Quiz kind="prediction">
 <Fragment slot="question">Con Rust instalado en `~/.cargo/bin`, corres `sudo cargo --version`. ¿Qué pasa?</Fragment>
@@ -363,7 +364,7 @@ Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las du
 
 ### 0a.1 Descubre qué controladores de cgroup tiene tu máquina
 
-**Objetivo:** un *controlador* es la pieza del kernel que gobierna un recurso. `memory` gobierna la RAM y `cpu` gobierna el uso del procesador. Averigua cuáles controladores tiene tu máquina y confirma que están `memory` y `cpu`, que usarás en la parte 3.
+**Objetivo:** un <Term id="controller">controlador</Term> es la pieza del kernel que gobierna un recurso. `memory` gobierna la RAM y `cpu` gobierna el uso del procesador. Averigua cuáles controladores tiene tu máquina y confirma que están `memory` y `cpu`, que usarás en la parte 3.
 
 ```sh title="Resultado esperado"
 $ cat /sys/fs/cgroup/cgroup.controllers

@@ -23,6 +23,8 @@
   --n-t-orange: #c47a2c;
   --n-ins: rgba(82, 167, 123, 0.16);
   --n-del: rgba(224, 107, 100, 0.16);
+  --n-shadow: rgba(0, 0, 0, 0.5);
+  --n-backdrop: rgba(0, 0, 0, 0.25);
 }
 
 :root[data-theme="light"] {
@@ -50,6 +52,8 @@
   --n-t-orange: #c47a2c;
   --n-ins: rgba(68, 131, 97, 0.12);
   --n-del: rgba(212, 76, 71, 0.12);
+  --n-shadow: rgba(15, 15, 15, 0.12);
+  --n-backdrop: rgba(0, 0, 0, 0.25);
 }
 
 :root {

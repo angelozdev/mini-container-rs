@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,16 +19,31 @@ export function attributeOf(tag, name) {
   return tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
 }
 
-const divTag = /<div\b|<\/div>/g;
+export function readElement(html, start, tagName) {
+  const tag = new RegExp(`<${tagName}\\b|</${tagName}>`, "g");
+  tag.lastIndex = start;
+  let depth = 0;
+  for (let found = tag.exec(html); found; found = tag.exec(html)) {
+    depth += found[0] === `</${tagName}>` ? -1 : 1;
+    if (depth === 0) return html.slice(start, tag.lastIndex);
+  }
+  throw new Error(`a ${tagName} in the built page is never closed`);
+}
 
 export function readDiv(html, start) {
-  divTag.lastIndex = start;
-  let depth = 0;
-  for (let tag = divTag.exec(html); tag; tag = divTag.exec(html)) {
-    depth += tag[0] === "</div>" ? -1 : 1;
-    if (depth === 0) return html.slice(start, divTag.lastIndex);
-  }
-  throw new Error("a div in the built page is never closed");
+  return readElement(html, start, "div");
+}
+
+export const glossaryFile = join(guideRoot, "src/glossary.json");
+
+export function readGlossaryEntries() {
+  return JSON.parse(readFileSync(glossaryFile, "utf8"));
+}
+
+const entityValues = { "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&amp;": "&" };
+
+export function decodeEntities(text) {
+  return text.replace(/&(?:lt|gt|quot|#39|amp);/g, (entity) => entityValues[entity]);
 }
 
 const ignoredFolders = new Set(["node_modules", "dist", ".astro", "target"]);
