@@ -6,6 +6,7 @@ icon: 🏷️
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
+import CallOutcomes from "../../../components/diagram/CallOutcomes.astro";
 import KernelBox from "../../../components/diagram/KernelBox.astro";
 import KernelEntry from "../../../components/diagram/KernelEntry.astro";
 import Lane from "../../../components/diagram/Lane.astro";
@@ -471,6 +472,16 @@ Caused by:
 - `Caused by:`: la causa, el error original que dio el kernel.
 - `EPERM: Operation not permitted`: `EPERM` es el código de error del sistema para «operación no permitida». Aquí significa que faltan permisos de administrador.
 - El último `1` es el código de salida de tu programa.
+
+Con `sudo` y sin `sudo` viste las dos salidas de `unshare`:
+
+<CallOutcomes
+  call="unshare(CloneFlags::CLONE_NEWUTS)"
+  ok="Ok(())"
+  okNote="tu programa sigue con su copia"
+  error="Err(EPERM)"
+  errorNote="falta sudo: sale con 1"
+/>
 
 <Aside type="caution" title="Trampa típica">
 Escribir el nombre antes de pedir la copia. Pones `set_hostname` primero y `unshare_namespaces` después. Compila, corre y hasta imprime `container`. Pero todavía no existe ninguna copia: `sethostname` escribe en el letrero de la entrada, el que leen todos los procesos. Cambias el hostname de toda tu máquina.

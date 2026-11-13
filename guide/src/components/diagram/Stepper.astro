@@ -48,8 +48,10 @@ const steps = chunks.map((chunk, index) => {
           aria-describedby={captionId(number)}
         />
         <div class="stepper-stage">
-          <div class="stepper-scene" set:html={scene} />
-          <div class="stepper-caption" id={captionId(number)} set:html={caption} />
+          <div class="stepper-surface diagram-grid">
+            <div class="stepper-scene" set:html={scene} />
+            <div class="stepper-caption" id={captionId(number)} set:html={caption} />
+          </div>
         </div>
         <div class="stepper-player">
           <div class="stepper-nav" aria-hidden="true">

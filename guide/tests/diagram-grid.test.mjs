@@ -1,0 +1,75 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { test } from "node:test";
+import { declares, readSiteCssRules } from "./css-rules.mjs";
+import { readDiagrams, readOutcomeBlocks } from "./outcomes-html.mjs";
+import { builtPageOf, docsFolder, listSectionPaths } from "./support.mjs";
+
+const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx"].map((name) => join(docsFolder, name))];
+const readPage = (docsPath) => readFileSync(builtPageOf(docsPath), "utf8");
+const nameOf = (docsPath) => relative(docsFolder, docsPath);
+
+const expectedOutcomes = [
+  {
+    page: "2-namespaces/a-hostname.mdx",
+    call: "unshare(CloneFlags::CLONE_NEWUTS)",
+    ok: { label: "Ok(())", note: "tu programa sigue con su copia" },
+    error: { label: "Err(EPERM)", note: "falta sudo: sale con 1" },
+  },
+];
+
+test("every diagram of every page carries the dot grid class", () => {
+  const kinds = new Set();
+  for (const docsPath of allPaths) {
+    for (const diagram of readDiagrams(readPage(docsPath))) {
+      kinds.add(diagram.kind);
+      assert.ok(diagram.hasGrid, `${nameOf(docsPath)}: a ${diagram.kind} has no diagram-grid class`);
+    }
+  }
+  assert.deepEqual([...kinds].sort(), ["diagram", "outcomes", "stepper-surface"]);
+});
+
+test("the dot grid paints the theme dot colour, defined in both themes", () => {
+  const rules = readSiteCssRules();
+  const grid = rules.find((rule) => rule.selector === ".diagram-grid");
+  assert.ok(grid, "no .diagram-grid rule");
+  assert.match(grid.body, /background-image:radial-gradient\(var\(--n-dot\)/);
+  const definitions = rules.filter((rule) => declares(rule, "--n-dot")).map((rule) => rule.selector).sort();
+  assert.deepEqual(definitions, [":root", ":root[data-theme=light]"]);
+});
+
+for (const expected of expectedOutcomes) {
+  test(`${expected.page}: the outcome diagram shows the call and its two outcomes as text`, () => {
+    const block = readOutcomeBlocks(readPage(join(docsFolder, expected.page))).find((candidate) => candidate.call === expected.call);
+    assert.ok(block, `no outcome diagram for ${expected.call}`);
+    assert.deepEqual(
+      block.outcomes.map((outcome) => outcome.kind),
+      ["ok", "error"],
+    );
+    const [ok, error] = block.outcomes;
+    assert.deepEqual({ label: ok.label, note: ok.note }, expected.ok);
+    assert.deepEqual({ label: error.label, note: error.note }, expected.error);
+  });
+}
+
+test("every outcome diagram has a call, hides its arrow and marks one ok and one error outcome", () => {
+  let found = 0;
+  for (const docsPath of allPaths) {
+    for (const block of readOutcomeBlocks(readPage(docsPath))) {
+      found += 1;
+      assert.notEqual(block.call, "", `${nameOf(docsPath)}: an outcome diagram has no call`);
+      assert.ok(block.arrowHidden, `${nameOf(docsPath)}: the arrow of ${block.call} is not aria-hidden`);
+      assert.deepEqual(
+        block.outcomes.map((outcome) => outcome.kind),
+        ["ok", "error"],
+        `${nameOf(docsPath)}: ${block.call}`,
+      );
+      for (const outcome of block.outcomes) {
+        assert.notEqual(outcome.label, "", `${nameOf(docsPath)}: an outcome of ${block.call} has no text`);
+        assert.notEqual(outcome.note, "", `${nameOf(docsPath)}: an outcome of ${block.call} has no note`);
+      }
+    }
+  }
+  assert.ok(found >= expectedOutcomes.length, `found ${found} outcome diagrams`);
+});

@@ -1,0 +1,20 @@
+---
+interface Props {
+  call: string;
+  ok: string;
+  okNote: string;
+  error: string;
+  errorNote: string;
+}
+
+const { call, ok, okNote, error, errorNote } = Astro.props;
+---
+
+<div class="outcomes not-content diagram-grid">
+  <code class="outcomes-call">{call}</code>
+  <span class="outcomes-arrow" aria-hidden="true">↙ ↘</span>
+  <div class="outcomes-branches">
+    <div class="outcome" data-outcome="ok">{ok}<span class="outcome-note">{okNote}</span></div>
+    <div class="outcome" data-outcome="error">{error}<span class="outcome-note">{errorNote}</span></div>
+  </div>
+</div>

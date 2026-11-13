@@ -1,0 +1,67 @@
+.diagram-grid {
+  background-image: radial-gradient(var(--n-dot) 1px, transparent 1.2px);
+  background-size: 14px 14px;
+}
+
+.outcomes {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin-block: 0.875rem;
+  padding: 1rem;
+  border: 1px solid var(--n-line);
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.outcomes-call {
+  max-width: 100%;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--n-line);
+  border-radius: 6px;
+  background: var(--n-bg);
+  color: var(--n-text);
+  font-family: var(--sl-font-mono);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.outcomes-arrow {
+  color: var(--n-faint);
+}
+
+.outcomes-branches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+  max-width: 28.75rem;
+}
+
+.outcome {
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--n-line);
+  border-radius: 6px;
+  background: var(--n-bg);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.outcome[data-outcome="ok"] {
+  background: var(--n-c-green);
+  border-color: var(--n-t-green);
+  color: var(--n-t-green);
+}
+
+.outcome[data-outcome="error"] {
+  background: var(--n-c-red);
+  border-color: var(--n-t-red);
+  color: var(--n-t-red);
+}
+
+.outcome-note {
+  display: block;
+  color: var(--n-muted);
+  font-size: 0.75rem;
+}
