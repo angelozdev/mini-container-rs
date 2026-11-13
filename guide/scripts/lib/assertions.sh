@@ -13,6 +13,17 @@ assert_contains() {
   [[ "$haystack" == *"$needle"* ]] || fail "$label: does not contain [$needle], got [$haystack]"
 }
 
+assert_contains_either() {
+  local first=$1 second=$2 haystack=$3 label=$4
+  [[ "$haystack" == *"$first"* || "$haystack" == *"$second"* ]] ||
+    fail "$label: contains neither [$first] nor [$second], got [$haystack]"
+}
+
+assert_not_contains() {
+  local needle=$1 haystack=$2 label=$3
+  [[ "$haystack" != *"$needle"* ]] || fail "$label: contains [$needle], got [$haystack]"
+}
+
 assert_matches() {
   local pattern=$1 actual=$2 label=$3
   [[ "$actual" =~ $pattern ]] || fail "$label: [$actual] does not match [$pattern]"
@@ -21,6 +32,15 @@ assert_matches() {
 assert_greater_than() {
   local floor=$1 actual=$2 label=$3
   [ "$actual" -gt "$floor" ] || fail "$label: expected more than [$floor] but got [$actual]"
+}
+
+capture_stdout() {
+  local label=$1
+  shift
+  local output status=0
+  output=$("$@") || status=$?
+  [ "$status" -eq 0 ] || fail "$label: the program exited with $status"
+  printf '%s' "$output"
 }
 
 assert_exit_code() {

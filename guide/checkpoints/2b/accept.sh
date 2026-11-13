@@ -4,7 +4,7 @@ set -euo pipefail
 checkpoint_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$checkpoint_dir/../../scripts/lib/assertions.sh"
 
-binary="$checkpoint_dir/target/debug/mini-container"
+binary="${MINI_CONTAINER_BIN:-$checkpoint_dir/target/debug/mini-container}"
 usage="usage: mini-container run <program> [args...]"
 regular_user=${SUDO_USER:?"run it with sudo"}
 
@@ -36,7 +36,7 @@ machine_mounts=$(findmnt -rn)
 
 assert_exit_code 3 "the child exits with 3" "$binary" run /bin/sh -c 'exit 3'
 
-echoed=$("$binary" run /bin/echo hello)
+echoed=$(capture_stdout "the child prints hello" "$binary" run /bin/echo hello)
 assert_equals "hello" "$echoed" "the child prints hello"
 
 capture_stderr "$binary"
@@ -55,14 +55,14 @@ assert_equals 1 "$status" "a missing program exits with 1"
 kill_child_from_outside
 assert_equals 137 "$status" "a child killed by SIGKILL from outside exits with 137"
 
-inside_hostname=$("$binary" run /bin/hostname)
+inside_hostname=$(capture_stdout "the child sees its own hostname" "$binary" run /bin/hostname)
 assert_equals "container" "$inside_hostname" "the child sees its own hostname"
 assert_equals "$machine_hostname" "$(hostname)" "the machine keeps its hostname"
 
 alone_in_namespace=$(unshare --mount "$binary" run /bin/hostname 2>&1 || true)
 assert_equals "container" "$alone_in_namespace" "the program works when it is the only process of its mount namespace"
 
-process_list=$("$binary" run /bin/ps -o pid,comm)
+process_list=$(capture_stdout "the container lists its processes" "$binary" run /bin/ps -o pid,comm)
 mapfile -t process_lines <<<"$process_list"
 assert_equals 2 "${#process_lines[@]}" "the container lists only the header and one process"
 assert_matches '^ *1 ps$' "${process_lines[1]}" "the program is the PID 1 of the container"
