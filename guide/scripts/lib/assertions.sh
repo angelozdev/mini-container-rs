@@ -13,6 +13,16 @@ assert_contains() {
   [[ "$haystack" == *"$needle"* ]] || fail "$label: does not contain [$needle], got [$haystack]"
 }
 
+assert_matches() {
+  local pattern=$1 actual=$2 label=$3
+  [[ "$actual" =~ $pattern ]] || fail "$label: [$actual] does not match [$pattern]"
+}
+
+assert_greater_than() {
+  local floor=$1 actual=$2 label=$3
+  [ "$actual" -gt "$floor" ] || fail "$label: expected more than [$floor] but got [$actual]"
+}
+
 assert_exit_code() {
   local expected=$1 label=$2
   shift 2
