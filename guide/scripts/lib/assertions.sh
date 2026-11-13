@@ -24,7 +24,7 @@ assert_exit_code() {
 host_state() {
   hostname
   findmnt -rn
-  ps -e | wc -l
+  ps -p 1 -o comm=
   ls /sys/fs/cgroup
 }
 
