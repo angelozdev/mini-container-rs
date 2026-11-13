@@ -1,0 +1,549 @@
+---
+title: 2a · Aislar el hostname
+description: Tu programa lanza un comando con su propio nombre de máquina, y la máquina de verdad no se entera.
+checkpoint: 2a
+icon: 🏷️
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import BeforeAfter from "../../../components/diagram/BeforeAfter.astro";
+import KernelBox from "../../../components/diagram/KernelBox.astro";
+import KernelEntry from "../../../components/diagram/KernelEntry.astro";
+import Process from "../../../components/diagram/Process.astro";
+import Compare from "../../../components/Compare.astro";
+import Hint from "../../../components/Hint.astro";
+import Quiz from "../../../components/Quiz.astro";
+import QuizOption from "../../../components/QuizOption.astro";
+import ShouldSee from "../../../components/ShouldSee.astro";
+
+**Al terminar:** tu programa lanza un comando con su propio nombre de máquina, y la máquina de verdad no se entera.
+
+El *hostname* es el nombre de la máquina. El comando `hostname` lo imprime. El kernel guarda ese nombre en una lista, y todos los procesos de la máquina leen la misma.
+
+Hoy tu programa le pide al kernel su propia copia de esa lista. Escribe un nombre nuevo en la copia y lanza un comando que lee la copia.
+
+<BeforeAfter beforeTitle="ANTES · hay una sola lista" afterTitle="DESPUÉS · tu programa tiene su copia">
+<Fragment slot="before">
+<div class="diagram-row"><Process>terminal</Process><Process highlighted>mini-container</Process></div>
+<p class="diagram-note">↓ los dos leen el mismo letrero ↓</p>
+<KernelBox><KernelEntry>hostname: mini-container-dev</KernelEntry></KernelBox>
+</Fragment>
+<Fragment slot="after">
+<div class="diagram-row"><Process>terminal</Process><Process highlighted>mini-container</Process></div>
+<p class="diagram-note">↓ cada uno lee el suyo ↓</p>
+<KernelBox>
+<KernelEntry>hostname: mini-container-dev</KernelEntry>
+<KernelEntry isCopy>hostname: container</KernelEntry>
+</KernelBox>
+</Fragment>
+</BeforeAfter>
+
+Un *namespace* es una copia privada de una lista del kernel. El tipo de namespace que guarda el hostname se llama *UTS*. Es solo un nombre técnico: no hace falta que recuerdes qué significa la sigla.
+
+<Aside type="note" title="Analogía">
+Un edificio tiene un letrero en la entrada con su nombre. La recepcionista le entrega a tu programa una fotocopia del letrero. Tu programa tacha el nombre en su fotocopia y escribe otro. El letrero de la entrada sigue igual.
+</Aside>
+
+El letrero es el hostname. La recepcionista es el kernel. La fotocopia es el namespace UTS.
+
+## Qué vas a escribir
+
+Un archivo nuevo y tres cambios:
+
+1. `Cargo.toml` gana una dependencia, `nix`.
+2. `src/namespaces.rs` es el archivo nuevo. Es el único que habla con el kernel.
+3. `src/container.rs` llama a `namespaces` antes de lanzar el programa.
+4. `src/main.rs` declara el módulo nuevo.
+
+Un programa le pide cosas al kernel con *llamadas al sistema*. Una llamada al sistema es un pedido que el programa le hace al kernel: abrir un archivo, lanzar un proceso o cambiar el hostname. Hoy usas dos:
+
+- `unshare`: «dame una copia privada de esta lista».
+- `sethostname`: «cambia el nombre que dice la lista». Escribe en la lista UTS del proceso que la llama.
+
+No las llamas a mano: el crate `nix` las ofrece como funciones de Rust. Con `nix`, tu código no necesita `unsafe`, la marca con la que Rust avisa «aquí el compilador no puede comprobar esto».
+
+Teclea cada trozo, como en 1a. El código y los textos que imprime van en inglés. La página te explica en español qué dice cada texto la primera vez que aparece.
+
+Antes de escribir, una predicción.
+
+<Quiz kind="prediction">
+<Fragment slot="question">Tu programa pide la copia con `unshare`, pero todavía no escribe ningún nombre en ella. Después lanza `/bin/hostname`, un programa que imprime el hostname que ve. Lo corres con `sudo`. ¿Qué imprime?</Fragment>
+
+<QuizOption>`container`.<Fragment slot="feedback">Todavía no escribiste ese nombre. Una copia nueva empieza idéntica al original: el kernel copia el hostname del namespace desde el que se pidió. `container` aparece solo cuando lo escribas tú.</Fragment></QuizOption>
+
+<QuizOption correct>El mismo nombre que ves fuera: `mini-container-dev`.<Fragment slot="feedback">Tienes tu copia, pero es una fotocopia exacta del letrero. Hasta que la modifiques no hay diferencia que ver.</Fragment></QuizOption>
+
+<QuizOption>Nada: el programa falla.<Fragment slot="feedback">Solo falla si lo corres sin `sudo`. Crear un namespace pide permisos de administrador, y con `sudo` los tienes. Lo verás más abajo.</Fragment></QuizOption>
+</Quiz>
+
+## Los trozos
+
+<Steps>
+
+1. **Añade el crate `nix`.**
+
+   `nix` es un crate que ofrece las llamadas al sistema de Unix como funciones de Rust. Un crate se divide en *features*: piezas opcionales que solo se compilan si las pides. Así tu programa carga solo lo que usa. Necesitas dos:
+
+   - `sched`: trae `unshare`.
+   - `hostname`: trae `sethostname`.
+
+   Estando en la raíz del repo, en Linux:
+
+   ```sh title="En Linux"
+   cargo add nix@0.31.3 --features sched,hostname
+   ```
+
+   - `cargo add`: añade una dependencia a `Cargo.toml`.
+   - `nix@0.31.3`: el crate y su versión. La fijamos para que tu pantalla coincida con la de la guía.
+   - `--features sched,hostname`: las dos features, separadas por una coma y sin espacios.
+   - Efecto: escribe una línea en `Cargo.toml`. Todavía no descarga el crate.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo add nix@0.31.3 --features sched,hostname
+       Updating crates.io index
+         Adding nix v0.31.3 to dependencies
+                Features:
+                + hostname
+                + process
+                + sched
+                33 deactivated features
+       Updating crates.io index
+        Locking 5 packages to highest Rust 1.99.1 compatible versions
+         Adding bitflags v2.13.2
+         Adding cfg-if v1.0.5
+         Adding cfg_aliases v0.2.2
+         Adding libc v0.2.191
+         Adding nix v0.31.3
+   ```
+
+   </ShouldSee>
+
+   - `Adding nix v0.31.3 to dependencies`: añadió `nix` a tus dependencias.
+   - `Features:`: las features que quedaron activas, con un `+`. Son tres. `hostname` y `sched` las pediste tú. `process` la activó `sched` por su cuenta, porque `nix` declara que `sched` la necesita.
+   - `33 deactivated features`: las demás features de `nix` quedan apagadas y no se compilan.
+   - `Locking 5 packages`: `cargo` decidió qué versión usará de cada paquete: `nix` y los cuatro que `nix` necesita. Esos cuatro son los que muestran las líneas `Adding` de abajo.
+
+   Abre `Cargo.toml` en Zed. Debe tener una línea nueva, la 8:
+
+   ```toml title="Cargo.toml" ins={8}
+   [package]
+   name = "mini-container"
+   version = "0.1.0"
+   edition = "2024"
+
+   [dependencies]
+   anyhow = "1.0.104"
+   nix = { version = "0.31.3", features = ["sched", "hostname"] }
+   ```
+
+   - `nix = { ... }`: una dependencia con más datos que el nombre. Entre llaves van la versión y la lista de features.
+   - `features = ["sched", "hostname"]`: las features que pediste.
+
+2. **Pide la copia: `src/namespaces.rs`.**
+
+   En Zed, crea el archivo `src/namespaces.rs`. Empieza por lo que necesita traer:
+
+   ```rust title="src/namespaces.rs"
+   use anyhow::{Context, Result};
+   use nix::sched::{CloneFlags, unshare};
+   ```
+
+   - `anyhow::{Context, Result}`: lo mismo que en `container.rs`. `Result` es el resultado de algo que puede fallar, y `Context` añade un mensaje al error.
+   - `nix::sched`: el módulo de `nix` donde vive `unshare`.
+   - `CloneFlags`: un conjunto de banderas. Una *bandera* es una opción que se enciende o se apaga. Hay una por cada tipo de namespace.
+   - `unshare`: la función que le pide al kernel la copia.
+
+   Debajo de los `use`, deja una línea en blanco y escribe la función:
+
+   ```rust title="src/namespaces.rs" wrap
+   pub fn unshare_namespaces() -> Result<()> {
+       unshare(CloneFlags::CLONE_NEWUTS)
+           .context("could not create the namespaces: did you run it with sudo?")
+   }
+   ```
+
+   - `pub fn unshare_namespaces()`: una función pública, para llamarla desde `container.rs`. Se llama «namespaces», en plural, porque más adelante pedirá más tipos de copia.
+   - `-> Result<()>`: puede fallar. El `()` es «nada»: si sale bien, no devuelve ningún dato.
+   - `CloneFlags::CLONE_NEWUTS`: la bandera que dice «quiero una copia privada de la lista del hostname». `NEWUTS` significa «UTS nuevo».
+   - `unshare(...)`: le pide al kernel lo que dice la bandera. Tu propio proceso, `mini-container`, pasa a usar la copia. Los procesos que lance después nacen dentro de ella.
+   - `.context("...")`: si el kernel dijo que no, pone este mensaje delante del error. El texto dice «no pude crear los namespaces: ¿ejecutaste con sudo?». La causa original queda debajo.
+   - No hay `;` al final: esa expresión es el valor que devuelve la función. Devuelve el `Result` tal cual, sin `?` ni `Ok(())`.
+
+3. **Úsala antes de lanzar el programa.**
+
+   Declara el módulo. En `src/main.rs`, añade debajo de `mod container;`:
+
+   ```rust title="src/main.rs" ins={3}
+   mod cli;
+   mod container;
+   mod namespaces;
+   ```
+
+   En `src/container.rs`, trae el módulo debajo del `use` de `cli`:
+
+   ```rust title="src/container.rs" ins={2}
+   use crate::cli::CommandLine;
+   use crate::namespaces;
+   ```
+
+   Y llama a la función. Va como primera línea de `run`, antes de `Command::new`. El resto de `run` no cambia:
+
+   ```rust title="src/container.rs" ins={2}
+   pub fn run(command: &CommandLine) -> Result<ExitCode> {
+       namespaces::unshare_namespaces()?;
+   ```
+
+   - `use crate::namespaces;`: trae el módulo para escribir `namespaces::...`.
+   - `namespaces::unshare_namespaces()?;`: pide la copia. Si falla, el `?` sale de `run` con ese error.
+   - Va antes de lanzar el programa por una razón: el hijo hereda lo que su padre tiene en el momento de nacer. La copia tiene que existir antes.
+
+   Compila. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila el proyecto.
+   - Efecto: descarga `nix` y los paquetes que necesita, y los compila.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver" wrap
+   $ cargo build
+    Downloading crates ...
+     Downloaded cfg-if v1.0.5
+     Downloaded bitflags v2.13.2
+     Downloaded cfg_aliases v0.2.2
+     Downloaded nix v0.31.3
+     Downloaded libc v0.2.191
+      Compiling libc v0.2.191
+      Compiling cfg_aliases v0.2.2
+      Compiling cfg-if v1.0.5
+      Compiling bitflags v2.13.2
+      Compiling nix v0.31.3
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.79s
+   ```
+
+   </ShouldSee>
+
+   - `Downloaded` y `Compiling`: bajó y compiló `nix` y los cuatro paquetes que necesita. Después compiló el tuyo. El orden de las líneas puede variar.
+   - No hay avisos: todo lo que escribiste ya se usa.
+   - El tiempo del final cambia en cada máquina.
+
+   Corre tu programa. Con `sudo`, porque crear el namespace pide permisos de administrador:
+
+   ```sh title="En Linux"
+   sudo ./target/debug/mini-container run /bin/hostname
+   ```
+
+   - `sudo ./target/debug/mini-container`: tu programa, con permisos de administrador.
+   - `run /bin/hostname`: lanza `hostname`, el programa que imprime el nombre de la máquina que ve.
+   - Efecto: tu programa pide la copia, lanza `hostname` y este lee la copia.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ sudo ./target/debug/mini-container run /bin/hostname
+   mini-container-dev
+   ```
+
+   </ShouldSee>
+
+   Sale el nombre de tu máquina, el mismo de siempre. Es lo que predijiste: tienes la copia, pero nadie escribió nada en ella.
+
+4. **Escribe el nombre en tu copia.**
+
+   Vuelve a `src/namespaces.rs`. Arriba hacen falta dos líneas nuevas: la función que escribe el hostname y el nombre que va a escribir.
+
+   ```rust title="src/namespaces.rs" ins={3,5}
+   use anyhow::{Context, Result};
+   use nix::sched::{CloneFlags, unshare};
+   use nix::unistd::sethostname;
+
+   pub const HOSTNAME: &str = "container";
+   ```
+
+   - `use nix::unistd::sethostname;`: `unistd` es el módulo de `nix` con las llamadas básicas de Unix. `sethostname` vive ahí.
+   - `pub const HOSTNAME: &str = "container";`: el nombre fijo que le pondrás a la copia. `pub` para usarlo desde `container.rs`. Una constante en inglés, como todo el código.
+
+   Ahora la función. Va debajo de `unshare_namespaces`, con una línea en blanco entre las dos:
+
+   ```rust title="src/namespaces.rs" ins={5-8} wrap
+   pub fn unshare_namespaces() -> Result<()> {
+       unshare(CloneFlags::CLONE_NEWUTS)
+           .context("could not create the namespaces: did you run it with sudo?")
+   }
+
+   pub fn set_hostname(name: &str) -> Result<()> {
+       sethostname(name).context("could not set the hostname")
+   }
+   ```
+
+   - `name: &str`: el nombre que se escribirá. `&str` es un texto prestado.
+   - `sethostname(name)`: le pide al kernel cambiar el hostname. Escribe en la lista UTS del proceso que la llama. Por eso importa a cuál lista llega, y lo verás en la trampa de más abajo.
+   - `.context("could not set the hostname")`: si falla, pone este mensaje: «no pude cambiar el hostname».
+   - Sin `;` al final, igual que en la función de arriba.
+
+   Compila. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver" wrap
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+   warning: constant `HOSTNAME` is never used
+    --> src/namespaces.rs:5:11
+     |
+   5 | pub const HOSTNAME: &str = "container";
+     |           ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   warning: function `set_hostname` is never used
+     --> src/namespaces.rs:12:8
+      |
+   12 | pub fn set_hostname(name: &str) -> Result<()> {
+      |        ^^^^^^^^^^^^
+
+   warning: `mini-container` (bin "mini-container") generated 2 warnings
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+   ```
+
+   </ShouldSee>
+
+   Son dos avisos de código que nadie usa todavía: la constante y la función nuevas. Desaparecen en el paso siguiente. `Finished` dice que compiló.
+
+5. **Llama a `set_hostname`, justo después de pedir la copia.**
+
+   En `src/container.rs`, añade una línea en `run`, debajo de la que ya escribiste:
+
+   ```rust title="src/container.rs" ins={3}
+   pub fn run(command: &CommandLine) -> Result<ExitCode> {
+       namespaces::unshare_namespaces()?;
+       namespaces::set_hostname(namespaces::HOSTNAME)?;
+       let status = Command::new(&command.program)
+           .args(&command.args)
+           .status()
+           .context("could not launch the program")?;
+       Ok(ExitCode::from(exit_code(status)))
+   }
+   ```
+
+   - `namespaces::set_hostname(namespaces::HOSTNAME)?;`: escribe `container` en la copia. Si falla, el `?` sale de `run` con el error.
+   - El orden importa: primero la copia y después el nombre. La trampa de abajo explica qué pasa si los cambias.
+
+   <Aside type="caution" title="Trampa típica">
+   Escribir el nombre antes de pedir la copia. Pones `set_hostname` primero y `unshare_namespaces` después. Compila, corre y hasta imprime `container`. Pero todavía no existe ninguna copia: `sethostname` escribe en el letrero de la entrada, el que leen todos los procesos. Cambias el hostname de toda tu máquina.
+
+   - Así sí: ① `unshare_namespaces`, ② `set_hostname`, ③ lanzar el programa.
+   - Así no: ① `set_hostname`, ② `unshare_namespaces`, ③ lanzar el programa.
+
+   **No lo pruebes**: cambiaría el nombre de tu máquina.
+   </Aside>
+
+   Si ya lo hiciste, devuélvele su nombre:
+
+   ```sh title="En Linux"
+   sudo hostname mini-container-dev
+   ```
+
+   - `sudo`: pide permisos de administrador, que `hostname` necesita para cambiar el nombre.
+   - `hostname mini-container-dev`: con un argumento, `hostname` escribe ese nombre en vez de imprimirlo. Usa el nombre de tu máquina.
+   - Efecto: la máquina vuelve a llamarse como antes.
+
+   Compila por última vez. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver" wrap
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
+   ```
+
+   </ShouldSee>
+
+   Ya no hay avisos: `run` usa todo lo que escribiste.
+
+</Steps>
+
+## Corre tu programa
+
+Corre tu programa en Linux:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/hostname
+```
+
+- `sudo ./target/debug/mini-container run /bin/hostname`: el mismo comando de antes.
+- Efecto: tu programa pide la copia, escribe `container` en ella y lanza `hostname`, que lee la copia.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/hostname
+container
+```
+
+</ShouldSee>
+
+Ahora mira el nombre desde fuera. En la misma terminal de Linux, sin tu programa:
+
+```sh title="En Linux"
+hostname
+```
+
+- `hostname`: imprime el hostname que ve tu terminal.
+- Efecto: ninguno. Solo lee.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ hostname
+mini-container-dev
+```
+
+</ShouldSee>
+
+Tu máquina sigue llamándose igual. El nombre `container` solo existe dentro de la copia de tu programa.
+
+Corre tu programa otra vez, ahora sin `sudo`:
+
+```sh title="En Linux"
+./target/debug/mini-container run /bin/hostname; echo $?
+```
+
+- `./target/debug/mini-container run /bin/hostname`: el mismo comando, sin `sudo`. Sin permisos de administrador, el kernel no te deja crear el namespace.
+- `; echo $?`: imprime el código de salida del comando anterior.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ ./target/debug/mini-container run /bin/hostname; echo $?
+Error: could not create the namespaces: did you run it with sudo?
+
+Caused by:
+    EPERM: Operation not permitted
+1
+```
+
+</ShouldSee>
+
+- `Error: could not create the namespaces: did you run it with sudo?`: el mensaje que pusiste con `.context(...)`. Dice «no pude crear los namespaces: ¿ejecutaste con sudo?». `main` añade el `Error:` por delante.
+- `Caused by:`: la causa, el error original que dio el kernel.
+- `EPERM: Operation not permitted`: `EPERM` es el código de error del sistema para «operación no permitida». Aquí significa que faltan permisos de administrador.
+- El último `1` es el código de salida de tu programa.
+
+## El error que explica qué falta
+
+Ese error dice primero qué intentaba tu programa y después la causa. No tenía por qué ser así. Un `Result` se puede abrir con `.unwrap()`: si hubo un error, el programa se cae con un *panic*. Un panic es una caída: Rust imprime dónde pasó y sale con el código 101.
+
+Mira la línea de `unshare` escrita de las dos formas, y lo que ve quien corre el programa sin `sudo`. La salida de la izquierda viene de cambiar la función por una con `.unwrap()`. No hace falta que la pruebes.
+
+<Compare>
+<Fragment slot="bad">
+
+```rust title="Con .unwrap()" wrap
+unshare(CloneFlags::CLONE_NEWUTS)
+    .unwrap();
+```
+
+```sh title="Lo que ves" wrap
+$ ./target/debug/mini-container run /bin/hostname; echo $?
+
+thread 'main' (12767) panicked at src/namespaces.rs:5:10:
+called `Result::unwrap()` on an `Err` value: EPERM
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+101
+```
+
+Dice que algo falló y dónde: `src/namespaces.rs:5:10` es archivo, línea y columna. No dice qué intentaba hacer el programa ni qué falta. El número entre paréntesis cambia en cada ejecución.
+
+</Fragment>
+<Fragment slot="good">
+
+```rust title="Con .context() y ?" wrap
+unshare(CloneFlags::CLONE_NEWUTS)
+    .context("could not create the namespaces: did you run it with sudo?")
+```
+
+```sh title="Lo que ves" wrap
+$ ./target/debug/mini-container run /bin/hostname; echo $?
+Error: could not create the namespaces: did you run it with sudo?
+
+Caused by:
+    EPERM: Operation not permitted
+1
+```
+
+Primero dice qué intentaba hacer el programa y después la causa. El `?` de `run` lleva el error hasta `main`, que lo imprime. El usuario sabe qué falta: `sudo`.
+
+</Fragment>
+</Compare>
+
+<Quiz kind="closing">
+<Fragment slot="question">Tu programa imprimió `container` y, después, `hostname` en tu terminal dijo `mini-container-dev`. ¿Por qué fuera sigue diciendo el nombre de la máquina?</Fragment>
+
+<QuizOption>Docker protege el hostname de la máquina.<Fragment slot="feedback">Aquí no hay Docker. Lo hiciste tú, directamente con el kernel.</Fragment></QuizOption>
+
+<QuizOption>`sethostname` solo cambia una variable dentro de tu programa.<Fragment slot="feedback">Cambia una lista del kernel, no una variable de tu programa. Por eso `/bin/hostname`, que es otro proceso, también vio el nombre nuevo.</Fragment></QuizOption>
+
+<QuizOption correct>Tu programa escribió en su copia de la lista UTS, y los demás procesos leen el original.<Fragment slot="feedback">El kernel mira la etiqueta de cada proceso y le responde con su lista. Tu programa y lo que lanza tienen la copia. Tu terminal tiene el original.</Fragment></QuizOption>
+</Quiz>
+
+## Ejercicios
+
+<Aside type="tip" title="Regla de los 5 minutos">
+Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+</Aside>
+
+### 2a.1 El hostname desde una variable de entorno
+
+**Objetivo:** el hostname sale de la variable de entorno `MINI_CONTAINER_HOSTNAME`. Si la variable no existe, sigue siendo `container`.
+
+Una *variable de entorno* es un nombre con un valor que un programa recibe de quien lo lanza. Se escribe `NOMBRE=valor`.
+
+Un detalle de `sudo`: antes de lanzar tu programa, borra casi todas las variables de tu terminal. Las que escribes después de `sudo`, en el mismo comando, sí las deja pasar. Por eso el resultado esperado pone la variable después de `sudo`.
+
+```sh title="Resultado esperado" wrap
+$ sudo MINI_CONTAINER_HOSTNAME=api ./target/debug/mini-container run /bin/hostname
+api
+$ sudo ./target/debug/mini-container run /bin/hostname
+container
+```
+
+Si pones la variable antes de `sudo`, como en `MINI_CONTAINER_HOSTNAME=api sudo ./target/debug/mini-container run /bin/hostname`, `sudo` la borra y tu programa imprime `container`. Eso no es un fallo de tu código.
+
+<Hint n={1}>`std::env::var` lee una variable de entorno. Mira qué devuelve: no es un `String` a secas. Devuelve un `Result`, y es un `Err` cuando la variable no existe.</Hint>
+
+<Hint n={2}>Cuando la variable no existe, quieres usar `HOSTNAME`. `.unwrap_or_else(...)` recibe una función que arma el valor por defecto solo si hubo un error. `HOSTNAME` es un `&str` y `env::var` entrega un `String`: `.to_string()` los iguala.</Hint>
+
+<Hint n={3}>Hazlo en una función pequeña de `namespaces.rs` que devuelva el nombre. Después cambia el argumento de `set_hostname` en `run`. `set_hostname` pide un `&str`: a un `String` se le antepone `&`.</Hint>
+
+## Fuentes
+
+- `unshare(2)`: `CLONE_NEWUTS` da al proceso una copia privada del namespace UTS y exige la capacidad `CAP_SYS_ADMIN`, el permiso de administrador. [man7.org/linux/man-pages/man2/unshare.2.html](https://man7.org/linux/man-pages/man2/unshare.2.html), Linux man-pages 6.19. Consultada el 2026-11-13.
+- `uts_namespaces(7)`: aíslan el hostname y el nombre de dominio NIS. Un namespace nuevo copia los valores del namespace que lo creó, y los cambios solo los ven los procesos de ese namespace. [man7.org/linux/man-pages/man7/uts_namespaces.7.html](https://man7.org/linux/man-pages/man7/uts_namespaces.7.html). Consultada el 2026-11-13.
+- `sethostname(2)`: opera sobre el hostname del namespace UTS del proceso que llama. [man7.org/linux/man-pages/man2/sethostname.2.html](https://man7.org/linux/man-pages/man2/sethostname.2.html). Consultada el 2026-11-13.
+- `nix` 0.31.3: `nix::sched::unshare` está «disponible solo con la feature `sched`» y `nix::unistd::sethostname`, «solo con la feature `hostname`». [docs.rs/nix/0.31.3/nix/sched/fn.unshare.html](https://docs.rs/nix/0.31.3/nix/sched/fn.unshare.html) y [docs.rs/nix/0.31.3/nix/unistd/fn.sethostname.html](https://docs.rs/nix/0.31.3/nix/unistd/fn.sethostname.html). Consultadas el 2026-11-13. El `Cargo.toml` de `nix` 0.31.3 declara `sched = ["process"]`, y `cargo add` lo mostró al activar `process`.
+- Rust, `Result::unwrap`: «Panics if the value is an `Err`». [doc.rust-lang.org/1.99.1/std/result/enum.Result.html](https://doc.rust-lang.org/1.99.1/std/result/enum.Result.html). Consultada el 2026-11-13.
+- `anyhow` 1.0.104, `Context::context`: envuelve el error con un mensaje y conserva el original como causa. [docs.rs/anyhow/1.0.104/anyhow/trait.Context.html](https://docs.rs/anyhow/1.0.104/anyhow/trait.Context.html). Consultada el 2026-11-13.
+- Rust, `std::env::var`: devuelve `Result<String, VarError>`, y `Err(VarError::NotPresent)` si la variable no está definida. [doc.rust-lang.org/1.99.1/std/env/fn.var.html](https://doc.rust-lang.org/1.99.1/std/env/fn.var.html). Consultada el 2026-11-13.
+- `sudo-rs`: `sudoers-rs(5)` dice que `env_reset` no se puede desactivar y que el comando corre con un entorno nuevo y mínimo. `sudo-rs(8)` dice que las variables en la línea de comandos se pasan como `VAR=value`, y que con un comando `ALL` se permiten. Páginas man de `sudo-rs` 0.2.13 de Ubuntu 26.04, leídas en la máquina el 2026-11-13. Comprobado allí: `sudo MINI_CONTAINER_HOSTNAME=api env` muestra la variable, y `MINI_CONTAINER_HOSTNAME=api sudo env`, no.
+- El orden de las dos llamadas: comprobado en la máquina dentro de un namespace UTS desechable, creado con `unshare --uts`, para no tocar el hostname de la máquina. Con `set_hostname` antes de `unshare_namespaces`, el hostname de ese namespace pasó a `container`. El 2026-11-13.
+- Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. Aquí su nombre se muestra como `mini-container-dev`, el de tu máquina. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.

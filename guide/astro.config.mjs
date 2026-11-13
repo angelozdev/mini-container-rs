@@ -57,6 +57,10 @@ export default defineConfig({
           label: "1 · Lanzar un proceso",
           items: [{ autogenerate: { directory: "1-process" } }],
         },
+        {
+          label: "2 · Namespaces",
+          items: [{ autogenerate: { directory: "2-namespaces" } }],
+        },
       ],
     }),
   ],
