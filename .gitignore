@@ -1,0 +1,4 @@
+target/
+guide/node_modules/
+guide/dist/
+guide/.astro/
