@@ -339,26 +339,7 @@ Antes de escribir, una predicción.
    ```
 
    - `namespaces::set_hostname(namespaces::HOSTNAME)?;`: escribe `container` en la copia. Si falla, el `?` sale de `run` con el error.
-   - El orden importa: primero la copia y después el nombre. La trampa de abajo explica qué pasa si los cambias.
-
-   <Aside type="caution" title="Trampa típica">
-   Escribir el nombre antes de pedir la copia. Pones `set_hostname` primero y `unshare_namespaces` después. Compila, corre y hasta imprime `container`. Pero todavía no existe ninguna copia: `sethostname` escribe en el letrero de la entrada, el que leen todos los procesos. Cambias el hostname de toda tu máquina.
-
-   - Así sí: ① `unshare_namespaces`, ② `set_hostname`, ③ lanzar el programa.
-   - Así no: ① `set_hostname`, ② `unshare_namespaces`, ③ lanzar el programa.
-
-   **No lo pruebes**: cambiaría el nombre de tu máquina.
-   </Aside>
-
-   Si ya lo hiciste, devuélvele su nombre:
-
-   ```sh title="En Linux"
-   sudo hostname mini-container-dev
-   ```
-
-   - `sudo`: pide permisos de administrador, que `hostname` necesita para cambiar el nombre.
-   - `hostname mini-container-dev`: con un argumento, `hostname` escribe ese nombre en vez de imprimirlo. Usa el nombre de tu máquina.
-   - Efecto: la máquina vuelve a llamarse como antes.
+   - El orden importa: primero la copia y después el nombre. Más abajo, la trampa típica explica qué pasa si los cambias.
 
    Compila por última vez. En Linux:
 
@@ -449,37 +430,60 @@ Caused by:
 - `EPERM: Operation not permitted`: `EPERM` es el código de error del sistema para «operación no permitida». Aquí significa que faltan permisos de administrador.
 - El último `1` es el código de salida de tu programa.
 
+<Aside type="caution" title="Trampa típica">
+Escribir el nombre antes de pedir la copia. Pones `set_hostname` primero y `unshare_namespaces` después. Compila, corre y hasta imprime `container`. Pero todavía no existe ninguna copia: `sethostname` escribe en el letrero de la entrada, el que leen todos los procesos. Cambias el hostname de toda tu máquina.
+
+- Así sí: ① `unshare_namespaces`, ② `set_hostname`, ③ lanzar el programa.
+- Así no: ① `set_hostname`, ② `unshare_namespaces`, ③ lanzar el programa.
+
+**No lo pruebes**: cambiaría el nombre de tu máquina.
+</Aside>
+
+Si ya lo hiciste, devuélvele su nombre:
+
+```sh title="En Linux"
+sudo hostname mini-container-dev
+```
+
+- `sudo`: pide permisos de administrador, que `hostname` necesita para cambiar el nombre.
+- `hostname mini-container-dev`: con un argumento, `hostname` escribe ese nombre en vez de imprimirlo. Usa el nombre de tu máquina.
+- Efecto: la máquina vuelve a llamarse como antes.
+
 ## El error que explica qué falta
 
 Ese error dice primero qué intentaba tu programa y después la causa. No tenía por qué ser así. Un `Result` se puede abrir con `.unwrap()`: si hubo un error, el programa se cae con un *panic*. Un panic es una caída: Rust imprime dónde pasó y sale con el código 101.
 
-Mira la línea de `unshare` escrita de las dos formas, y lo que ve quien corre el programa sin `sudo`. La salida de la izquierda viene de cambiar la función por una con `.unwrap()`. No hace falta que la pruebes.
+Mira la función `unshare_namespaces` escrita de las dos formas, y lo que ve quien corre el programa sin `sudo`. La izquierda es tu función con `.unwrap()` en vez de `.context(...)`. Como `.unwrap()` ya abre el `Result`, la función termina con `Ok(())`. No hace falta que lo pruebes: la salida de la izquierda es la de tu `src/namespaces.rs` con ese cambio, compilado y corrido sin `sudo`.
 
 <Compare>
 <Fragment slot="bad">
 
 ```rust title="Con .unwrap()"
-unshare(CloneFlags::CLONE_NEWUTS)
-    .unwrap();
+pub fn unshare_namespaces() -> Result<()> {
+    unshare(CloneFlags::CLONE_NEWUTS).unwrap();
+    Ok(())
+}
 ```
 
 ```sh title="Lo que ves"
 $ ./target/debug/mini-container run /bin/hostname; echo $?
 
-thread 'main' (12767) panicked at src/namespaces.rs:5:10:
+thread 'main' (13165) panicked at src/namespaces.rs:8:39:
 called `Result::unwrap()` on an `Err` value: EPERM
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 101
 ```
 
-Dice que algo falló y dónde: `src/namespaces.rs:5:10` es archivo, línea y columna. No dice qué intentaba hacer el programa ni qué falta. El número entre paréntesis cambia en cada ejecución.
+Dice que algo falló y dónde: `src/namespaces.rs:8:39` es archivo, línea y columna, la del `.unwrap()` en tu archivo. No dice qué intentaba hacer el programa ni qué falta. El número entre paréntesis cambia en cada ejecución.
 
 </Fragment>
 <Fragment slot="good">
 
-```rust title="Con .context() y ?"
-unshare(CloneFlags::CLONE_NEWUTS)
-    .context("could not create the namespaces: did you run it with sudo?")
+```rust title="Con .context()"
+pub fn unshare_namespaces() -> Result<()> {
+    unshare(CloneFlags::CLONE_NEWUTS)
+        .context("could not create the namespaces: did you run it with sudo?")
+}
 ```
 
 ```sh title="Lo que ves"
@@ -540,7 +544,7 @@ Si pones la variable antes de `sudo`, como en `MINI_CONTAINER_HOSTNAME=api sudo 
 - `unshare(2)`: `CLONE_NEWUTS` da al proceso una copia privada del namespace UTS y exige la capacidad `CAP_SYS_ADMIN`, el permiso de administrador. [man7.org/linux/man-pages/man2/unshare.2.html](https://man7.org/linux/man-pages/man2/unshare.2.html), Linux man-pages 6.19. Consultada el 2026-11-13.
 - `uts_namespaces(7)`: aíslan el hostname y el nombre de dominio NIS. Un namespace nuevo copia los valores del namespace que lo creó, y los cambios solo los ven los procesos de ese namespace. [man7.org/linux/man-pages/man7/uts_namespaces.7.html](https://man7.org/linux/man-pages/man7/uts_namespaces.7.html). Consultada el 2026-11-13.
 - `sethostname(2)`: opera sobre el hostname del namespace UTS del proceso que llama. [man7.org/linux/man-pages/man2/sethostname.2.html](https://man7.org/linux/man-pages/man2/sethostname.2.html). Consultada el 2026-11-13.
-- `nix` 0.31.3: `nix::sched::unshare` está «disponible solo con la feature `sched`» y `nix::unistd::sethostname`, «solo con la feature `hostname`». [docs.rs/nix/0.31.3/nix/sched/fn.unshare.html](https://docs.rs/nix/0.31.3/nix/sched/fn.unshare.html) y [docs.rs/nix/0.31.3/nix/unistd/fn.sethostname.html](https://docs.rs/nix/0.31.3/nix/unistd/fn.sethostname.html). Consultadas el 2026-11-13. El `Cargo.toml` de `nix` 0.31.3 declara `sched = ["process"]`, y `cargo add` lo mostró al activar `process`.
+- `nix` 0.31.3: la página de `nix::sched::unshare` dice «Available on crate feature `sched` only.» y la de `nix::unistd::sethostname` dice «Available on crate feature `hostname` only.». [docs.rs/nix/0.31.3/nix/sched/fn.unshare.html](https://docs.rs/nix/0.31.3/nix/sched/fn.unshare.html) y [docs.rs/nix/0.31.3/nix/unistd/fn.sethostname.html](https://docs.rs/nix/0.31.3/nix/unistd/fn.sethostname.html). Consultadas el 2026-11-13. El `Cargo.toml` de `nix` 0.31.3 declara `sched = ["process"]`, y `cargo add` lo mostró al activar `process`.
 - Rust, `Result::unwrap`: «Panics if the value is an `Err`». [doc.rust-lang.org/1.99.1/std/result/enum.Result.html](https://doc.rust-lang.org/1.99.1/std/result/enum.Result.html). Consultada el 2026-11-13.
 - `anyhow` 1.0.104, `Context::context`: envuelve el error con un mensaje y conserva el original como causa. [docs.rs/anyhow/1.0.104/anyhow/trait.Context.html](https://docs.rs/anyhow/1.0.104/anyhow/trait.Context.html). Consultada el 2026-11-13.
 - Rust, `std::env::var`: devuelve `Result<String, VarError>`, y `Err(VarError::NotPresent)` si la variable no está definida. [doc.rust-lang.org/1.99.1/std/env/fn.var.html](https://doc.rust-lang.org/1.99.1/std/env/fn.var.html). Consultada el 2026-11-13.
