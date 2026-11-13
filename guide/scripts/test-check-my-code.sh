@@ -18,6 +18,11 @@ check_usage="usage: sudo guide/scripts/check-my-code.sh <id>"
 exercise_launch_text='could not launch `holaa`'
 hostname_from_variable_edit='$a pub fn hostname() -> String { std::env::var("MINI_CONTAINER_HOSTNAME").unwrap_or_else(|_| HOSTNAME.to_string()) }'
 use_hostname_function_edit='s/namespaces::set_hostname(namespaces::HOSTNAME)/namespaces::set_hostname(\&namespaces::hostname())/'
+network_namespace_edit='s/CloneFlags::CLONE_NEWNS)/CloneFlags::CLONE_NEWNS | CloneFlags::CLONE_NEWNET)/'
+skip_dev_edit='s/mount_dev(&rootfs.join("dev"))?;/let _ = mount_dev;/'
+keep_default_modes_edit='/^use std::fs::/d;/PermissionsExt/d;/fs::set_permissions(path/,/to everyone/c Ok(())'
+dev_zero_check="the container has /dev/zero"
+dev_modes_check="the devices are open to everyone"
 launch_text_edit_prefix='s/\.context("could not launch the program")/'
 
 reference_binary() {
@@ -197,7 +202,45 @@ test_ignores_the_hostname_variable() {
   assert_equals "OK 2a" "$output" "a hostname variable in the environment does not change the check"
 }
 
-for id in 1a 2a 2b; do
+test_accepts_every_exercise_up_to_2c1() {
+  local root="$work_dir/exercises-up-to-2c1"
+  make_repo "$root" 2c
+  start_variant 2c
+  edit_variant "${launch_text_edit_prefix}.with_context(|| format!(\"could not launch \`{}\`\", command.program))/" container.rs
+  edit_variant "$hostname_from_variable_edit" namespaces.rs
+  edit_variant "$use_hostname_function_edit" container.rs
+  edit_variant "$network_namespace_edit" namespaces.rs
+  build_variant
+  assert_not_contains eth0 "$(sudo "$variant_binary" run /sbin/ip link)" "the variant has no network interface but lo"
+  assert_equals api "$(sudo MINI_CONTAINER_HOSTNAME=api "$variant_binary" run /bin/hostname)" "the variant reads the hostname from the variable"
+  install_student_binary "$root" "$variant_binary"
+  run_script "$root" MINI_CONTAINER_HOSTNAME=api guide/scripts/check-my-code.sh 2c
+  assert_equals "OK 2c" "$output" "the solutions of the exercises up to 2c.1 pass the check of 2c"
+}
+
+test_names_the_check_of_an_empty_dev() {
+  local root="$work_dir/empty-dev"
+  make_repo "$root" 2c
+  start_variant 2c
+  edit_variant "$skip_dev_edit" filesystem.rs
+  build_variant
+  install_student_binary "$root" "$variant_binary"
+  run_check "$root" 2c
+  assert_refused "$dev_zero_check" "a program that leaves the /dev of alpine empty"
+}
+
+test_names_the_check_of_the_device_modes() {
+  local root="$work_dir/device-modes"
+  make_repo "$root" 2c
+  start_variant 2c
+  edit_variant "$keep_default_modes_edit" filesystem.rs
+  build_variant
+  install_student_binary "$root" "$variant_binary"
+  run_check "$root" 2c
+  assert_refused "$dev_modes_check" "a program that leaves the devices with the mode the umask gives"
+}
+
+for id in 1a 2a 2b 2c; do
   build_reference "$id"
 done
 
@@ -207,7 +250,7 @@ test_refuses_the_wrong_number_of_ids
 test_refuses_an_id_that_is_a_path
 test_refuses_an_unknown_id
 test_asks_for_cargo_build
-for id in 1a 2a 2b; do
+for id in 1a 2a 2b 2c; do
   test_accepts_the_reference_program "$id"
 done
 test_names_the_failed_check
@@ -215,5 +258,8 @@ test_names_the_check_when_the_program_crashes
 test_accepts_the_exercise_text
 test_rejects_a_looser_text
 test_ignores_the_hostname_variable
+test_accepts_every_exercise_up_to_2c1
+test_names_the_check_of_an_empty_dev
+test_names_the_check_of_the_device_modes
 
 echo "OK test-check-my-code"
