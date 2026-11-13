@@ -8,9 +8,10 @@ use crate::cli::CommandLine;
 use crate::{filesystem, namespaces};
 
 pub fn run(command: &CommandLine) -> Result<ExitCode> {
+    let executable = std::env::current_exe()?;
     namespaces::unshare_namespaces()?;
     namespaces::set_hostname(namespaces::HOSTNAME)?;
-    let status = Command::new(std::env::current_exe()?)
+    let status = Command::new(executable)
         .arg("child")
         .arg(&command.program)
         .args(&command.args)

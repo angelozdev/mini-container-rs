@@ -16,8 +16,15 @@ capture_stderr() {
 kill_child_from_outside() {
   "$binary" run /bin/sleep 30 &
   local launcher=$!
-  local child
-  until child=$(pgrep -P "$launcher"); do sleep 0.1; done
+  local child attempts=0
+  until child=$(pgrep -P "$launcher"); do
+    attempts=$((attempts + 1))
+    if [ "$attempts" -gt 50 ]; then
+      kill "$launcher" 2>/dev/null || true
+      fail "the launcher $launcher never started a child"
+    fi
+    sleep 0.1
+  done
   kill -9 "$child"
   status=0
   wait "$launcher" || status=$?
@@ -51,6 +58,9 @@ assert_equals 137 "$status" "a child killed by SIGKILL from outside exits with 1
 inside_hostname=$("$binary" run /bin/hostname)
 assert_equals "container" "$inside_hostname" "the child sees its own hostname"
 assert_equals "$machine_hostname" "$(hostname)" "the machine keeps its hostname"
+
+alone_in_namespace=$(unshare --mount "$binary" run /bin/hostname 2>&1 || true)
+assert_equals "container" "$alone_in_namespace" "the program works when it is the only process of its mount namespace"
 
 process_list=$("$binary" run /bin/ps -o pid,comm)
 mapfile -t process_lines <<<"$process_list"
