@@ -347,6 +347,10 @@
   text-align: center;
 }
 
+.kernel-box + .kernel-box {
+  margin-top: 0.5rem;
+}
+
 .kernel-label {
   color: var(--n-faint);
   font-size: 0.6875rem;

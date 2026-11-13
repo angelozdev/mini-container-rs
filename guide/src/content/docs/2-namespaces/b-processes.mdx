@@ -1,0 +1,867 @@
+---
+title: 2b · Ser el PID 1
+description: El comando que lanza tu programa ve una lista de procesos propia, y en ella es el número 1.
+checkpoint: 2b
+icon: 🪪
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import BeforeAfter from "../../../components/diagram/BeforeAfter.astro";
+import KernelBox from "../../../components/diagram/KernelBox.astro";
+import KernelEntry from "../../../components/diagram/KernelEntry.astro";
+import Process from "../../../components/diagram/Process.astro";
+import Compare from "../../../components/Compare.astro";
+import Hint from "../../../components/Hint.astro";
+import Quiz from "../../../components/Quiz.astro";
+import QuizOption from "../../../components/QuizOption.astro";
+import ShouldSee from "../../../components/ShouldSee.astro";
+
+**Al terminar:** el comando que lanza tu programa ve una lista de procesos propia, y en ella es el número 1. La lista de tu máquina no cambia.
+
+Un *proceso* es un programa en ejecución. Cada proceso tiene un número, su *PID*. El kernel guarda los procesos en una lista, y todos los de la máquina leen la misma. El primero de la lista es el número 1. En tu máquina es `systemd`, el programa que arranca todo lo demás.
+
+Hoy tu programa le pide al kernel su propia copia de esa lista. La copia se numera desde 1.
+
+<BeforeAfter beforeTitle="ANTES · hay una sola lista" afterTitle="DESPUÉS · hay dos listas">
+<Fragment slot="before">
+<div class="diagram-row"><Process>terminal</Process><Process highlighted>mini-container</Process></div>
+<p class="diagram-note">↓ los dos están en la misma lista ↓</p>
+<KernelBox label="lista de procesos">
+<KernelEntry>1 systemd</KernelEntry>
+<KernelEntry>…</KernelEntry>
+<KernelEntry>4172 mini-container</KernelEntry>
+</KernelBox>
+</Fragment>
+<Fragment slot="after">
+<div class="diagram-row"><Process>mini-container</Process><Process highlighted>ps</Process></div>
+<p class="diagram-note">↓ ps está en las dos listas, con dos números ↓</p>
+<KernelBox label="lista de la máquina">
+<KernelEntry>1 systemd</KernelEntry>
+<KernelEntry>…</KernelEntry>
+<KernelEntry>4172 mini-container</KernelEntry>
+<KernelEntry>4173 ps</KernelEntry>
+</KernelBox>
+<KernelBox label="lista nueva">
+<KernelEntry isCopy>1 ps</KernelEntry>
+</KernelBox>
+</Fragment>
+</BeforeAfter>
+
+Los números `4172` y `4173` son un ejemplo. En tu máquina serán otros.
+
+Ya conoces el *namespace*: una copia privada de una lista del kernel. El tipo de namespace que guarda la lista de procesos se llama *PID*.
+
+<Aside type="note" title="Analogía">
+Una empresa lleva un libro con todos sus empleados, numerados desde el 1. Abre una sucursal con su propio libro, que empieza otra vez en el 1. El gerente que abre la sucursal sigue anotado en el libro de la casa matriz. Solo los empleados que contrate después entran en el libro de la sucursal. El primero que contrata es el empleado 1. Esa misma persona tiene dos números: uno en cada libro.
+</Aside>
+
+Los libros son las listas de procesos. La sucursal es el namespace PID. El gerente es tu programa. El primer empleado que contrata es el proceso hijo que tu programa lanza.
+
+Hay una regla del kernel que necesitas desde ya: `unshare` con la bandera de PID **no mueve a quien lo llama**. Tu programa se queda en la lista de la máquina. Solo los hijos que lance después nacen en la lista nueva, y el primero recibe el número 1.
+
+## Qué vas a escribir
+
+Un archivo nuevo y cinco cambios:
+
+1. `Cargo.toml` gana una feature de `nix`: `mount`.
+2. `src/namespaces.rs` pide dos copias más: la de procesos y la de montajes.
+3. `src/filesystem.rs` es el archivo nuevo. Prepara los montajes y monta `/proc`.
+4. `src/container.rs` gana `init`, lo que hace el hijo, y `run` cambia para lanzar al hijo.
+5. `src/cli.rs` aprende un subcomando que solo usa tu programa: `child`. Un *subcomando* es la palabra que va después del nombre del programa, como `run`.
+6. `src/main.rs` declara el módulo nuevo y conecta `child` con `init`.
+
+Hay un cambio de fondo. Hasta ahora `run` lanzaba el comando. Desde hoy lanza **otra copia de `mini-container`**, con la palabra `child` delante, y esa copia lanza el comando:
+
+- `run` es lo que tú escribes. Pide las copias y lanza a `child`.
+- `child` nace dentro de la lista nueva, así que es el PID 1. Prepara el terreno y se convierte en el comando.
+- El comando ocupa el lugar de `child`: es el mismo proceso, con otro programa dentro.
+
+Por qué hace falta ese rodeo lo vas a ver en el primer trozo.
+
+Teclea cada trozo, como en 2a. El código y los textos que imprime van en inglés. La página te explica en español qué dice cada texto la primera vez que aparece.
+
+Antes de escribir, una predicción.
+
+<Quiz kind="prediction">
+<Fragment slot="question">Tu programa pide la lista nueva con `unshare` y después lanza `/bin/sh -c 'echo $$'`. `echo` imprime en pantalla lo que le des, y el shell cambia `$$` por su propio PID. Lo corres con `sudo`. ¿Qué imprime?</Fragment>
+
+<QuizOption correct>`1`.<Fragment slot="feedback">El shell es el primer hijo que tu programa lanza después de `unshare`. Nace en la lista nueva, y el primero que entra en ella es el número 1.</Fragment></QuizOption>
+
+<QuizOption>Un número grande, como `4173`.<Fragment slot="feedback">Ese sería el número del shell en la lista de la máquina. Pero el shell no nace ahí: nace en la lista nueva, y `$$` da el número que el shell tiene en su propia lista.</Fragment></QuizOption>
+
+<QuizOption>`2`, porque tu programa ya es el 1.<Fragment slot="feedback">Eso pasaría si tu programa estuviera dentro de la lista nueva. Pero `unshare` no mueve a quien lo llama: tu programa sigue en la lista de la máquina. Por eso el primero en entrar es el shell.</Fragment></QuizOption>
+</Quiz>
+
+## Los trozos
+
+<Steps>
+
+1. **Pide las copias de procesos y de montajes.**
+
+   Abre `src/namespaces.rs`. Cambia una línea de `unshare_namespaces`, la que lleva la bandera:
+
+   ```rust title="src/namespaces.rs" del={2} ins={3}
+   pub fn unshare_namespaces() -> Result<()> {
+       unshare(CloneFlags::CLONE_NEWUTS)
+       unshare(CloneFlags::CLONE_NEWUTS | CloneFlags::CLONE_NEWPID | CloneFlags::CLONE_NEWNS)
+           .context("could not create the namespaces: did you run it with sudo?")
+   }
+   ```
+
+   - `CloneFlags::CLONE_NEWUTS`: la bandera de 2a, la del hostname. Se queda.
+   - `|`: junta banderas. Así una sola llamada a `unshare` pide varias copias a la vez.
+   - `CloneFlags::CLONE_NEWPID`: la copia de la lista de procesos. `NEWPID` significa «PID nuevo».
+   - `CloneFlags::CLONE_NEWNS`: la copia de la lista de montajes. Un *montaje* conecta un conjunto de archivos a una carpeta, para que se vean ahí. El kernel guarda la lista de todos los montajes de la máquina. El nombre de la bandera solo dice «namespace nuevo», pero es la de los montajes. La necesitas más abajo: vas a montar algo, y no quieres cambiar los montajes de tu máquina.
+   - Efecto: tu programa pasa a usar ya la copia del hostname y la de montajes. La de procesos todavía no: tu programa se queda en la lista de la máquina. Lo que lance después nace en la lista nueva. Es la regla de la predicción.
+
+   Compila. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+   ```
+
+   </ShouldSee>
+
+   Corre tu programa. El shell imprimirá su propio PID:
+
+   ```sh title="En Linux"
+   sudo ./target/debug/mini-container run /bin/sh -c 'echo $$'
+   ```
+
+   - `sudo ./target/debug/mini-container`: tu programa, con permisos de administrador.
+   - `run /bin/sh -c 'echo $$'`: lanza `sh` con la orden `echo $$`.
+   - Las comillas simples: evitan que *tu terminal* cambie `$$` por su propio PID antes de lanzar nada. Así llega tal cual al shell de dentro.
+   - Efecto: el shell imprime su PID.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ sudo ./target/debug/mini-container run /bin/sh -c 'echo $$'
+   1
+   ```
+
+   </ShouldSee>
+
+   Sale `1`. Es el primer hijo de tu programa, y nació en la lista nueva.
+
+   Otra predicción. `ps` es un programa que imprime procesos. No le pregunta la lista al kernel directamente: lee la carpeta `/proc`, donde el kernel muestra cada proceso como una carpeta con su PID. `/proc` es un montaje, y lo montó tu máquina al arrancar.
+
+   <Quiz kind="prediction">
+   <Fragment slot="question">Tu programa lanza `ps -o pid,comm -p 1`. `-p 1` pide solo el proceso con PID 1, y `-o pid,comm` pide dos columnas: el PID y el nombre del programa. `ps` es el hijo de tu programa, así que es el PID 1 de la lista nueva, igual que el shell de antes. ¿Qué imprime `ps`?</Fragment>
+
+   <QuizOption>`1 ps`.<Fragment slot="feedback">Es lo lógico, pero `ps` no mira la lista nueva. Lee `/proc`, y ese `/proc` sigue siendo el de la máquina.</Fragment></QuizOption>
+
+   <QuizOption correct>`1 systemd`.<Fragment slot="feedback">`ps` lee `/proc`, y `/proc` es el que montó tu máquina: muestra la lista de la máquina. En esa lista, el PID 1 es `systemd`. `ps` no sabe que vive en otra lista.</Fragment></QuizOption>
+
+   <QuizOption>Nada: no hay ningún proceso con PID 1.<Fragment slot="feedback">Siempre hay uno. En la lista de la máquina, el PID 1 existe desde que arrancó.</Fragment></QuizOption>
+   </Quiz>
+
+   Corre tu programa:
+
+   ```sh title="En Linux"
+   sudo ./target/debug/mini-container run /bin/ps -o pid,comm -p 1
+   ```
+
+   - `run /bin/ps -o pid,comm -p 1`: lanza `ps` con esas opciones.
+   - Efecto: `ps` imprime las dos columnas del proceso con PID 1.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ sudo ./target/debug/mini-container run /bin/ps -o pid,comm -p 1
+       PID COMMAND
+         1 systemd
+   ```
+
+   </ShouldSee>
+
+   - `PID COMMAND`: la cabecera. `PID` es el número. `COMMAND` es el nombre del programa.
+   - `1 systemd`: el proceso 1 que ve `ps` es `systemd`.
+
+   Hay dos respuestas a «¿quién es el PID 1?». `echo $$` le preguntó al kernel y dijo `1`. `ps` leyó `/proc` y dijo `systemd`. Las dos dicen la verdad, cada una en su lista. Lo que falta es que `/proc` muestre la lista nueva.
+
+   Para eso hay que montar un `/proc` nuevo. Un `/proc` solo muestra los procesos de la lista del proceso que lo monta. Tu programa no puede montarlo: no está en la lista nueva. Su hijo sí. Por eso tu programa se lanza a sí mismo: la copia nace dentro, monta el `/proc` y se convierte en el comando. Los pasos que siguen construyen eso.
+
+2. **Añade la feature `mount`.**
+
+   `nix` guarda la función que monta detrás de una feature, como hizo con `sched` y `hostname` en 2a. En Linux, en la raíz del repo:
+
+   ```sh title="En Linux"
+   cargo add nix@0.31.3 --features mount
+   ```
+
+   - `cargo add`: añade una dependencia o cambia una que ya tienes.
+   - `nix@0.31.3`: el mismo crate y la misma versión de 2a.
+   - `--features mount`: la feature nueva. `sched` y `hostname` se quedan.
+   - Efecto: reescribe la línea de `nix` en `Cargo.toml`.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo add nix@0.31.3 --features mount
+       Updating crates.io index
+         Adding nix v0.31.3 to dependencies
+                Features:
+                + hostname
+                + mount
+                + process
+                + sched
+                + uio
+                31 deactivated features
+   ```
+
+   </ShouldSee>
+
+   - `Features:`: las features que quedan activas. Son cinco. `hostname` y `sched` ya las tenías, y `mount` la pediste ahora. `process` la activa `sched`, y `uio` la activa `mount`: `nix` declara que las necesitan.
+   - `31 deactivated features`: las demás quedan apagadas.
+   - No hay `Locking`: no hace falta ningún paquete nuevo.
+
+   Abre `Cargo.toml` en Zed. La línea de `nix` cambia:
+
+   ```toml title="Cargo.toml" del={8} ins={9}
+   [package]
+   name = "mini-container"
+   version = "0.1.0"
+   edition = "2024"
+
+   [dependencies]
+   anyhow = "1.0.104"
+   nix = { version = "0.31.3", features = ["sched", "hostname"] }
+   nix = { version = "0.31.3", features = ["sched", "hostname", "mount"] }
+   ```
+
+   - `features = ["sched", "hostname", "mount"]`: las tres features que usa tu programa.
+
+3. **Prepara los montajes: `src/filesystem.rs`.**
+
+   En Zed, crea el archivo `src/filesystem.rs`. Empieza por lo que necesita traer, y debajo escribe la primera función:
+
+   ```rust title="src/filesystem.rs" ins={4-13}
+   use anyhow::{Context, Result};
+   use nix::mount::{MsFlags, mount};
+
+   pub fn make_mounts_private() -> Result<()> {
+       mount(
+           None::<&str>,
+           "/",
+           None::<&str>,
+           MsFlags::MS_REC | MsFlags::MS_PRIVATE,
+           None::<&str>,
+       )
+       .context("could not make the mounts private")
+   }
+   ```
+
+   - `nix::mount::{MsFlags, mount}`: `mount` es la función que le pide al kernel un montaje. `MsFlags` son sus banderas, como `CloneFlags` en `unshare`.
+   - `mount(...)`: recibe cinco cosas, en este orden: de dónde sale lo que se monta, en qué carpeta se conecta, de qué tipo de archivos es, las banderas y unas opciones extra del tipo.
+   - `None::<&str>`: «nada». Esta función no monta nada nuevo, solo cambia una propiedad de un montaje que ya existe, así que no hay origen, ni tipo, ni opciones. `None` no dice de qué tipo sería el valor que falta. `::<&str>` se lo dice: un texto prestado.
+   - `"/"`: la carpeta raíz, de la que cuelga todo lo demás.
+   - `MsFlags::MS_REC`: «recursivo». El cambio vale para `/` y para todos los montajes que cuelgan de ella.
+   - `MsFlags::MS_PRIVATE`: «privado». Lo que se monte o se desmonte aquí no sale hacia las demás copias de la lista de montajes, ni entra desde ellas.
+   - `.context("could not make the mounts private")`: si falla, el mensaje dice «no pude hacer privados los montajes».
+   - Por qué hace falta: lo explica la trampa de más abajo, con un caso real.
+
+   Ahora la segunda función. Va debajo de la primera, con una línea en blanco entre las dos:
+
+   ```rust title="src/filesystem.rs" ins={14-24}
+   use anyhow::{Context, Result};
+   use nix::mount::{MsFlags, mount};
+
+   pub fn make_mounts_private() -> Result<()> {
+       mount(
+           None::<&str>,
+           "/",
+           None::<&str>,
+           MsFlags::MS_REC | MsFlags::MS_PRIVATE,
+           None::<&str>,
+       )
+       .context("could not make the mounts private")
+   }
+
+   pub fn mount_proc() -> Result<()> {
+       mount(
+           Some("proc"),
+           "/proc",
+           Some("proc"),
+           MsFlags::empty(),
+           None::<&str>,
+       )
+       .context("could not mount /proc")
+   }
+   ```
+
+   - `Some("proc")` como origen: aquí no hay un disco. El origen es solo un nombre, `proc`, por costumbre.
+   - `"/proc"`: la carpeta donde se conecta.
+   - `Some("proc")` como tipo: el tipo de archivos `proc`. Es el que el kernel rellena con la lista de procesos de quien monta.
+   - `MsFlags::empty()`: ninguna bandera.
+   - `None::<&str>`: sin opciones extra.
+   - `.context("could not mount /proc")`: «no pude montar /proc».
+   - Efecto: conecta un `/proc` nuevo encima del que había. El nuevo muestra los procesos de la lista de quien lo monta.
+
+   Declara el módulo. En `src/main.rs`, añade una línea entre `mod container;` y `mod namespaces;`:
+
+   ```rust title="src/main.rs" ins={3}
+   mod cli;
+   mod container;
+   mod filesystem;
+   mod namespaces;
+   ```
+
+   Compila. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+   - Efecto: baja la feature nueva de `nix` y recompila.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling nix v0.31.3
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+   warning: function `make_mounts_private` is never used
+    --> src/filesystem.rs:4:8
+     |
+   4 | pub fn make_mounts_private() -> Result<()> {
+     |        ^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   warning: function `mount_proc` is never used
+     --> src/filesystem.rs:15:8
+      |
+   15 | pub fn mount_proc() -> Result<()> {
+      |        ^^^^^^^^^^
+
+   warning: `mini-container` (bin "mini-container") generated 2 warnings
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s
+   ```
+
+   </ShouldSee>
+
+   Son dos avisos de funciones que nadie usa todavía. Desaparecen cuando `init` las llame. `Finished` dice que compiló.
+
+4. **Lo que hace el hijo: `init`.**
+
+   `init` es lo que corre `child`. Se llama así porque el PID 1 de una lista de procesos hace de `init`, el primer proceso, el que prepara todo lo demás. Hace tres cosas, en este orden: hace privados los montajes, monta `/proc` y se convierte en el comando.
+
+   En `src/container.rs`, cambia tres líneas de arriba:
+
+   ```rust title="src/container.rs" del={2,9} ins={1,3,10}
+   use std::convert::Infallible;
+   use std::os::unix::process::ExitStatusExt;
+   use std::os::unix::process::{CommandExt, ExitStatusExt};
+   use std::process::{Command, ExitCode, ExitStatus};
+
+   use anyhow::{Context, Result};
+
+   use crate::cli::CommandLine;
+   use crate::namespaces;
+   use crate::{filesystem, namespaces};
+   ```
+
+   - `std::convert::Infallible`: un tipo que más abajo te explico.
+   - `CommandExt`: añade a `Command` métodos que solo existen en Unix. Necesitas uno: `.exec()`.
+   - `crate::{filesystem, namespaces}`: trae dos módulos en una línea. Las llaves agrupan los nombres.
+
+   Ahora la función. Va debajo de `run`, con una línea en blanco entre las dos:
+
+   ```rust title="src/container.rs" ins={1-6}
+   pub fn init(command: &CommandLine) -> Result<Infallible> {
+       filesystem::make_mounts_private()?;
+       filesystem::mount_proc()?;
+       let error = Command::new(&command.program).args(&command.args).exec();
+       Err(error).with_context(|| format!("could not run `{}`", command.program))
+   }
+   ```
+
+   - `command: &CommandLine`: el programa que el usuario quería lanzar, con sus argumentos.
+   - `filesystem::make_mounts_private()?;`: lo primero. Si falla, el `?` sale de `init` con el error.
+   - `filesystem::mount_proc()?;`: lo segundo. El orden importa: la trampa de más abajo explica qué pasa si los cambias.
+   - `Command::new(...).args(...)`: arma el comando, igual que en `run`.
+   - `.exec()`: no lanza otro proceso. Reemplaza el programa de este proceso por el del comando. El proceso sigue siendo el mismo, con el mismo PID: solo cambia lo que corre dentro. Por eso el comando hereda el número 1.
+   - `let error = ...`: si `.exec()` funciona, no vuelve: este proceso ya es otro programa. Solo vuelve si falla, y lo que devuelve es el error.
+   - `Err(error)`: mete ese error dentro de un `Result`, para poder añadirle contexto.
+   - `.with_context(|| format!(...))`: como `.context(...)`, pero recibe una función que arma el mensaje. Una función sin nombre, escrita así, `|| ...`, se llama *closure*. Solo se ejecuta si hubo un error, y así el mensaje no se arma cuando todo sale bien.
+   - ``format!("could not run `{}`", command.program)``: arma un texto. `{}` es un hueco que Rust rellena con el nombre del programa. El mensaje dice «no pude ejecutar `programa`».
+   - `.exec()` tampoco corre los *destructores*, igual que `std::process::exit`. Un destructor es el código que Rust ejecuta para limpiar cuando algo deja de usarse. Aquí no importa: `init` no tiene nada que limpiar.
+
+   Queda por explicar `Infallible`. Es un tipo sin ningún valor posible: no se puede crear ni uno. `Result<Infallible>` dice, entonces, que el `Ok` nunca existe: `init` solo puede devolver un error. Es verdad, porque si `.exec()` funciona, `init` no devuelve nada. Con `Result<()>` prometerías un `Ok(())` que nunca llega. La documentación de Rust lo usa en el lugar del error, para decir que «nunca falla». Aquí está en el lugar del `Ok`, por la misma razón al revés.
+
+   Compila. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+   warning: function `init` is never used
+     --> src/container.rs:20:8
+      |
+   20 | pub fn init(command: &CommandLine) -> Result<Infallible> {
+      |        ^^^^
+      |
+      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   warning: function `make_mounts_private` is never used
+    --> src/filesystem.rs:4:8
+     |
+   4 | pub fn make_mounts_private() -> Result<()> {
+     |        ^^^^^^^^^^^^^^^^^^^
+
+   warning: function `mount_proc` is never used
+     --> src/filesystem.rs:15:8
+      |
+   15 | pub fn mount_proc() -> Result<()> {
+      |        ^^^^^^^^^^
+
+   warning: `mini-container` (bin "mini-container") generated 3 warnings
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+   ```
+
+   </ShouldSee>
+
+   Siguen los avisos de código que nadie usa: `init` todavía no la llama nadie, y por eso las funciones de `filesystem` que ella usa también cuentan como sin usar. Desaparecen en el paso siguiente.
+
+5. **Enséñale a tu programa el subcomando `child`.**
+
+   Falta que tu programa sepa recibir `child`. En `src/cli.rs`, añade una opción al `enum`:
+
+   ```rust title="src/cli.rs" ins={3}
+   pub enum Invocation {
+       Run(CommandLine),
+       Child(CommandLine),
+   }
+   ```
+
+   - `Child(CommandLine)`: la opción `Child` lleva dentro lo mismo que `Run`: el programa y sus argumentos.
+
+   Y cambia `parse`, para que `run` y `child` compartan el código que lee el programa y sus argumentos:
+
+   ```rust title="src/cli.rs" del={3-12} ins={13-22}
+   pub fn parse(args: impl IntoIterator<Item = String>) -> Option<Invocation> {
+       let mut args = args.into_iter();
+       match args.next()?.as_str() {
+           "run" => {
+               let program = args.next()?;
+               Some(Invocation::Run(CommandLine {
+                   program,
+                   args: args.collect(),
+               }))
+           }
+           _ => None,
+       }
+       let invocation = match args.next()?.as_str() {
+           "run" => Invocation::Run,
+           "child" => Invocation::Child,
+           _ => return None,
+       };
+       let program = args.next()?;
+       Some(invocation(CommandLine {
+           program,
+           args: args.collect(),
+       }))
+   }
+   ```
+
+   - `let invocation = match ... { ... };`: el `match` ya no devuelve el resultado final. Devuelve una función: la que construye la opción que corresponde.
+   - `"run" => Invocation::Run`: una opción con datos dentro, como `Run(CommandLine)`, también es una función. Recibe una `CommandLine` y devuelve la opción. Sin paréntesis, `Invocation::Run` es esa función, sin llamarla todavía.
+   - `"child" => Invocation::Child`: lo mismo con `child`.
+   - `_ => return None`: cualquier otra palabra no se entiende. `return` sale de `parse` ya.
+   - `let program = args.next()?;`: igual que antes, pero ahora sirve a las dos opciones. Si falta el programa, devuelve `None`.
+   - `Some(invocation(CommandLine { ... }))`: llama a la función que elegiste, con la `CommandLine` armada.
+
+   `USAGE` no cambia. `child` no aparece en el mensaje de uso: es un detalle interno, que tu programa le pasa a sí mismo.
+
+   **No lo corras a mano.** Si escribes `mini-container child ...` en tu terminal, `init` hace privados los montajes de tu máquina de verdad y le monta un `/proc` encima, porque nadie le dio antes las copias.
+
+   Conecta `child` con `init`. En `src/main.rs`, añade un brazo al `match` de `main`:
+
+   ```rust title="src/main.rs" ins={3}
+       match cli::parse(env::args().skip(1)) {
+           Some(cli::Invocation::Run(command)) => container::run(&command),
+           Some(cli::Invocation::Child(command)) => match container::init(&command)? {},
+           None => {
+   ```
+
+   - `Some(cli::Invocation::Child(command)) => ...`: si `parse` entendió un `child`, llama a `init`.
+   - `container::init(&command)?`: si `init` devuelve un error, el `?` sale de `main` con él. `main` lo imprime con el `Error:` de siempre y sale con 1. Si no hay error, el `?` entrega el valor del `Ok`, que es de tipo `Infallible`: no existe.
+   - `match <valor> {}`: un `match` sin ningún brazo. Rust exige un brazo por cada valor posible. `Infallible` no tiene ninguno, así que no hace falta ni uno. Y como ese `match` nunca termina, Rust lo acepta donde `main` espera un `Result<ExitCode>`.
+
+   Compila. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
+   ```
+
+   </ShouldSee>
+
+   Ya no hay avisos: `main` usa `init`, e `init` usa `filesystem`.
+
+6. **Lanza al hijo: `run`.**
+
+   Último cambio. En `src/container.rs`, `run` ya no lanza el comando. Lanza tu programa otra vez, con `child` delante:
+
+   ```rust title="src/container.rs" del={4} ins={5-7}
+   pub fn run(command: &CommandLine) -> Result<ExitCode> {
+       namespaces::unshare_namespaces()?;
+       namespaces::set_hostname(namespaces::HOSTNAME)?;
+       let status = Command::new(&command.program)
+       let status = Command::new(std::env::current_exe()?)
+           .arg("child")
+           .arg(&command.program)
+           .args(&command.args)
+           .status()
+           .context("could not launch the program")?;
+       Ok(ExitCode::from(exit_code(status)))
+   }
+   ```
+
+   - `std::env::current_exe()?`: la ruta del programa que está corriendo, es decir, la de tu `mini-container`. Si no la encuentra, el `?` sale de `run` con el error.
+   - `Command::new(...)`: ahora prepara lanzar tu programa, no el comando.
+   - `.arg("child")`: la primera palabra que recibirá. Un `.arg` añade un solo argumento.
+   - `.arg(&command.program)` y `.args(&command.args)`: después, el programa y los argumentos del usuario.
+   - Juntos, el hijo recibe `child /bin/ps -o pid,comm`, que es justo lo que `parse` entiende.
+   - Las dos primeras líneas no cambian: siguen pidiendo las copias y escribiendo el hostname en `run`, el padre. El hijo nace después. Queda en la copia del hostname y en la de montajes de su padre, y nace en la lista de procesos nueva. Por eso es el PID 1.
+   - `.status()` y lo demás no cambian. Como `.exec()` mantiene el proceso, el código de salida del hijo es el del comando.
+
+   Si hiciste el ejercicio 2a.1, tu línea de `set_hostname` es otra. Déjala como la tienes.
+
+   Compila por última vez. En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+   ```
+
+   </ShouldSee>
+
+</Steps>
+
+## Corre tu programa
+
+Corre tu programa en Linux:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/ps -o pid,comm
+```
+
+- `run /bin/ps -o pid,comm`: lanza `ps` con dos columnas, el PID y el nombre del programa. Sin `-p 1`: pide todos los procesos que `ps` ve.
+- Efecto: tu programa lanza a `child`, `child` monta el `/proc` nuevo y se convierte en `ps`.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/ps -o pid,comm
+    PID COMMAND
+      1 ps
+```
+
+</ShouldSee>
+
+- `PID COMMAND`: la cabecera.
+- `1 ps`: la única línea. En la lista nueva solo vive `ps`, y es el PID 1. Esta vez `ps` leyó el `/proc` nuevo.
+
+Ahora mira tu máquina desde fuera. En la misma terminal de Linux, sin tu programa:
+
+```sh title="En Linux"
+ps -o pid,comm -p 1
+```
+
+- `ps -o pid,comm -p 1`: pide el proceso 1, como en el paso 1.
+- Efecto: ninguno. Solo lee.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ ps -o pid,comm -p 1
+    PID COMMAND
+      1 systemd
+```
+
+</ShouldSee>
+
+Tu máquina sigue viendo su lista, con `systemd` como PID 1. El `/proc` nuevo vivió solo dentro del contenedor.
+
+Lo de 2a sigue funcionando. Prueba el hostname:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/hostname
+```
+
+- `run /bin/hostname`: el mismo comando de 2a, lanza `hostname`.
+- Efecto: `hostname` imprime el nombre que ve.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/hostname
+container
+```
+
+</ShouldSee>
+
+Sale `container`. El hijo heredó la copia del hostname, porque `run` la escribió antes de lanzarlo.
+
+Y prueba un programa que no existe:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run holaa; echo $?
+```
+
+- `run holaa`: pide lanzar un programa que no existe.
+- `; echo $?`: imprime el código de salida del comando anterior.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run holaa; echo $?
+Error: could not run `holaa`
+
+Caused by:
+    No such file or directory (os error 2)
+1
+```
+
+</ShouldSee>
+
+- `` Error: could not run `holaa` ``: el mensaje que pusiste en `init`. Dice «no pude ejecutar `holaa`». Ahora lo imprime el hijo, y `main` le añade el `Error:`.
+- `Caused by:` y `No such file or directory (os error 2)`: la causa, «no existe ese archivo o carpeta».
+- El `1` es el código de salida. El hijo salió con 1, y `run` lo repite. El mensaje `could not launch the program` de 1a ahora solo saldría si tu programa no pudiera ni lanzar al hijo.
+
+<Aside type="caution" title="Trampa típica">
+Montar `/proc` sin hacer privados los montajes antes. Quitas `make_mounts_private` de `init`. Compila, corre y hasta imprime `1 ps`. Pero la copia de montajes que te dio `CLONE_NEWNS` sigue unida a la de tu máquina: lo que montas dentro aparece también fuera. El `/proc` nuevo se monta encima del de tu máquina. Cuando el contenedor termina, ese `/proc` queda muerto, y `ps` deja de funcionar en tu máquina.
+
+- Así sí: ① `make_mounts_private`, ② `mount_proc`, ③ `.exec()`.
+- Así no: ① `mount_proc`, ② `.exec()`.
+
+**No lo pruebes**: taparía el `/proc` de tu máquina.
+</Aside>
+
+Esa unión entre copias se llama *propagación*. Cada montaje tiene un tipo: `shared`, que comparte lo que se monte debajo con las demás copias, o `private`, que no. `CLONE_NEWNS` copia la lista de montajes, pero la copia hereda el tipo de cada montaje. Si `/` es `shared`, la copia de tu programa sigue unida a la de tu máquina.
+
+Comprueba cómo es la tuya:
+
+```sh title="En Linux"
+findmnt -no PROPAGATION /
+```
+
+- `findmnt`: lista los montajes.
+- `-n`: sin cabecera.
+- `-o PROPAGATION`: muestra solo la columna del tipo de propagación.
+- `/`: solo el montaje de la raíz.
+- Efecto: ninguno. Solo lee.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ findmnt -no PROPAGATION /
+shared
+```
+
+</ShouldSee>
+
+Es `shared`. Por eso `make_mounts_private` no es opcional.
+
+Si ya probaste el «Así no» y `ps` falla en tu máquina, quita el `/proc` muerto.
+
+**Destructivo:** si tu `/proc` está sano, este comando lo desmonta y rompe tu máquina. Úsalo solo si `ps` falla.
+
+```sh title="En Linux"
+sudo umount /proc
+```
+
+- `sudo`: pide permisos de administrador.
+- `umount /proc`: desmonta lo que está montado en `/proc`. Quita el último montaje, el muerto, y vuelve a verse el `/proc` de debajo, el verdadero.
+- Efecto: tu máquina vuelve a ver su lista de procesos.
+
+## Reemplazar el proceso, no lanzar otro
+
+`init` termina con `.exec()`. Hay una forma más familiar: la de `run`, con `.status()`. Lanza el comando como un proceso nuevo y espera.
+
+Mira `init` escrito de las dos formas, y lo que `ps` imprime dentro del contenedor. «Así no» es `init` con `.status()`. No hace falta que lo pruebes: la salida de «Así no» es la de tu `init` con ese cambio, compilado y corrido.
+
+<Compare>
+<Fragment slot="bad">
+
+```rust title="Con .status()"
+pub fn init(command: &CommandLine) -> Result<ExitCode> {
+    filesystem::make_mounts_private()?;
+    filesystem::mount_proc()?;
+    let status = Command::new(&command.program)
+        .args(&command.args)
+        .status()
+        .context("could not run the program")?;
+    Ok(ExitCode::from(exit_code(status)))
+}
+```
+
+```sh title="Lo que ves"
+$ sudo ./target/debug/mini-container run /bin/ps -o pid,comm
+    PID COMMAND
+      1 mini-container
+      2 ps
+```
+
+El PID 1 es `mini-container`, el hijo `child`, que se queda esperando. El comando es el 2. Pedías que el comando fuera el PID 1, y no lo es. Además, la lista tiene un proceso de más.
+
+</Fragment>
+<Fragment slot="good">
+
+```rust title="Con .exec()"
+pub fn init(command: &CommandLine) -> Result<Infallible> {
+    filesystem::make_mounts_private()?;
+    filesystem::mount_proc()?;
+    let error = Command::new(&command.program).args(&command.args).exec();
+    Err(error).with_context(|| format!("could not run `{}`", command.program))
+}
+```
+
+```sh title="Lo que ves"
+$ sudo ./target/debug/mini-container run /bin/ps -o pid,comm
+    PID COMMAND
+      1 ps
+```
+
+El proceso que nació como PID 1 se convierte en el comando. En la lista solo queda `ps`, y es el 1. Además, el tipo `Infallible` le dice al compilador que `init` nunca vuelve con éxito.
+
+</Fragment>
+</Compare>
+
+<Quiz kind="closing">
+<Fragment slot="question">Tu programa podría lanzar el comando directamente, como en el primer paso. En cambio, se lanza a sí mismo con `child` y deja que `child` lance el comando. ¿Por qué?</Fragment>
+
+<QuizOption>Porque `std::process::Command` no puede lanzar un programa dentro de una lista de procesos nueva.<Fragment slot="feedback">Sí puede: el shell del primer paso nació ahí. Lanzar el comando directo funciona. Lo que falla es el `/proc`.</Fragment></QuizOption>
+
+<QuizOption>Porque `unshare` mueve a tu programa a la lista nueva, y desde dentro ya no podría salir.<Fragment slot="feedback">`unshare` no mueve a quien lo llama: tu programa sigue en la lista de la máquina. Ese es justo el problema.</Fragment></QuizOption>
+
+<QuizOption correct>Porque el `/proc` nuevo lo tiene que montar un proceso que ya esté dentro de la lista nueva, y tu programa no lo está. Su hijo sí.<Fragment slot="feedback">Un `/proc` solo muestra la lista de quien lo monta. Tu programa sigue en la lista de la máquina, y su hijo nace en la nueva. Por eso el hijo monta el `/proc` y después se convierte en el comando.</Fragment></QuizOption>
+</Quiz>
+
+## Ejercicios
+
+<Aside type="tip" title="Regla de los 5 minutos">
+Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+</Aside>
+
+### 2b.1 El PID real del PID 1
+
+**Objetivo:** con un contenedor corriendo, encuentra desde otra terminal de tu máquina el PID que tiene en la máquina el proceso que, dentro del contenedor, es el PID 1.
+
+Un mismo proceso tiene dos números: el 1, dentro de su lista, y otro en la lista de la máquina. Tú buscas el segundo. No hay que escribir código.
+
+Abre dos terminales de Linux. En la primera, deja un contenedor corriendo:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/sleep 300
+```
+
+- `run /bin/sleep 300`: lanza `sleep`, un programa que espera 300 segundos y termina. Así el contenedor queda vivo el tiempo que necesitas.
+- Efecto: esa terminal queda ocupada.
+
+La búsqueda la haces en la segunda terminal. El resultado esperado son las líneas de `ps -ef` que nombran `sleep 300`. Tu respuesta es el número de la línea del contenedor. Los números, la hora y las terminales cambian en cada ejecución.
+
+```sh title="Resultado esperado"
+$ ps -ef | grep 'sleep 300'
+root       19590   19589  0 10:55 pts/1    00:00:00 sudo ./target/debug/mini-container run /bin/sleep 300
+root       19592   19590  0 10:55 pts/2    00:00:00 sudo ./target/debug/mini-container run /bin/sleep 300
+root       19593   19592  0 10:55 pts/2    00:00:00 ./target/debug/mini-container run /bin/sleep 300
+root       19594   19593  0 10:55 pts/2    00:00:00 /bin/sleep 300
+angeloz+   19600   19596  0 10:55 pts/3    00:00:00 grep sleep 300
+```
+
+En este ejemplo, la respuesta es `19594`.
+
+- `ps -ef`: imprime todos los procesos de la máquina, uno por línea.
+- `|`: pasa esa salida al programa siguiente.
+- `grep 'sleep 300'`: se queda con las líneas que contienen ese texto.
+- Efecto: ninguno. Solo lee.
+
+Al terminar, para el contenedor con el número que encontraste. No uses Ctrl-C: mata a tu programa, pero `sleep` sigue vivo, huérfano. Un proceso *huérfano* es el que sigue corriendo sin el proceso que lo lanzó. La parte 3 lo resuelve.
+
+**Destructivo:** el comando mata el proceso que lleva ese número. Revísalo antes de ejecutarlo: si te equivocas, matas otro proceso de tu máquina.
+
+```sh title="En Linux"
+sudo kill -9 <PID>
+```
+
+- `sudo`: pide permisos de administrador. El proceso es de `root`.
+- `kill -9`: manda la señal 9, `SIGKILL`, que mata al proceso en el acto.
+- `<PID>`: el número que encontraste. Escríbelo sin los signos `<` y `>`.
+- Efecto: el contenedor termina y la primera terminal vuelve a su línea de comandos. Si escribes `echo $?`, imprime `137`: el `128 + 9` de 1a.
+
+<Hint n={1}>`ps -ef` imprime todos los procesos de tu máquina, uno por línea. La segunda columna es el PID, y la tercera es el PPID, el PID del padre de ese proceso. Tu máquina los ve todos porque su `/proc` es el de la lista de la máquina.</Hint>
+
+<Hint n={2}>Filtra con `grep` y mira qué línea es cuál. En esta máquina `sudo` aparece dos veces, tu programa una y el propio `grep` otra. Ninguna de esas es el contenedor. El PID 1 del contenedor es el proceso que tu programa lanzó: su PPID es el PID de tu programa, y su comando es el de `sleep`, sin nada delante.</Hint>
+
+<Hint n={3}>
+
+Para comprobar tu número, mira el archivo `status` de ese proceso:
+
+```sh title="En Linux"
+grep NSpid /proc/<PID>/status
+```
+
+- `grep NSpid`: se queda con la línea que empieza por `NSpid`.
+- `/proc/<PID>/status`: el archivo con los datos de ese proceso. Cambia `<PID>` por tu número.
+- Efecto: ninguno. Solo lee.
+
+`NSpid` lista el PID del proceso en cada lista a la que pertenece, de la lista de la máquina a la más interna. Si el último número es `1`, encontraste el proceso. En el ejemplo de arriba salen dos: `19594` y `1`.
+
+</Hint>
+
+## Fuentes
+
+- `unshare(2)`: `CLONE_NEWPID` crea una lista de PID nueva para los hijos del proceso que llama. «The calling process is not moved into the new namespace. The first child created by the calling process will have the process ID 1». `CLONE_NEWNS` da al proceso una copia privada de su namespace de montajes. [man7.org/linux/man-pages/man2/unshare.2.html](https://man7.org/linux/man-pages/man2/unshare.2.html), Linux man-pages 6.19. Consultada el 2026-11-13.
+- `pid_namespaces(7)`: el primer proceso de un namespace de PID, el primer hijo tras `unshare` con `CLONE_NEWPID`, tiene el PID 1. «A /proc filesystem shows (in the /proc/pid directories) only processes visible in the PID namespace of the process that performed the mount». Un namespace de montajes simultáneo permite montar un `/proc` nuevo directamente sobre `/proc`. [man7.org/linux/man-pages/man7/pid_namespaces.7.html](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html). Consultada el 2026-11-13.
+- `mount_namespaces(7)`: con `unshare`, la lista de montajes nueva es una copia de la del llamador. `MS_SHARED` propaga montajes y desmontajes entre los miembros de un grupo de pares, y `MS_PRIVATE`, no. [man7.org/linux/man-pages/man7/mount_namespaces.7.html](https://man7.org/linux/man-pages/man7/mount_namespaces.7.html). Consultada el 2026-11-13.
+- `mount(2)`: `MS_PRIVATE` hace el montaje privado, y `MS_REC` cambia de forma recursiva el tipo de propagación de todos los montajes de un subárbol. [man7.org/linux/man-pages/man2/mount.2.html](https://man7.org/linux/man-pages/man2/mount.2.html). Consultada el 2026-11-13.
+- `execve(2)`: «there is no new process; many attributes of the calling process remain unchanged (in particular, its PID)». [man7.org/linux/man-pages/man2/execve.2.html](https://man7.org/linux/man-pages/man2/execve.2.html). Consultada el 2026-11-13.
+- `proc_pid_status(5)`: el campo `NSpid` da el PID del proceso en cada namespace de PID del que es miembro, desde Linux 4.1. [man7.org/linux/man-pages/man5/proc_pid_status.5.html](https://man7.org/linux/man-pages/man5/proc_pid_status.5.html). Consultada el 2026-11-13.
+- `nix` 0.31.3: la página de `nix::mount::mount` dice «Available on crate feature `mount` only.». [docs.rs/nix/0.31.3/nix/mount/fn.mount.html](https://docs.rs/nix/0.31.3/nix/mount/fn.mount.html). Consultada el 2026-11-13. El `Cargo.toml` de `nix` 0.31.3 declara `mount = ["uio"]`, y `cargo add` lo mostró al activar `uio`.
+- Rust, `std::os::unix::process::CommandExt::exec`: «On success this function will not return», y «exec not returning has the same implications as calling process::exit – no destructors on the current stack or any other thread’s stack will be run». [doc.rust-lang.org/1.99.1/std/os/unix/process/trait.CommandExt.html](https://doc.rust-lang.org/1.99.1/std/os/unix/process/trait.CommandExt.html). Consultada el 2026-11-13.
+- Rust, `std::convert::Infallible`: «Since this enum has no variant, a value of this type can never actually exist.». [doc.rust-lang.org/1.99.1/std/convert/enum.Infallible.html](https://doc.rust-lang.org/1.99.1/std/convert/enum.Infallible.html). Consultada el 2026-11-13. La Rust Reference, en «Zero-variant enums», dice que no tienen valores válidos y que no se pueden crear. [doc.rust-lang.org/1.99.1/reference/items/enumerations.html](https://doc.rust-lang.org/1.99.1/reference/items/enumerations.html). Consultada el 2026-11-13. Que un `match` sin brazos sobre ese tipo compile y sirva como valor de `main`: comprobado compilando con Rust 1.99.1.
+- Que `/` es `shared` en la máquina de pruebas: `findmnt -no PROPAGATION /` imprimió `shared`, el 2026-11-13.
+- La trampa de los montajes: comprobada en un namespace de montajes desechable, creado con `unshare -m` sobre la máquina de pruebas, y con `/` marcado como `shared` dentro de él (`mount --make-rshared /`) para imitar a la máquina. Allí, `init` sin `make_mounts_private` dejó `ps -e` con el error `Error, do this: mount -t proc proc /proc`, y `umount /proc` lo arregló. Con `sudo` desde un usuario normal también. La máquina no se tocó. El 2026-11-13.
+- `child` a mano: comprobado en el mismo tipo de namespace desechable. Dejó `/` en `private` y dos montajes en `/proc`. El 2026-11-13.
+- Ctrl-C: comprobado en la máquina de pruebas con una terminal simulada. Tras Ctrl-C, `sudo` y `mini-container` desaparecen, pero `sleep` sigue vivo. Es coherente con `pid_namespaces(7)`: «Only signals for which the "init" process has established a signal handler can be sent to the "init" process by other members of the PID namespace.». El 2026-11-13.
+- `NSpid` de un contenedor de `sleep`: mostró dos números, el de la máquina y `1`. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.
