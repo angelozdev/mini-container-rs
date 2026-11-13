@@ -115,12 +115,13 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    ./target/debug/mini-container
    ```
 
+   - `./target/debug/mini-container`: la ruta del binario. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
+   - Efecto: corre el programa, sin `cargo` de por medio.
+
    ```sh title="Deberías ver"
    $ ./target/debug/mini-container
    Hello, world!
    ```
-
-   - `./target/debug/mini-container`: la ruta del binario. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
 
 3. **Instala el target de Linux en el Mac.** Un *target* es la plataforma para la que se compila. Su nombre, la *tripleta*, tiene partes:
 

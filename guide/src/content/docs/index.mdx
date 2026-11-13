@@ -21,6 +21,12 @@ Un programa llamado `mini-container`. Lo usarás así:
 sudo ./target/debug/mini-container run <command>
 ```
 
+- `sudo`: corre el comando como administrador.
+- `./target/debug/mini-container`: la ruta de tu programa una vez compilado. El `.` es la carpeta actual.
+- `run`: la orden que le das a tu programa.
+- `<command>`: el comando que quieres lanzar, por ejemplo `/bin/sh`.
+- Efecto: todavía no puedes correrlo, porque no existe. Lo construyes en esta guía.
+
 El comando corre como un proceso normal, pero el kernel le muestra un mundo recortado. El *kernel* es el núcleo de Linux: el programa que reparte la máquina entre todos los procesos.
 
 <BeforeAfter beforeTitle="ANTES · un proceso normal" afterTitle="DESPUÉS · dentro de tu contenedor">
