@@ -1,0 +1,264 @@
+---
+title: 0b · El proyecto de Rust
+description: Crea el proyecto mini-container, córrelo en Linux y configura Zed para que analice tu código como código de Linux.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import BeforeAfter from "../../../components/diagram/BeforeAfter.astro";
+import KernelBox from "../../../components/diagram/KernelBox.astro";
+import KernelEntry from "../../../components/diagram/KernelEntry.astro";
+import Process from "../../../components/diagram/Process.astro";
+import Hint from "../../../components/Hint.astro";
+import Quiz from "../../../components/Quiz.astro";
+import QuizOption from "../../../components/QuizOption.astro";
+
+**Al terminar:** el repo tiene un proyecto de Rust llamado `mini-container` que compila y corre en Linux, y Zed analiza tu código como código de Linux.
+
+El código se escribe en el Mac, en Zed. Se compila y se corre en Linux. Falta un detalle: Zed usa un programa llamado *rust-analyzer*, que lee tu código mientras escribes y marca los errores. Por defecto lo lee con las reglas de macOS.
+
+<BeforeAfter beforeTitle="ANTES · rust-analyzer revisa para macOS" afterTitle="DESPUÉS · revisa para Linux">
+<Fragment slot="before">
+<div class="diagram-row"><Process>Zed</Process><Process highlighted>rust-analyzer</Process></div>
+<p class="diagram-note">↓ revisa tu código para ↓</p>
+<KernelBox label="plataforma"><KernelEntry>aarch64-apple-darwin</KernelEntry></KernelBox>
+</Fragment>
+<Fragment slot="after">
+<div class="diagram-row"><Process>Zed</Process><Process highlighted>rust-analyzer</Process></div>
+<p class="diagram-note">↓ revisa tu código para ↓</p>
+<KernelBox label="plataforma"><KernelEntry isCopy>aarch64-unknown-linux-gnu</KernelEntry></KernelBox>
+</Fragment>
+</BeforeAfter>
+
+<Aside type="note" title="Analogía">
+rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las reglas del idioma de tu Mac. Pero tu texto es para otro idioma, el de Linux. Hay que decirle cuál revisar, o te marcará como error palabras que son correctas.
+</Aside>
+
+## Los pasos
+
+<Steps>
+
+1. **Crea el proyecto.** En Linux, en la raíz del repo:
+
+   ```sh title="En Linux"
+   cargo init --name mini-container
+   ```
+
+   - `cargo`: la herramienta de Rust que compila, corre y administra proyectos.
+   - `init`: crea un proyecto de Rust en la carpeta actual, la raíz del repo. `new` haría lo mismo pero en una carpeta nueva.
+   - `--name mini-container`: el nombre del *crate*. Un crate es un paquete de Rust: aquí, tu programa. Sin esta opción, `cargo` usaría el nombre de la carpeta, `mini-container-rs`. En Rust el sufijo `-rs` suele marcar el lenguaje del repo y no va en el nombre del crate.
+   - Efecto: crea `Cargo.toml` y `src/main.rs` en la raíz del repo, y deja un `Cargo.lock` cuando compilas por primera vez.
+
+   ```sh title="Deberías ver"
+   $ cargo init --name mini-container
+       Creating binary (application) package
+   note: see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+   ```
+
+   «Binary (application)» significa que el crate es un programa y no una librería.
+
+   Esto es lo que crea. `Cargo.toml` es la ficha del proyecto: su nombre, su versión y sus dependencias.
+
+   ```toml title="Cargo.toml"
+   [package]
+   name = "mini-container"
+   version = "0.1.0"
+   edition = "2024"
+
+   [dependencies]
+   ```
+
+   Y `src/main.rs` es un programa de ejemplo. En 1a lo reemplazarás:
+
+   ```rust title="src/main.rs"
+   fn main() {
+       println!("Hello, world!");
+   }
+   ```
+
+   `cargo init` también añadió una línea a tu `.gitignore`: `/target`. Es la carpeta donde `cargo` deja lo que compila, y no debe ir a git. Ya estaba cubierta por `target/`, así que no cambia nada.
+
+2. **Córrelo en Linux.**
+
+   <Quiz kind="prediction">
+   <Fragment slot="question">Corres `cargo run` por primera vez en este proyecto. ¿Qué hace?</Fragment>
+
+   <QuizOption>Solo compila. Para ver el resultado hay que correr el binario aparte.<Fragment slot="feedback">Eso es `cargo build`. `cargo run` compila y además corre el programa.</Fragment></QuizOption>
+
+   <QuizOption correct>Compila el proyecto y corre el programa.<Fragment slot="feedback">Si el código ya estaba compilado y no cambió, se salta la compilación y solo lo corre.</Fragment></QuizOption>
+
+   <QuizOption>Solo corre. Antes hay que compilar con `cargo build`.<Fragment slot="feedback">No hace falta. `cargo run` compila lo que falte antes de correr.</Fragment></QuizOption>
+   </Quiz>
+
+   ```sh title="En Linux"
+   cargo run
+   ```
+
+   - `run`: compila el proyecto y corre el binario resultante.
+   - Efecto: crea la carpeta `target/` con lo compilado y el archivo `Cargo.lock`, que fija las versiones exactas de las dependencias.
+
+   ```sh title="Deberías ver"
+   $ cargo run
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+        Running `target/debug/mini-container`
+   Hello, world!
+   ```
+
+   - `Compiling`: está compilando tu crate.
+   - `Finished ... in 0.08s`: terminó. El tiempo cambia en cada máquina. `dev` es el perfil por defecto: compila rápido, sin optimizar, y deja información para depurar.
+   - `Running`: ejecuta el binario que quedó en `target/debug/mini-container`.
+   - `Hello, world!`: la salida del programa.
+
+   El binario es un archivo normal. Puedes correrlo sin `cargo`:
+
+   ```sh title="En Linux"
+   ./target/debug/mini-container
+   ```
+
+   ```sh title="Deberías ver"
+   $ ./target/debug/mini-container
+   Hello, world!
+   ```
+
+   - `./target/debug/mini-container`: la ruta del binario. El `./` significa «desde la carpeta actual».
+
+3. **Instala el target de Linux en el Mac.** En el Mac, en cualquier carpeta:
+
+   ```sh title="En el Mac"
+   rustup target add aarch64-unknown-linux-gnu
+   rustup target list --installed
+   ```
+
+   Un *target* es la plataforma para la que se compila. Su nombre, la *tripleta*, tiene partes:
+
+   - `aarch64`: la arquitectura del procesador, la misma de tu Mac.
+   - `unknown`: el fabricante. Aquí no importa.
+   - `linux`: el sistema operativo.
+   - `gnu`: la librería de C que usa, la de GNU.
+
+   Y los comandos:
+
+   - `rustup`: el instalador y actualizador de Rust. Ya lo tienes en el Mac.
+   - `target add aarch64-unknown-linux-gnu`: descarga la librería estándar de Rust compilada para ese target.
+   - `target list --installed`: lista los targets que tienes instalados.
+   - Efecto: añade una carpeta a tu instalación de Rust en el Mac. Sirve para que Zed entienda el código de Linux. No sirve para compilar programas de Linux desde el Mac: para eso faltaría un enlazador, y compilamos en Linux.
+
+   ```sh title="Deberías ver"
+   $ rustup target list --installed
+   aarch64-apple-darwin
+   aarch64-unknown-linux-gnu
+   ```
+
+4. **Dile a Zed qué plataforma revisar.** Zed lee un archivo de ajustes por proyecto, `.zed/settings.json`. Crea la carpeta en el Mac, en la raíz del repo:
+
+   ```sh title="En el Mac"
+   mkdir .zed
+   ```
+
+   - `mkdir`: crea una carpeta.
+   - `.zed`: el nombre que Zed espera. El punto inicial la hace oculta.
+
+   Dentro, crea `settings.json` con este contenido:
+
+   ```json title=".zed/settings.json"
+   {
+     "lsp": {
+       "rust-analyzer": {
+         "initialization_options": {
+           "cargo": {
+             "target": "aarch64-unknown-linux-gnu"
+           }
+         }
+       }
+     }
+   }
+   ```
+
+   - `lsp`: los ajustes de los *language servers*. Un language server es un programa que lee tu código y le dice al editor qué marcar. rust-analyzer es el de Rust.
+   - `rust-analyzer`: el servidor al que se refieren los ajustes de abajo.
+   - `initialization_options`: las opciones que Zed le entrega a rust-analyzer al arrancarlo.
+   - `cargo`: el grupo de opciones sobre cómo rust-analyzer llama a `cargo`.
+   - `target`: la plataforma para la que revisa. Es la tripleta del paso anterior.
+
+   Zed reinicia el servidor solo cuando guardas cambios en la sección `lsp.rust-analyzer`.
+
+   Para ver la diferencia, añade esta línea al principio de `src/main.rs`, en el Mac. Esa ruta solo existe en Linux:
+
+   ```rust title="src/main.rs"
+   use std::os::linux::fs::MetadataExt;
+   ```
+
+   Sin el ajuste, rust-analyzer revisa para macOS y la marca como error. Con el ajuste revisa para Linux y solo avisa de que no se usa. Puedes ver los mismos dos resultados con `cargo check` en la terminal del Mac. Primero, revisando para macOS:
+
+   ```sh title="En el Mac"
+   cargo check
+   ```
+
+   - `cargo check`: revisa el código como si fuera a compilarlo, pero sin generar el binario. Es lo que rust-analyzer corre por dentro.
+
+   ```sh title="Deberías ver"
+   $ cargo check
+   error[E0433]: failed to resolve: could not find `linux` in `os`
+    --> src/main.rs:1:14
+     |
+   1 | use std::os::linux::fs::MetadataExt;
+     |              ^^^^^ could not find `linux` in `os`
+   ```
+
+   La salida real es más larga. Estas son sus primeras líneas, sin la línea `Checking`. Y ahora para Linux, que es lo que rust-analyzer hace con tu ajuste:
+
+   ```sh title="En el Mac"
+   cargo check --target aarch64-unknown-linux-gnu
+   ```
+
+   - `--target aarch64-unknown-linux-gnu`: revisa para esa plataforma.
+
+   ```sh title="Deberías ver"
+   $ cargo check --target aarch64-unknown-linux-gnu
+   warning: unused import: `std::os::linux::fs::MetadataExt`
+    --> src/main.rs:1:5
+   ```
+
+   Ya no hay error. Solo queda el aviso de que el `use` no se usa. Aquí también está recortada la salida. Borra esa línea de `src/main.rs` antes de seguir.
+
+</Steps>
+
+<Aside type="caution" title="Trampa típica">
+Si no pones el target en Zed, todo el código que usa funciones de Linux, que será casi todo el programa desde la parte 2, saldrá marcado en rojo aunque compile bien en Linux. El error está en la configuración del editor, no en tu código. Como regla: la verdad la dice `cargo build` en Linux, no el subrayado de Zed.
+</Aside>
+
+<Quiz kind="closing">
+<Fragment slot="question">Compilas y corres en Linux. ¿Entonces para qué hace falta `rustup target add aarch64-unknown-linux-gnu` en el Mac?</Fragment>
+
+<QuizOption>Para compilar en el Mac un binario que corra en Linux.<Fragment slot="feedback">Para eso faltaría un enlazador para Linux, y esta guía no lo instala. Compilar y correr sigue pasando dentro de Linux.</Fragment></QuizOption>
+
+<QuizOption correct>Para que Zed pueda revisar tu código para Linux, aunque no lo compile.<Fragment slot="feedback">rust-analyzer necesita la librería estándar de ese target para entender tu código. Con ella revisa como si fuera Linux.</Fragment></QuizOption>
+
+<QuizOption>Para que `cargo run` funcione dentro de Linux.<Fragment slot="feedback">Dentro de Linux, `rustup` ya instaló el target de esa máquina. El del Mac no tiene relación con lo que corre allá.</Fragment></QuizOption>
+</Quiz>
+
+## Ejercicios
+
+Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+
+### 0b.1 Encuentra tu binario y córrelo sin `cargo`
+
+**Objetivo:** en 1a correrás tu programa con `sudo`, y `sudo` no encuentra `cargo`. Confirma que puedes correr el programa sin `cargo`, con solo su ruta, y que imprime `Hello, world!`.
+
+```sh title="Resultado esperado"
+$ ./target/debug/mini-container
+Hello, world!
+```
+
+<Hint n={1}>`cargo run` te dijo en una línea qué binario estaba corriendo. Empieza con `Running`.</Hint>
+
+<Hint n={2}>La ruta que aparece ahí es relativa a la raíz del repo, así que corre el comando desde allí.</Hint>
+
+<Hint n={3}>Un comando que lleva `/` en su nombre se busca por esa ruta y no en el `PATH`. Si la ruta es relativa, empieza con `./`.</Hint>
+
+## Fuentes
+
+- Zed, «Rust», sección «Alternate Targets»: la clave `lsp.rust-analyzer.initialization_options.cargo.target` hace que rust-analyzer dé diagnósticos para otra plataforma. Y: el servidor se reinicia solo cuando se guarda la sección `lsp.rust-analyzer`. [zed.dev/docs/languages/rust](https://zed.dev/docs/languages/rust). Consultada el 2026-11-12.
+- Zed, «Configuring Zed», «Project Settings»: `.zed/settings.json` en la raíz del proyecto sustituye los ajustes de usuario para ese proyecto. [zed.dev/docs/configuring-zed](https://zed.dev/docs/configuring-zed). Consultada el 2026-11-12.
+- rust-analyzer, `cargo.target`: «Compilation target override (target tuple)». [rust-analyzer.github.io/book/configuration.html](https://rust-analyzer.github.io/book/configuration.html). Consultada el 2026-11-12.
+- Salidas de `cargo` en Linux: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1. Salidas en el Mac: Rust 1.94.0 de la instalación del estudiante. Ambas el 2026-11-12.

@@ -1,6 +1,122 @@
 ---
 title: mini-container
-description: Una guía paso a paso para escribir un contenedor mínimo en Rust.
+description: Una guía paso a paso para escribir en Rust un contenedor mínimo, con namespaces y cgroups.
 ---
 
-Portada provisional.
+import { Aside, LinkCard } from "@astrojs/starlight/components";
+import BeforeAfter from "../../components/diagram/BeforeAfter.astro";
+import KernelBox from "../../components/diagram/KernelBox.astro";
+import KernelEntry from "../../components/diagram/KernelEntry.astro";
+import Process from "../../components/diagram/Process.astro";
+
+Esta guía te lleva a escribir, tú mismo y en Rust, un programa que lanza un comando dentro de un contenedor mínimo. Tú tecleas todo el código. La guía lo explica en trozos pequeños, y las dudas se las preguntas a un agente.
+
+Al final podrás explicar, con lo que construiste, qué es un contenedor por dentro y en qué se diferencia de una máquina virtual.
+
+## Qué vas a construir
+
+Un programa llamado `mini-container`. Lo usarás así:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run <comando>
+```
+
+El comando corre como un proceso normal, pero el kernel le muestra un mundo recortado. El *kernel* es el núcleo de Linux: el programa que reparte la máquina entre todos los procesos.
+
+<BeforeAfter beforeTitle="ANTES · un proceso normal" afterTitle="DESPUÉS · dentro de tu contenedor">
+<Fragment slot="before">
+<div class="diagram-row"><Process highlighted>comando</Process></div>
+<p class="diagram-note">↓ ve las listas de toda la máquina ↓</p>
+<KernelBox>
+<KernelEntry>hostname: mini-container-dev</KernelEntry>
+<KernelEntry>procesos: todos</KernelEntry>
+<KernelEntry>archivos: los de la máquina</KernelEntry>
+<KernelEntry>memoria: toda</KernelEntry>
+</KernelBox>
+</Fragment>
+<Fragment slot="after">
+<div class="diagram-row"><Process highlighted>comando</Process></div>
+<p class="diagram-note">↓ cada uno ve solo su copia ↓</p>
+<KernelBox>
+<KernelEntry isCopy>hostname: contenedor</KernelEntry>
+<KernelEntry isCopy>procesos: solo el suyo</KernelEntry>
+<KernelEntry isCopy>archivos: los de Alpine</KernelEntry>
+<KernelEntry isCopy>memoria: con un tope</KernelEntry>
+</KernelBox>
+</Fragment>
+</BeforeAfter>
+
+Lo que el diagrama muestra ya lo viste en la lección, y aquí lo vas a construir:
+
+- Un *namespace* es una copia privada de una lista del kernel. El kernel filtra lo que ve cada proceso según su etiqueta.
+- Un *cgroup* son archivos como `memory.max` y `cgroup.procs` en `/sys/fs/cgroup`. Con ellos el kernel limita lo que un grupo de procesos puede gastar.
+- *Alpine* es una distribución de Linux muy pequeña. Sus archivos serán el `/` de tu contenedor.
+
+<Aside type="note" title="Analogía">
+Un edificio de oficinas tiene un solo letrero en la entrada con el nombre del edificio. Un contenedor es como darle a un inquilino una fotocopia del letrero: puede tachar el nombre en su copia y escribir otro, y el letrero de la entrada sigue igual.
+</Aside>
+
+## El mapa
+
+Las partes se hacen en orden. Cada una termina con algo que corres y ves en la terminal.
+
+| Parte | Qué logras | Secciones |
+| --- | --- | --- |
+| 0 · Preparación | Una máquina Linux de OrbStack lista, el proyecto creado y Zed configurado | [0a](/0-setup/a-linux-machine/), [0b](/0-setup/b-rust-project/) |
+| 1 · Lanzar un proceso | `mini-container run /bin/sh` abre un shell, todavía sin aislamiento | [1a](/1-process/a-launch-a-shell/) |
+| 2 · Namespaces | Un hostname propio, procesos propios y archivos propios | Próximamente |
+| 3 · cgroups | Un límite de RAM: el kernel mata el comando si lo pasa, y el programa lo dice | Próximamente |
+| 4 · OverlayFS | La imagen de Alpine como capa de solo lectura y una capa de escritura por contenedor | Más adelante |
+| Cierre | Comparar tu programa con Docker: el tuyo hace el papel de `runc`, la pieza que `containerd` llama para crear el contenedor | Próximamente |
+
+## Cómo usar la guía
+
+**Teclea, no copies.** El que teclea lee cada línea. El que copia y pega, no. Todo el código de la guía viene en trozos pequeños, y cada trozo lleva debajo la explicación línea por línea.
+
+**Cada sección tiene el mismo orden:**
+
+1. Qué logras al terminar.
+2. Un diagrama de antes y después.
+3. Una analogía.
+4. Una predicción, antes de escribir. Eliges una opción y la abres para ver si acertaste.
+5. El código, en trozos, cada uno con el resultado que debes ver.
+6. Las trampas típicas.
+7. Una pregunta de cierre.
+8. Ejercicios sin código.
+
+**La regla de 5 minutos.** En cada ejercicio, inténtalo cinco minutos antes de abrir una pista. Si sigues atascado, abre la pista 1 e inténtalo otros cinco minutos. Después la 2.
+
+**Qué comprobar.** Cada «Deberías ver» muestra lo que debe salir en tu pantalla. Si sale distinto, no sigas: busca la diferencia.
+
+## Cómo preguntarle al agente
+
+El agente responde tus dudas. No escribe tu código. Estas preguntas funcionan bien:
+
+- «¿Qué hace exactamente esta línea?», y pegas la línea.
+- «¿Por qué el compilador me dice esto?», y pegas el error completo.
+- «¿Hay una forma más idiomática de escribir esto en Rust?»
+
+Al empezar una conversación con el agente, pégale este texto. Le pide que no te escriba el código, que te dé primero una pista y que te explique en español sencillo:
+
+```text title="Texto para pegarle al agente" wrap
+Estoy siguiendo la guía de este repo, en la carpeta guide/, para escribir un contenedor mínimo en Rust. Yo escribo todo el código.
+
+Reglas para ayudarme:
+1. No escribas mi código ni me pegues soluciones completas.
+2. Si te hago una pregunta, dame primero una pista. Si sigo atascado y te pido la respuesta, entonces dámela.
+3. Explícame en español sencillo: frases cortas, una idea por párrafo, y define cada término la primera vez que aparezca.
+4. Si mi código funciona pero no es idiomático en Rust, dímelo y explícame la forma idiomática, sin reescribir mi código.
+5. No abras la carpeta guide/checkpoints/: son las soluciones con las que la guía se verifica.
+6. Los comandos con sudo se corren solo dentro de la máquina Linux mini-container-dev, nunca en el Mac.
+```
+
+## Qué necesitas
+
+- Un Mac con Apple Silicon.
+- OrbStack instalado, con su comando `orb`.
+- Zed como editor.
+- Saber Rust básico. La guía explica el Rust que cada paso necesita y enlaza al libro oficial, [The Rust Programming Language](https://doc.rust-lang.org/book/), para lo demás.
+
+No usa AWS y no genera costos: todo corre en tu Mac.
+
+<LinkCard title="Empieza aquí: 0a · Una máquina Linux" description="Crea la máquina Linux donde vas a compilar y correr tu programa." href="/0-setup/a-linux-machine/" />

@@ -1,0 +1,321 @@
+---
+title: 0a · Una máquina Linux
+description: Crea una máquina Linux en OrbStack, instala Rust y comprueba que usa cgroups v2.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import BeforeAfter from "../../../components/diagram/BeforeAfter.astro";
+import KernelBox from "../../../components/diagram/KernelBox.astro";
+import KernelEntry from "../../../components/diagram/KernelEntry.astro";
+import Process from "../../../components/diagram/Process.astro";
+import Hint from "../../../components/Hint.astro";
+import Quiz from "../../../components/Quiz.astro";
+import QuizOption from "../../../components/QuizOption.astro";
+
+**Al terminar:** tienes una máquina Linux dentro de OrbStack, con las herramientas de Rust instaladas, y sabes que usa cgroups v2.
+
+Los namespaces y los cgroups son funciones del *kernel* de Linux. El kernel es el núcleo del sistema operativo: el programa que reparte la máquina entre los procesos. macOS tiene otro kernel y no trae esas funciones. Por eso tu programa se compila y corre dentro de Linux.
+
+<BeforeAfter beforeTitle="ANTES · solo el Mac" afterTitle="DESPUÉS · el Mac y una máquina Linux">
+<Fragment slot="before">
+<div class="diagram-row"><Process>Zed</Process><Process>terminal</Process></div>
+<p class="diagram-note">↓ usan el kernel de macOS ↓</p>
+<KernelBox label="kernel de macOS"><KernelEntry>sin namespaces</KernelEntry><KernelEntry>sin cgroups</KernelEntry></KernelBox>
+</Fragment>
+<Fragment slot="after">
+<div class="diagram-row"><Process>Zed</Process><Process highlighted>cargo</Process></div>
+<p class="diagram-note">↓ cargo corre en Linux ↓</p>
+<KernelBox label="kernel de Linux"><KernelEntry isCopy>namespaces</KernelEntry><KernelEntry isCopy>cgroups</KernelEntry></KernelBox>
+</Fragment>
+</BeforeAfter>
+
+<Aside type="note" title="Analogía">
+Tu Mac es tu casa. La máquina de OrbStack es un taller alquilado en el mismo edificio, con otras reglas: las del kernel de Linux. No te mudas. Sigues escribiendo en casa, y el taller ve tu carpeta de trabajo por una ventana, en la misma ruta. Lo que necesita las reglas de Linux se hace en el taller.
+</Aside>
+
+*OrbStack* es un programa para Mac que crea máquinas Linux ligeras y las comparte con el Mac. Ya lo tienes instalado. Su comando es `orb`.
+
+## Los pasos
+
+Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
+
+<Steps>
+
+1. **Crea la máquina.** En el Mac:
+
+   ```sh title="En el Mac"
+   orb create ubuntu:26.04 mini-container-dev
+   ```
+
+   - `orb`: el comando de OrbStack.
+   - `create`: crea una máquina nueva.
+   - `ubuntu:26.04`: la distribución y su versión. Ubuntu es una distribución de Linux.
+   - `mini-container-dev`: el nombre que le damos. Lo usaremos en todos los comandos.
+   - Efecto: baja una imagen de Ubuntu 26.04, crea la máquina y la deja encendida. Crea un usuario con el mismo nombre que tu usuario del Mac. No toca nada de tu Mac.
+
+   Compruébalo:
+
+   ```sh title="En el Mac"
+   orb list
+   ```
+
+   - `orb list`: muestra las máquinas que tienes.
+
+   Cada fila es una máquina: nombre, estado, distribución, versión, arquitectura, tamaño e IP. El tamaño y la IP cambian en cada máquina.
+
+   ```sh title="Deberías ver"
+   $ orb list
+   mini-container-dev  running  ubuntu  resolute  arm64  741.9 MB  192.168.139.44
+   ```
+
+2. **Entra a la máquina.** En el Mac, desde la carpeta del repo:
+
+   ```sh title="En el Mac"
+   cd /Users/tu-usuario/mini-container-rs
+   orb -m mini-container-dev
+   ```
+
+   - `cd`: cambia de carpeta. La del repo es donde vivirá tu código.
+   - `orb -m mini-container-dev`: `-m` elige la máquina. Sin más argumentos, abre una terminal dentro de ella.
+   - Efecto: la terminal queda dentro de Linux, en la misma carpeta que tenías en el Mac.
+
+   Desde aquí, todo lo marcado «En Linux» va en esta terminal. Para salir, escribe `exit`. Para volver, repite `orb -m mini-container-dev`.
+
+   Comprueba dónde estás:
+
+   ```sh title="En Linux"
+   pwd
+   uname -m
+   grep PRETTY_NAME /etc/os-release
+   ```
+
+   - `pwd`: imprime la carpeta actual.
+   - `uname -m`: imprime la arquitectura del procesador. `-m` es *machine*.
+   - `grep PRETTY_NAME /etc/os-release`: `grep` busca líneas que contengan un texto. `/etc/os-release` es el archivo que describe la distribución.
+
+   ```sh title="Deberías ver"
+   $ pwd
+   /Users/tu-usuario/mini-container-rs
+   $ uname -m
+   aarch64
+   $ grep PRETTY_NAME /etc/os-release
+   PRETTY_NAME="Ubuntu 26.04.1 LTS"
+   ```
+
+   `aarch64` es el nombre que Linux da a la arquitectura arm64 de tu Mac.
+
+3. **Instala las herramientas de compilación.** En Linux:
+
+   ```sh title="En Linux"
+   sudo apt update
+   sudo apt install -y build-essential curl
+   ```
+
+   - `sudo`: corre el comando como administrador. Instalar programas lo pide.
+   - `apt`: el instalador de programas de Ubuntu.
+   - `update`: baja la lista de programas disponibles. No instala nada.
+   - `install`: instala los programas que le nombres.
+   - `-y`: responde «sí» a la pregunta de confirmación.
+   - `build-essential`: un paquete que trae el compilador de C, `make` y el enlazador. Rust los necesita para el último paso de compilar, que es enlazar el binario.
+   - `curl`: un programa que descarga páginas y archivos. Lo usaremos para bajar Rust. En Ubuntu 26.04 ya viene instalado.
+   - Efecto: cambia la máquina Linux. Tu Mac no cambia.
+
+   ```sh title="Deberías ver"
+   $ sudo apt update
+   Reading package lists...
+   Building dependency tree...
+   Reading state information...
+   5 packages can be upgraded. Run 'apt list --upgradable' to see them.
+   $ sudo apt install -y build-essential curl
+   curl is already the newest version (8.18.0-1ubuntu2.8).
+   ...
+   Setting up build-essential (12.12ubuntu2.26.04.2)…
+   ```
+
+   Verás muchas más líneas en el medio, marcadas con `...`. El número de paquetes y las versiones pueden cambiar. Si apt te saluda con un aviso sobre su interfaz, puedes ignorarlo.
+
+   Comprueba que el compilador está:
+
+   ```sh title="En Linux"
+   cc --version | head -1
+   ```
+
+   - `cc`: el compilador de C del sistema.
+   - `--version`: pide que imprima su versión.
+   - `|`: le pasa esa salida al siguiente comando.
+   - `head -1`: se queda solo con la primera línea.
+
+   ```sh title="Deberías ver"
+   $ cc --version | head -1
+   cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+   ```
+
+4. **Instala Rust.** En Linux:
+
+   ```sh title="En Linux"
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.99.1
+   ```
+
+   Este comando descarga un script y lo ejecuta. Es el método oficial de Rust. Úsalo solo con esta dirección.
+
+   - `curl`: descarga la dirección que le des.
+   - `--proto '=https'`: acepta solo `https`, nunca una conexión sin cifrar.
+   - `--tlsv1.2`: exige al menos la versión 1.2 del cifrado.
+   - `-sSf`: son tres flags juntos. `-s` no muestra la barra de progreso. `-S` sí muestra los errores. `-f` falla si la página responde con error.
+   - `https://sh.rustup.rs`: la dirección del instalador de `rustup`.
+   - `|`: pasa lo descargado al siguiente comando.
+   - `sh -s -- ...`: `sh` ejecuta el script. `-s` le dice que lo lea de lo que recibe. `--` marca el final de las opciones de `sh`. Lo que sigue se lo pasa al script.
+   - `-y`: el instalador no hace preguntas.
+   - `--default-toolchain 1.99.1`: instala esa versión de Rust y la deja como predeterminada.
+   - Efecto: instala `rustup`, `rustc` y `cargo` en `~/.cargo/bin`, dentro de tu carpeta personal de Linux.
+
+   `rustup` es el instalador y actualizador de Rust. `rustc` es el compilador. `cargo` es la herramienta que usarás todo el tiempo: compila, corre y administra dependencias.
+
+   Fijamos la versión 1.99.1 para que lo que ves en pantalla sea igual a lo que ves en esta guía. Es la versión más nueva con más de dos semanas de edad el 2026-11-12. La 1.100.0 salió ese mismo día.
+
+   ```sh title="Deberías ver"
+   info: downloading installer
+   info: profile set to default
+   info: default host tuple is aarch64-unknown-linux-gnu
+   info: syncing channel updates for 1.99.1-aarch64-unknown-linux-gnu
+   info: latest update on 2026-10-15 for version 1.99.1 (58cf8f9c3 2026-10-13)
+   info: downloading 6 components
+   ...
+   info: default toolchain set to 1.99.1-aarch64-unknown-linux-gnu
+     1.99.1-aarch64-unknown-linux-gnu installed - rustc 1.99.1 (58cf8f9c3 2026-10-13)
+
+   Rust is installed now. Great!
+   ```
+
+   Después de `Rust is installed now. Great!` pueden aparecer líneas sueltas que empiezan con `cargo:rerun-if-env-changed`. No importan.
+
+   La terminal en la que estás todavía no sabe dónde quedó Rust. Dile:
+
+   ```sh title="En Linux"
+   . "$HOME/.cargo/env"
+   ```
+
+   - `.`: ejecuta un archivo dentro de la terminal actual, para que sus cambios se queden.
+   - `"$HOME/.cargo/env"`: el archivo que añade `~/.cargo/bin` al `PATH`. El `PATH` es la lista de carpetas donde el shell busca los programas.
+   - Efecto: desde ahora esta terminal encuentra `cargo`. Las terminales nuevas lo encuentran solas.
+
+   ```sh title="En Linux"
+   rustc --version
+   cargo --version
+   ```
+
+   ```sh title="Deberías ver"
+   $ rustc --version
+   rustc 1.99.1 (58cf8f9c3 2026-10-13)
+   $ cargo --version
+   cargo 1.99.1 (5f94df478 2026-08-27)
+   ```
+
+5. **Comprueba que usa cgroups v2.** En Linux:
+
+   ```sh title="En Linux"
+   stat -fc %T /sys/fs/cgroup
+   ```
+
+   - `stat`: muestra datos de un archivo o de un sistema de archivos.
+   - `-f`: pregunta por el sistema de archivos que contiene esa ruta, no por el archivo.
+   - `-c %T`: `-c` elige el formato de salida. `%T` es el tipo del sistema de archivos, en texto.
+   - `/sys/fs/cgroup`: la carpeta donde Linux expone los cgroups como archivos.
+
+   ```sh title="Deberías ver"
+   $ stat -fc %T /sys/fs/cgroup
+   cgroup2fs
+   ```
+
+   `cgroup2fs` es el sistema de archivos de cgroups v2. Si vieras `tmpfs`, la máquina usaría cgroups v1 y esta guía no serviría tal cual. Con la imagen de Ubuntu 26.04 de OrbStack sale `cgroup2fs`.
+
+</Steps>
+
+<Quiz kind="prediction">
+<Fragment slot="question">Instalaste Rust con tu usuario. Ahora corres `sudo cargo --version`. ¿Qué pasa?</Fragment>
+
+<QuizOption>Imprime la versión de Cargo, porque `sudo` hereda tu `PATH`.<Fragment slot="feedback">`sudo` no hereda tu `PATH`. Usa una lista de carpetas fija y segura, y `~/.cargo/bin` no está en ella.</Fragment></QuizOption>
+
+<QuizOption correct>Dice que no encuentra el comando `cargo`.<Fragment slot="feedback">Rust se instaló para tu usuario, en tu carpeta personal. `sudo` busca solo en sus carpetas fijas y no llega ahí.</Fragment></QuizOption>
+
+<QuizOption>Pide instalar Rust otra vez, ahora para el administrador.<Fragment slot="feedback">`sudo` nunca instala nada por su cuenta. Solo corre el comando que le pasas, y si no lo encuentra, falla.</Fragment></QuizOption>
+</Quiz>
+
+<Aside type="caution" title="Trampa típica">
+`sudo cargo run` falla. Compruébalo:
+
+```sh title="En Linux"
+sudo cargo --version
+```
+
+```sh title="Deberías ver"
+$ sudo cargo --version
+sudo: 'cargo': command not found
+```
+
+Otras versiones de `sudo` escriben el mensaje sin las comillas: `sudo: cargo: command not found`. Es el mismo error.
+
+El motivo está en el `PATH` que usa `sudo`:
+
+```sh title="En Linux"
+sudo sh -c 'echo $PATH'
+which cargo
+```
+
+```sh title="Deberías ver"
+$ sudo sh -c 'echo $PATH'
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+$ which cargo
+/home/TU_USUARIO/.cargo/bin/cargo
+```
+
+`TU_USUARIO` es tu nombre de usuario en Linux. `which` imprime dónde está un programa. Ninguna carpeta de la primera línea es `~/.cargo/bin`.
+
+La salida correcta es compilar con tu usuario y correr solo el binario con `sudo`:
+
+```sh title="En Linux"
+cargo build
+sudo ./target/debug/mini-container
+```
+
+Con la ruta completa del binario, `sudo` no necesita buscar nada en el `PATH`. Lo usaremos a partir de 1a.
+</Aside>
+
+<Quiz kind="closing">
+<Fragment slot="question">Vas a probar tu programa con permisos de administrador. ¿Por qué se compila con `cargo build` y solo el binario se corre con `sudo`?</Fragment>
+
+<QuizOption>Porque `cargo` no puede correr programas con `sudo`.<Fragment slot="feedback">`cargo` sí puede correr con `sudo`. El problema es que `sudo` no lo encuentra, porque su `PATH` no incluye `~/.cargo/bin`.</Fragment></QuizOption>
+
+<QuizOption correct>Porque `sudo` no encuentra `cargo`, pero sí puede ejecutar un binario si le das su ruta.<Fragment slot="feedback">Con `./target/debug/mini-container` no hay nada que buscar en el `PATH`: la ruta ya dice dónde está el archivo.</Fragment></QuizOption>
+
+<QuizOption>Porque compilar como administrador daría errores de enlazado.<Fragment slot="feedback">Compilar como administrador no produce errores de enlazado. El motivo real es otro: `sudo` no encuentra `cargo`.</Fragment></QuizOption>
+</Quiz>
+
+## Ejercicios
+
+Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+
+### 0a.1 Descubre qué controladores de cgroup tiene tu máquina
+
+**Objetivo:** un *controlador* es la pieza del kernel que gobierna un recurso. `memory` gobierna la RAM y `cpu` gobierna el uso del procesador. Averigua cuáles controladores tiene tu máquina y confirma que están `memory` y `cpu`, que usarás en la parte 3.
+
+```sh title="Resultado esperado"
+$ cat /sys/fs/cgroup/cgroup.controllers
+cpuset cpu io memory pids
+```
+
+Tu lista debe incluir `cpu` y `memory`. Puede traer más o menos controladores que esta.
+
+<Hint n={1}>`/sys/fs/cgroup` es una carpeta. Los cgroups se manejan como archivos dentro de ella.</Hint>
+
+<Hint n={2}>Lista el contenido de esa carpeta con `ls` y busca un archivo cuyo nombre contenga `controllers`.</Hint>
+
+<Hint n={3}>Para ver lo que tiene un archivo de texto se usa `cat`.</Hint>
+
+## Fuentes
+
+- Documentación de cgroup v2 del kernel, «Mounting» y `cgroup.controllers`: el sistema de archivos de cgroup v2 se llama `cgroup2`, y `cgroup.controllers` es un archivo de solo lectura que lista los controladores disponibles. [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-12.
+- `stat(1)`: `%T` imprime el tipo del sistema de archivos en texto. [man7.org/linux/man-pages/man1/stat.1.html](https://man7.org/linux/man-pages/man1/stat.1.html). Consultada el 2026-11-12.
+- Versiones de Rust: la 1.100.0 salió el 2026-11-12 y la 1.99.1 el 2026-10-15. [github.com/rust-lang/rust, RELEASES.md](https://github.com/rust-lang/rust/blob/master/RELEASES.md). Consultada el 2026-11-12.
+- Sintaxis de `orb create` y de `orb -m`: salida de `orb create --help` y `orbctl run --help`, OrbStack 2.2.5, el 2026-11-12.
+- Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, el 2026-11-12. La fila de `orb list` viene de la máquina de verificación, con el nombre cambiado.
