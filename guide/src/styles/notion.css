@@ -252,9 +252,13 @@ mobile-starlight-toc a[aria-current="true"] {
 
 .sl-markdown-content th:not(:where(.not-content *)) {
   background: var(--n-side);
-  color: var(--n-muted);
+  color: var(--n-text);
   font-size: var(--sl-text-sm);
   font-weight: 600;
+}
+
+.sl-markdown-content th:first-child:nth-last-child(2):not(:where(.not-content *)) {
+  width: 40%;
 }
 
 .starlight-aside {
