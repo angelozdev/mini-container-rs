@@ -11,6 +11,11 @@ const quizOption = /<details\b[^>]*\bclass="quiz-option"[^>]*>[\s\S]*?<\/details
 const correctMark = /^<details\b[^>]*\sdata-correct[\s>=]/;
 const feedback = /<div\b[^>]*\bclass="quiz-feedback"[^>]*>([\s\S]*?)<\/div>/;
 const quizTag = /<Quiz[\s>]/g;
+const frontmatter = /^---\n([\s\S]*?)\n---/;
+const checkpointField = /^checkpoint:\s*\S/m;
+const iconField = /^icon:\s*\p{Extended_Pictographic}/mu;
+const iconValue = /^icon:\s*(\S+)/m;
+const renderedIcon = /<div\b[^>]*\bclass="page-icon"[^>]*>([^<]*)<\/div>/;
 
 function builtPageOf(docsPath) {
   const slug = relative(docsFolder, docsPath).replace(/\.mdx$/, "");
@@ -19,6 +24,10 @@ function builtPageOf(docsPath) {
 
 function textOf(html) {
   return html.replace(/<[^>]*>/g, "").trim();
+}
+
+function frontmatterOf(source) {
+  return source.match(frontmatter)?.[1] ?? "";
 }
 
 function describeQuizzes(page) {
@@ -37,7 +46,22 @@ test("the site is built before checking the quizzes", () => {
 
 for (const docsPath of listFiles(docsFolder).filter((path) => path.endsWith(".mdx"))) {
   const name = relative(docsFolder, docsPath);
-  const quizzesWritten = (readFileSync(docsPath, "utf8").match(quizTag) ?? []).length;
+  const source = readFileSync(docsPath, "utf8");
+  const quizzesWritten = (source.match(quizTag) ?? []).length;
+
+  test(`${name}: a page with a checkpoint has an icon`, () => {
+    const fields = frontmatterOf(source);
+    if (!checkpointField.test(fields)) return;
+    assert.match(fields, iconField, `${name}: add icon: <emoji> to the frontmatter`);
+  });
+
+  test(`${name}: the icon of the frontmatter is shown above the title`, () => {
+    const icon = frontmatterOf(source).match(iconValue)?.[1];
+    if (!icon) return;
+    const page = builtPageOf(docsPath);
+    if (!existsSync(page)) return;
+    assert.equal(readFileSync(page, "utf8").match(renderedIcon)?.[1].trim(), icon);
+  });
 
   test(`${name}: every written Quiz appears in the built page`, () => {
     const page = builtPageOf(docsPath);

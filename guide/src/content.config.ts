@@ -7,7 +7,10 @@ export const collections = {
   docs: defineCollection({
     loader: docsLoader(),
     schema: docsSchema({
-      extend: z.object({ checkpoint: z.string().optional() }),
+      extend: z.object({
+        checkpoint: z.string().optional(),
+        icon: z.string().optional(),
+      }),
     }),
   }),
 };

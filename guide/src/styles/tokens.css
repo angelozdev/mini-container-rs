@@ -1,0 +1,114 @@
+:root {
+  --n-bg: #191919;
+  --n-text: rgba(255, 255, 255, 0.81);
+  --n-muted: rgba(255, 255, 255, 0.46);
+  --n-faint: rgba(255, 255, 255, 0.32);
+  --n-side: #202020;
+  --n-hover: rgba(255, 255, 255, 0.055);
+  --n-active: rgba(255, 255, 255, 0.08);
+  --n-line: #2f2f2f;
+  --n-code: #202020;
+  --n-icode-bg: rgba(135, 131, 120, 0.15);
+  --n-icode: #ff7369;
+  --n-c-gray: #252525;
+  --n-c-yellow: #382e1e;
+  --n-c-red: #3a2626;
+  --n-c-green: #232f28;
+  --n-c-blue: #1e2a33;
+  --n-c-purple: #2b2433;
+  --n-t-green: #52a77b;
+  --n-t-red: #e06b64;
+  --n-t-blue: #4f9fd1;
+  --n-t-purple: #b48ad3;
+  --n-t-orange: #c47a2c;
+  --n-ins: rgba(82, 167, 123, 0.16);
+  --n-del: rgba(224, 107, 100, 0.16);
+}
+
+:root[data-theme="light"] {
+  --n-bg: #ffffff;
+  --n-text: #37352f;
+  --n-muted: #787774;
+  --n-faint: #9b9a97;
+  --n-side: #f7f7f5;
+  --n-hover: rgba(55, 53, 47, 0.06);
+  --n-active: rgba(55, 53, 47, 0.09);
+  --n-line: #e9e9e7;
+  --n-code: #f7f6f3;
+  --n-icode-bg: rgba(135, 131, 120, 0.15);
+  --n-icode: #eb5757;
+  --n-c-gray: #f1f1ef;
+  --n-c-yellow: #fbf3db;
+  --n-c-red: #fdebec;
+  --n-c-green: #edf3ec;
+  --n-c-blue: #e7f3f8;
+  --n-c-purple: #f6f3f9;
+  --n-t-green: #448361;
+  --n-t-red: #d44c47;
+  --n-t-blue: #337ea9;
+  --n-t-purple: #9065b0;
+  --n-t-orange: #c47a2c;
+  --n-ins: rgba(68, 131, 97, 0.12);
+  --n-del: rgba(212, 76, 71, 0.12);
+}
+
+:root {
+  --sl-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+  --sl-font-mono: "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --sl-color-white: var(--n-text);
+  --sl-color-gray-1: var(--n-text);
+  --sl-color-gray-2: var(--n-text);
+  --sl-color-gray-3: var(--n-muted);
+  --sl-color-gray-4: var(--n-faint);
+  --sl-color-gray-5: var(--n-line);
+  --sl-color-gray-6: var(--n-side);
+  --sl-color-gray-7: var(--n-side);
+  --sl-color-black: var(--n-bg);
+
+  --sl-color-orange-low: var(--n-c-yellow);
+  --sl-color-orange: var(--n-t-orange);
+  --sl-color-orange-high: var(--n-t-orange);
+  --sl-color-green-low: var(--n-c-green);
+  --sl-color-green: var(--n-t-green);
+  --sl-color-green-high: var(--n-t-green);
+  --sl-color-blue-low: var(--n-c-blue);
+  --sl-color-blue: var(--n-t-blue);
+  --sl-color-blue-high: var(--n-t-blue);
+  --sl-color-purple-low: var(--n-c-purple);
+  --sl-color-purple: var(--n-t-purple);
+  --sl-color-purple-high: var(--n-t-purple);
+  --sl-color-red-low: var(--n-c-red);
+  --sl-color-red: var(--n-t-red);
+  --sl-color-red-high: var(--n-t-red);
+
+  --sl-color-accent-low: var(--n-c-blue);
+  --sl-color-accent: var(--n-t-blue);
+  --sl-color-accent-high: var(--n-t-blue);
+
+  --sl-color-text: var(--n-text);
+  --sl-color-text-accent: var(--n-text);
+  --sl-color-text-invert: var(--n-bg);
+  --sl-color-bg: var(--n-bg);
+  --sl-color-bg-nav: var(--n-bg);
+  --sl-color-bg-sidebar: var(--n-side);
+  --sl-color-bg-inline-code: var(--n-icode-bg);
+  --sl-color-bg-accent: var(--n-t-blue);
+  --sl-color-hairline-light: var(--n-line);
+  --sl-color-hairline: var(--n-line);
+  --sl-color-hairline-shade: var(--n-line);
+
+  --sl-line-height: 1.5;
+  --sl-line-height-headings: 1.2;
+  --sl-text-code: 0.84375rem;
+  --sl-text-code-sm: 0.84375rem;
+  --sl-text-h1: 2.5rem;
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.25rem;
+  --sl-text-h4: 1.125rem;
+  --sl-sidebar-width: 15.625rem;
+  --sl-content-width: 41.25rem;
+  --sl-shadow-sm: none;
+  --sl-shadow-md: none;
+  --sl-shadow-lg: none;
+}

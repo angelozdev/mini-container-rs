@@ -1,0 +1,41 @@
+---
+import Default from "@astrojs/starlight/components/PageTitle.astro";
+
+interface Entry {
+  type: string;
+  label: string;
+  isCurrent?: boolean;
+  entries?: Entry[];
+}
+
+function groupsAbove(entries: Entry[]): string[] | undefined {
+  for (const entry of entries) {
+    if (entry.type === "link" && entry.isCurrent) return [];
+    if (entry.type === "group") {
+      const inside = groupsAbove(entry.entries ?? []);
+      if (inside) return [entry.label, ...inside];
+    }
+  }
+  return undefined;
+}
+
+const { entry, sidebar } = Astro.locals.starlightRoute;
+const { icon, title } = entry.data;
+const groups = groupsAbove(sidebar as Entry[]) ?? [];
+---
+
+{
+  groups.length > 0 && (
+    <nav class="page-crumb" aria-label="Ruta">
+      {groups.map((group) => (
+        <>
+          <span>{group}</span>
+          <span class="page-crumb-separator" aria-hidden="true">/</span>
+        </>
+      ))}
+      <span class="page-crumb-current">{title}</span>
+    </nav>
+  )
+}
+{icon && <div class="page-icon" aria-hidden="true">{icon}</div>}
+<Default {...Astro.props}><slot /></Default>

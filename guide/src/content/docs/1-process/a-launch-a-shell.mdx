@@ -2,6 +2,7 @@
 title: 1a · Lanzar un shell
 description: Tu programa lanza un shell, espera a que termine y devuelve su código de salida.
 checkpoint: 1a
+icon: 🐚
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -12,6 +13,7 @@ import Process from "../../../components/diagram/Process.astro";
 import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
 import QuizOption from "../../../components/QuizOption.astro";
+import ShouldSee from "../../../components/ShouldSee.astro";
 
 **Al terminar:** tu programa lanza `/bin/sh`, espera a que termine y devuelve el mismo código de salida que el shell.
 
@@ -79,6 +81,8 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    - `anyhow@1.0.104`: el nombre del crate, una arroba y la versión. Fijamos la versión para que tu pantalla coincida con la de la guía.
    - Efecto: escribe una línea en `Cargo.toml`. Todavía no descarga el crate.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo add anyhow@1.0.104
        Updating crates.io index
@@ -89,6 +93,8 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
        Updating crates.io index
         Locking 1 package to highest Rust 1.99.1 compatible version
    ```
+
+   </ShouldSee>
 
    Abre `Cargo.toml` en Zed. Debe tener una línea nueva, la 7:
 
@@ -201,6 +207,8 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    - `cargo build`: compila el proyecto y deja el binario en `target/debug/`. No lo corre.
    - Efecto: descarga `anyhow` y crea la carpeta `target/`.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo build
     Downloading crates ...
@@ -213,6 +221,8 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    warning: `mini-container` (bin "mini-container") generated 4 warnings
        Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s
    ```
+
+   </ShouldSee>
 
    - `Downloading` y `Downloaded`: bajó `anyhow`. Solo pasa la primera vez.
    - `Compiling`: compiló `anyhow` y después tu crate.
@@ -339,6 +349,8 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    - `cargo build`: compila lo que cambió.
    - Efecto: crea o actualiza lo que hay en `target/debug/`.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo build
       Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
@@ -348,6 +360,8 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    warning: `mini-container` (bin "mini-container") generated 6 warnings
        Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
    ```
+
+   </ShouldSee>
 
    Son seis avisos: los cuatro de antes y dos más, de `run` y de `exit_code`. Siguen siendo avisos de código que nadie usa todavía. `Finished` dice que compiló.
 
@@ -409,11 +423,15 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
    - `cargo build`: compila lo que cambió.
    - Efecto: deja en `target/debug/mini-container` el binario completo.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo build
       Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
        Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
    ```
+
+   </ShouldSee>
 
    Ya no hay avisos: `main` usa todo lo que escribiste.
 
@@ -433,10 +451,14 @@ sudo ./target/debug/mini-container run /bin/echo hello
 - `/bin/echo hello`: el programa que se lanza y su argumento.
 - Efecto: tu programa lanza `echo`, espera a que termine y sale con su código.
 
+<ShouldSee>
+
 ```sh title="Deberías ver"
 $ sudo ./target/debug/mini-container run /bin/echo hello
 hello
 ```
+
+</ShouldSee>
 
 Ahora el código de salida:
 
@@ -449,10 +471,14 @@ sudo ./target/debug/mini-container run /bin/sh -c 'exit 3'; echo $?
 - `;`: separa dos comandos. El segundo corre cuando el primero termina.
 - `echo $?`: imprime el código de salida del comando anterior.
 
+<ShouldSee>
+
 ```sh title="Deberías ver"
 $ sudo ./target/debug/mini-container run /bin/sh -c 'exit 3'; echo $?
 3
 ```
+
+</ShouldSee>
 
 Por último, sin argumentos:
 
@@ -464,11 +490,15 @@ sudo ./target/debug/mini-container; echo $?
 - `; echo $?`: igual que antes, imprime el código de salida del comando anterior.
 - Efecto: `parse` devuelve `None` y `main` imprime el uso.
 
+<ShouldSee>
+
 ```sh title="Deberías ver"
 $ sudo ./target/debug/mini-container; echo $?
 usage: mini-container run <program> [args...]
 2
 ```
+
+</ShouldSee>
 
 La primera línea es el texto `USAGE`, que sale por stderr. La segunda es el código de salida, 2. Pasa lo mismo con `run` solo, sin programa: `parse` también devuelve `None`.
 
@@ -490,10 +520,14 @@ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 - Las comillas simples son obligatorias. Con comillas dobles, tu shell cambiaría `$$` por su propio PID antes de lanzar nada, y el `kill` mataría a tu terminal en vez de al hijo.
 - `; echo $?`: imprime el código de salida del comando anterior.
 
+<ShouldSee>
+
 ```sh title="Deberías ver"
 $ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 137
 ```
+
+</ShouldSee>
 
 Un código de salida tiene solo 8 bits. Un proceso que llama a `exit(256)` devuelve 0, porque solo se guarda el byte bajo del número.
 
@@ -509,6 +543,8 @@ sudo ./target/debug/mini-container run holaa; echo $?
 - `; echo $?`: imprime el código de salida del comando anterior.
 - Efecto: `.status()` falla y `run` devuelve el error con el mensaje que le pusiste.
 
+<ShouldSee>
+
 ```sh title="Deberías ver"
 $ sudo ./target/debug/mini-container run holaa; echo $?
 Error: could not launch the program
@@ -517,6 +553,8 @@ Caused by:
     No such file or directory (os error 2)
 1
 ```
+
+</ShouldSee>
 
 - `Error: could not launch the program`: es el mensaje que pusiste con `.context(...)`. Dice «no pude lanzar el programa». `main` añade el `Error:` por delante.
 - `Caused by:`: significa «causado por». Introduce la causa, el error original que dio el sistema.
@@ -537,7 +575,9 @@ El mensaje no dice qué programa falló. Lo arreglas en el ejercicio.
 
 ## Ejercicios
 
+<Aside type="tip" title="Regla de los 5 minutos">
 Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+</Aside>
 
 ### 1a.1 Que el error diga qué programa no existe
 

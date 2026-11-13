@@ -1,6 +1,7 @@
 ---
 title: 0a · Una máquina Linux
 description: Crea una máquina Linux en OrbStack, instala Rust y comprueba que usa cgroups v2.
+icon: 🖥️
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -11,6 +12,7 @@ import Process from "../../../components/diagram/Process.astro";
 import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
 import QuizOption from "../../../components/QuizOption.astro";
+import ShouldSee from "../../../components/ShouldSee.astro";
 
 **Al terminar:** tienes una máquina Linux dentro de OrbStack, con las herramientas de Rust instaladas, y sabes que usa cgroups v2.
 
@@ -81,10 +83,14 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
 
    Cada fila es una máquina: nombre, estado, distribución, versión, arquitectura, tamaño e IP. Esta fila es un ejemplo: viene de otra máquina, con el nombre cambiado a `mini-container-dev`. En la tuya el tamaño y la IP serán otros.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ orb list
    mini-container-dev  running  ubuntu  resolute  arm64  741.9 MB  192.168.139.44
    ```
+
+   </ShouldSee>
 
 2. **Entra a la máquina.** En el Mac, desde la carpeta del repo:
 
@@ -111,6 +117,8 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    - `uname -m`: imprime la arquitectura del procesador. `-m` es *machine*.
    - `grep PRETTY_NAME /etc/os-release`: `grep` busca líneas que contengan un texto. `/etc/os-release` es el archivo que describe la distribución.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ pwd
    /Users/tu-usuario/mini-container-rs
@@ -119,6 +127,8 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    $ grep PRETTY_NAME /etc/os-release
    PRETTY_NAME="Ubuntu 26.04.1 LTS"
    ```
+
+   </ShouldSee>
 
    `aarch64` es el nombre que Linux da a la arquitectura arm64 de tu Mac.
 
@@ -138,6 +148,8 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    - `curl`: un programa que descarga páginas y archivos. Lo usaremos para bajar Rust. En Ubuntu 26.04 ya viene instalado.
    - Efecto: cambia la máquina Linux. Tu Mac no cambia.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ sudo apt update
    Reading package lists...
@@ -149,6 +161,8 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    ...
    Setting up build-essential (12.12ubuntu2.26.04.2)…
    ```
+
+   </ShouldSee>
 
    Verás muchas más líneas en el medio, marcadas con `...`. El número de paquetes y las versiones pueden cambiar. Si apt te saluda con un aviso sobre su interfaz, puedes ignorarlo.
 
@@ -163,10 +177,14 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    - `|`: le pasa esa salida al siguiente comando.
    - `head -1`: se queda solo con la primera línea.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cc --version | head -1
    cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
    ```
+
+   </ShouldSee>
 
 4. **Instala Rust.** En Linux:
 
@@ -191,6 +209,8 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
 
    Fijamos la versión 1.99.1 para que lo que ves en pantalla sea igual a lo que ves en esta guía.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    info: downloading installer
    info: profile set to default
@@ -204,6 +224,8 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
 
    Rust is installed now. Great!
    ```
+
+   </ShouldSee>
 
    Después de `Rust is installed now. Great!` pueden aparecer líneas sueltas que empiezan con `cargo:rerun-if-env-changed`. No importan.
 
@@ -228,12 +250,16 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    - `cargo --version`: imprime la versión de `cargo`.
    - Efecto: solo imprimen. Si dicen `command not found`, la terminal no encontró Rust: repite el comando de `. "$HOME/.cargo/env"`.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ rustc --version
    rustc 1.99.1 (58cf8f9c3 2026-10-13)
    $ cargo --version
    cargo 1.99.1 (5f94df478 2026-08-27)
    ```
+
+   </ShouldSee>
 
 5. **Comprueba que usa cgroups v2.** En Linux:
 
@@ -246,10 +272,14 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    - `-c %T`: `-c` elige el formato de salida. `%T` es el tipo del sistema de archivos, en texto.
    - `/sys/fs/cgroup`: la carpeta donde Linux expone los cgroups como archivos.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ stat -fc %T /sys/fs/cgroup
    cgroup2fs
    ```
+
+   </ShouldSee>
 
    `cgroup2fs` es el sistema de archivos de cgroups v2. Si vieras `tmpfs`, la máquina usaría cgroups v1 y esta guía no serviría tal cual. Con la imagen de Ubuntu 26.04 de OrbStack sale `cgroup2fs`.
 
@@ -266,10 +296,14 @@ sudo cargo --version
 - `cargo --version`: el comando que `sudo` debe encontrar y correr.
 - Efecto: no cambia nada. Solo falla.
 
+<ShouldSee>
+
 ```sh title="Deberías ver"
 $ sudo cargo --version
 sudo: 'cargo': command not found
 ```
+
+</ShouldSee>
 
 Otras versiones de `sudo` escriben el mensaje sin las comillas: `sudo: cargo: command not found`. Es el mismo error.
 
@@ -286,12 +320,16 @@ which cargo
 - `which cargo`: imprime dónde está un programa, buscándolo en el `PATH` de tu usuario.
 - Efecto: solo imprimen.
 
+<ShouldSee>
+
 ```sh title="Deberías ver"
 $ sudo sh -c 'echo $PATH'
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
 $ which cargo
 /home/tu-usuario/.cargo/bin/cargo
 ```
+
+</ShouldSee>
 
 `/home/tu-usuario` es tu carpeta personal en Linux, la misma que `~`. Ninguna carpeta de la primera línea es `~/.cargo/bin`. Esa lista sale de la opción `secure_path` del archivo `/etc/sudoers`: cuando existe, `sudo` la usa en lugar de tu `PATH`.
 
@@ -319,7 +357,9 @@ sudo ./target/debug/mini-container
 
 ## Ejercicios
 
+<Aside type="tip" title="Regla de los 5 minutos">
 Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+</Aside>
 
 ### 0a.1 Descubre qué controladores de cgroup tiene tu máquina
 

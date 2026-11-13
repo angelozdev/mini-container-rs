@@ -1,6 +1,7 @@
 ---
 title: 0b · El proyecto de Rust
 description: Crea el proyecto mini-container, córrelo en Linux y configura Zed para que analice tu código como código de Linux.
+icon: 🦀
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -11,6 +12,7 @@ import Process from "../../../components/diagram/Process.astro";
 import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
 import QuizOption from "../../../components/QuizOption.astro";
+import ShouldSee from "../../../components/ShouldSee.astro";
 
 **Al terminar:** el repo tiene un proyecto de Rust llamado `mini-container` que compila y corre en Linux, y Zed analiza tu código como código de Linux.
 
@@ -48,11 +50,15 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    - `--name mini-container`: el nombre del *crate*. Un crate es un paquete de Rust: aquí, tu programa. Sin esta opción, `cargo` usaría el nombre de la carpeta, `mini-container-rs`. En Rust el sufijo `-rs` suele marcar el lenguaje del repo y no va en el nombre del crate.
    - Efecto: crea `Cargo.toml` y `src/main.rs` en la raíz del repo, y deja un `Cargo.lock` cuando compilas por primera vez.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo init --name mini-container
        Creating binary (application) package
    note: see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
    ```
+
+   </ShouldSee>
 
    «Binary (application)» significa que el crate es un programa y no una librería.
 
@@ -96,6 +102,8 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    - `run`: compila el proyecto y corre el binario resultante.
    - Efecto: crea la carpeta `target/` con lo compilado y el archivo `Cargo.lock`, que fija las versiones exactas de las dependencias.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo run
       Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
@@ -103,6 +111,8 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
         Running `target/debug/mini-container`
    Hello, world!
    ```
+
+   </ShouldSee>
 
    - `Compiling`: está compilando tu crate.
    - `Finished ... in 0.08s`: terminó. El tiempo cambia en cada máquina. `dev` es el perfil por defecto: compila rápido, sin optimizar, y deja información para depurar.
@@ -118,10 +128,14 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    - `./target/debug/mini-container`: la ruta del binario. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
    - Efecto: corre el programa, sin `cargo` de por medio.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ ./target/debug/mini-container
    Hello, world!
    ```
+
+   </ShouldSee>
 
 3. **Instala el target de Linux en el Mac.** Un *target* es la plataforma para la que se compila. Su nombre, la *tripleta*, tiene partes:
 
@@ -141,10 +155,14 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    - `aarch64-unknown-linux-gnu`: la tripleta de Linux sobre tu procesador.
    - Efecto: descarga la librería estándar de Rust compilada para ese target y la añade a tu instalación de Rust en el Mac. Sirve para que Zed entienda el código de Linux. No sirve para compilar programas de Linux desde el Mac: para eso faltaría un enlazador, y compilamos en Linux.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ rustup target add aarch64-unknown-linux-gnu
    info: downloading component rust-std
    ```
+
+   </ShouldSee>
 
    Pueden salir más líneas que empiecen con `info:`, o una barra de progreso. Si ya tenías el target, sale la misma línea.
 
@@ -158,11 +176,15 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
    - `--installed`: deja solo los que tienes instalados.
    - Efecto: solo imprime.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ rustup target list --installed
    aarch64-apple-darwin
    aarch64-unknown-linux-gnu
    ```
+
+   </ShouldSee>
 
    `aarch64-apple-darwin` es el target de tu Mac, y ya estaba.
 
@@ -215,6 +237,8 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
 
    - `cargo check`: revisa el código como si fuera a compilarlo, pero sin generar el binario. Es lo que rust-analyzer corre por dentro.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo check
    error[E0433]: failed to resolve: could not find `linux` in `os`
@@ -224,6 +248,8 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
      |              ^^^^^ could not find `linux` in `os`
    ```
 
+   </ShouldSee>
+
    La salida real es más larga. Estas son sus primeras líneas, sin la línea `Checking`. Y ahora para Linux, que es lo que rust-analyzer hace con tu ajuste:
 
    ```sh title="En el Mac"
@@ -232,11 +258,15 @@ rust-analyzer es un corrector ortográfico. Por defecto revisa tu texto con las 
 
    - `--target aarch64-unknown-linux-gnu`: revisa para esa plataforma.
 
+   <ShouldSee>
+
    ```sh title="Deberías ver"
    $ cargo check --target aarch64-unknown-linux-gnu
    warning: unused import: `std::os::linux::fs::MetadataExt`
     --> src/main.rs:1:5
    ```
+
+   </ShouldSee>
 
    Ya no hay error. Solo queda el aviso de que el `use` no se usa. Aquí también está recortada la salida. Borra esa línea de `src/main.rs` antes de seguir.
 
@@ -258,7 +288,9 @@ Si no pones el target en Zed, todo el código que usa funciones de Linux, que se
 
 ## Ejercicios
 
+<Aside type="tip" title="Regla de los 5 minutos">
 Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+</Aside>
 
 ### 0b.1 Averigua la tripleta de tu máquina Linux
 

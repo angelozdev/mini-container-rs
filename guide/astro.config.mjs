@@ -2,6 +2,34 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 
+const syntaxColors = [
+  { scopes: ["comment", "punctuation.definition.comment"], color: "var(--n-faint)" },
+  {
+    scopes: ["keyword", "storage", "storage.type", "storage.modifier", "keyword.control", "keyword.operator.new"],
+    color: "var(--n-t-purple)",
+  },
+  {
+    scopes: ["entity.name.function", "support.function", "meta.function-call", "entity.name.function.macro"],
+    color: "var(--n-t-blue)",
+  },
+  { scopes: ["string", "string.quoted", "punctuation.definition.string"], color: "var(--n-t-green)" },
+  {
+    scopes: ["entity.name.type", "entity.name.class", "support.type", "support.class", "constant.numeric", "constant.language"],
+    color: "var(--n-t-orange)",
+  },
+];
+
+function useNotionSyntaxColors(theme) {
+  const [base] = theme.settings;
+  theme.fg = "var(--n-text)";
+  theme.colors["editor.foreground"] = "var(--n-text)";
+  theme.settings = [
+    { ...base, settings: { ...base.settings, foreground: "var(--n-text)" } },
+    ...syntaxColors.map(({ scopes, color }) => ({ scope: scopes, settings: { foreground: color } })),
+  ];
+  return theme;
+}
+
 export default defineConfig({
   integrations: [
     starlight({
@@ -11,7 +39,14 @@ export default defineConfig({
         root: { label: "Español", lang: "es" },
       },
       plugins: [starlightLinksValidator()],
-      customCss: ["./src/styles/guide.css"],
+      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css"],
+      components: {
+        PageTitle: "./src/components/PageTitle.astro",
+      },
+      expressiveCode: {
+        customizeTheme: useNotionSyntaxColors,
+        minSyntaxHighlightingColorContrast: 0,
+      },
       sidebar: [
         { label: "Portada", slug: "index" },
         {
