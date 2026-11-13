@@ -65,7 +65,7 @@ Hoy tu programa le pide al kernel su propia copia de esa lista. La copia se nume
 </Lane>
 <Fragment slot="caption">Tu programa lanza un **hijo**: un proceso nuevo que corre el mismo programa, con la palabra `child` delante. El hijo nace dentro de la lista nueva: es el primero, así que recibe el **1**. La máquina lo sigue viendo con su número real, el 4173. Es un solo proceso con dos números.</Fragment>
 </Step>
-<Step call="Command::new(&command.program).exec()">
+<Step call="Command::new(&command.program).args(&command.args).exec()">
 <Lane>
 <KernelBox label="lista de la máquina">
 <KernelEntry>1 systemd</KernelEntry>
