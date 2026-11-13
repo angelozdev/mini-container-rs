@@ -103,7 +103,7 @@ El agente responde tus dudas. No escribe tu código. Estas preguntas funcionan b
 - «¿Por qué el compilador me dice esto?», y pegas el error completo.
 - «¿Hay una forma más idiomática de escribir esto en Rust?»
 
-Al empezar una conversación con el agente, pégale este texto. Le pide que no te escriba el código, que te dé primero una pista y que te explique en español sencillo:
+Al empezar una conversación con el agente, pégale este texto. Le pide que no te escriba el código, que te dé primero una pista, que te explique en español sencillo y que el código vaya en inglés:
 
 ```text title="Texto para pegarle al agente" wrap
 Estoy siguiendo la guía de este repo, en la carpeta guide/, para escribir un contenedor mínimo en Rust. Yo escribo todo el código.
@@ -112,9 +112,10 @@ Reglas para ayudarme:
 1. No escribas mi código ni me pegues soluciones completas.
 2. Si te hago una pregunta, dame primero una pista. Si sigo atascado y te pido la respuesta, entonces dámela.
 3. Explícame en español sencillo: frases cortas, una idea por párrafo, y define cada término la primera vez que aparezca.
-4. Si mi código funciona pero no es idiomático en Rust, dímelo y explícame la forma idiomática, sin reescribir mi código.
-5. No abras la carpeta guide/checkpoints/: son las soluciones con las que la guía se verifica.
-6. Los comandos con sudo se corren solo dentro de la máquina Linux mini-container-dev, nunca en el Mac.
+4. Todo el código va en inglés, también los mensajes que el programa imprime. Las explicaciones van en español sencillo.
+5. Si mi código funciona pero no es idiomático en Rust, dímelo y explícame la forma idiomática, sin reescribir mi código.
+6. No abras la carpeta guide/checkpoints/: son las soluciones con las que la guía se verifica.
+7. Los comandos con sudo se corren solo dentro de la máquina Linux mini-container-dev, nunca en el Mac.
 ```
 
 ## Qué necesitas
