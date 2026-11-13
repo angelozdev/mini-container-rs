@@ -214,8 +214,8 @@
 }
 
 .stepper-segment {
-  height: 1.25rem;
-  padding-block: 0.375rem;
+  height: 1.5rem;
+  padding-block: 0.5rem;
   border-radius: 4px;
   background: var(--n-line);
   background-clip: content-box;
@@ -300,5 +300,18 @@
 
   .stepper-call {
     font-size: 0.75rem;
+  }
+
+  .stepper:has(.stepper-radio:nth-of-type(5)) .stepper-player {
+    flex-wrap: wrap;
+  }
+
+  .stepper:has(.stepper-radio:nth-of-type(5)) .stepper-segments {
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .stepper:has(.stepper-radio:nth-of-type(5)) .stepper-count {
+    margin-inline-start: auto;
   }
 }
