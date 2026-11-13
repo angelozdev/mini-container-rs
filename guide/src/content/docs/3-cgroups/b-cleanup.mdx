@@ -94,10 +94,11 @@ El diagrama sigue un Ctrl-C de principio a fin, con tu programa tal como queda h
 </Step>
 <Step>
 <Lane title="Tu programa">
-<Process output="el código de salida de sleep: 0">mini-container</Process>
+<Process highlighted>mini-container</Process>
 </Lane>
 <KernelBox label="Tras 3 segundos">
 <KernelEntry highlighted note="terminó solo">sleep</KernelEntry>
+<KernelEntry note="lo lee el padre">código de salida: 0</KernelEntry>
 </KernelBox>
 <Fragment slot="caption">A los 3 segundos `sleep` termina por su cuenta. El padre estaba esperando: recibe su código de salida, el 0.</Fragment>
 </Step>
@@ -429,7 +430,7 @@ ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
 - `0`: el código de salida es el de `sleep`, que terminó bien. Tu programa no murió y devolvió el código del comando.
 - `ls: cannot access ...`: el error es la buena noticia. No hay ninguna carpeta: `Drop` borró el cgroup.
 
-Ahora el segundo resultado: que el comando muera con tu programa. Matar a tu programa con SIGKILL desde otro proceso es una prueba difícil de escribir en una sola línea, así que se hace con un shell de administrador:
+Ahora el segundo resultado: que el comando muera con tu programa. Para matar a tu programa con SIGKILL hace falta otro proceso. Lo lanza un shell de administrador:
 
 ```sh title="En Linux"
 sudo sh -c './target/debug/mini-container run /bin/sleep 30 & pid=$!; sleep 1; kill -KILL $pid; sleep 1; echo "sleeps left: $(pgrep -cx sleep)"; ls -d /sys/fs/cgroup/mini-container-*'
@@ -488,6 +489,9 @@ Comprueba que se fue:
 ```sh title="En Linux"
 ls -d /sys/fs/cgroup/mini-container-*
 ```
+
+- `ls -d /sys/fs/cgroup/mini-container-*`: lista las carpetas de cgroup de tu programa, como antes.
+- Efecto: ninguno. Solo lee.
 
 <ShouldSee>
 
@@ -715,6 +719,7 @@ Tu cambio queda en `src/signals.rs`. La prueba de 3b sigue dando `OK`.
 - Documentación de cgroup v2 del kernel: «A cgroup which doesn't have any children or live processes can be destroyed by removing the directory.» [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-13.
 - `nix` 0.31.3: `SigSet::thread_block` es una función normal, «Adds the set of signals to the signal mask for the calling thread.», y `SigSet` está «Available on crate feature `signal` only.» [docs.rs/nix/0.31.3/nix/sys/signal/struct.SigSet.html](https://docs.rs/nix/0.31.3/nix/sys/signal/struct.SigSet.html). `prctl::set_pdeathsig`: «Set the parent-death signal of the calling process.», «Available on crate feature `process` only.» [docs.rs/nix/0.31.3/nix/sys/prctl/fn.set_pdeathsig.html](https://docs.rs/nix/0.31.3/nix/sys/prctl/fn.set_pdeathsig.html). `signal::signal` se declara `pub unsafe fn signal(signal: Signal, handler: SigHandler) -> Result<SigHandler>`. [docs.rs/nix/0.31.3/nix/sys/signal/fn.signal.html](https://docs.rs/nix/0.31.3/nix/sys/signal/fn.signal.html). Consultadas el 2026-11-13. Que `signal` activa `process` lo mostró `cargo add`, con `+ process` y `+ signal`.
 - La máscara llega al comando: comprobado en la máquina de pruebas con Rust 1.99.1. Una prueba pequeña bloqueó SIGINT y lanzó `/bin/grep Sig /proc/self/status` con `Command::status()` y con `CommandExt::exec()`: en las dos, `SigBlk` valía `0000000000000002`. La documentación de `std::process::Command` no dice nada sobre la máscara. Con el programa de 3b y sin `unblock_interrupts()`, `SigBlk` valía `2` en el padre y en el comando. Con la línea, valía `2` en el padre y `0` en el comando.
+- Con `sudo`, el comando no corre en tu terminal, sino en una propia: `ps` mostró `sudo` en `pts/1` y, dentro, su copia en `pts/2`, con tu programa y `sleep` en el mismo grupo de procesos y en primer plano (`S+`). Tu Ctrl-C llega a `sudo`, y `sudo` lo pasa a esa terminal, que se lo manda a ese grupo. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Ctrl-C con el programa de 3a, en una terminal simulada con un pseudoterminal: `echo $?` imprimió `130`, quedó la carpeta del cgroup y `pgrep -a sleep` listó `/bin/sleep 3`. Con el programa de 3b: el prompt volvió a los 3 segundos, `echo $?` imprimió `0` y no quedó ninguna carpeta ni ningún `sleep`. Con `sleep` como PID 1 y SIGINT mandada al grupo con `kill -INT -- -<PGID>`, `/proc/<PID>/status` mostró en el padre `SigBlk: 2` y `ShdPnd: 2`: la señal quedó pendiente. En `sleep`, `SigBlk: 0`, `SigCgt: 0` y nada pendiente: el kernel descartó la señal. El shell de Alpine, en cambio, tiene `SigCgt: 10002`: instaló un manejador para SIGINT, y por eso `trap "echo got" INT` recibe la señal aunque sea el PID 1. Comprobado en la máquina de pruebas, el 2026-11-13.
 - El `trap`: con `sh -c 'trap "echo got" INT; sleep 4'` y Ctrl-C a 1 segundo, sin `unblock_interrupts()` el programa terminó a los 4 segundos con código 0 y sin `got`. Con la línea, imprimió `got` y salió con 130 en el acto. Con el manejador de `signal()` en lugar de la máscara, las dos salidas fueron iguales a las de la máscara con el desbloqueo. Comprobado en la máquina de pruebas, el 2026-11-13.
 - SIGKILL al padre: con `run /bin/sleep 30` y `kill -KILL` a tu programa, `sleep` murió en menos de 0,5 segundos y quedó una carpeta vacía, que `rmdir` borró. Con el programa de 3a, `sleep` siguió vivo, con la carpeta ocupada por él. `fs::remove_dir` sobre un cgroup con un contenedor vivo devolvió `Device or resource busy (os error 16)`, y sobre uno vacío devolvió `Ok(())`. Comprobado en la máquina de pruebas, el 2026-11-13.
