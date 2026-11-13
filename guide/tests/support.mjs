@@ -15,6 +15,22 @@ export function textOf(html) {
   return html.replace(/<[^>]*>/g, "").trim();
 }
 
+export function attributeOf(tag, name) {
+  return tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
+}
+
+const divTag = /<div\b|<\/div>/g;
+
+export function readDiv(html, start) {
+  divTag.lastIndex = start;
+  let depth = 0;
+  for (let tag = divTag.exec(html); tag; tag = divTag.exec(html)) {
+    depth += tag[0] === "</div>" ? -1 : 1;
+    if (depth === 0) return html.slice(start, divTag.lastIndex);
+  }
+  throw new Error("a div in the built page is never closed");
+}
+
 const ignoredFolders = new Set(["node_modules", "dist", ".astro", "target"]);
 
 export function listFiles(folder) {

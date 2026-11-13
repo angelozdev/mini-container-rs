@@ -2,27 +2,16 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { test } from "node:test";
-import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, textOf } from "./support.mjs";
+import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, readDiv, textOf } from "./support.mjs";
 
 const compareOpening = /<div\b[^>]*\bclass="compare not-content"[^>]*>/g;
 const sideOpening = /^<div\b[^>]*\bclass="compare-side"[^>]*\sdata-side="(bad|good)"[^>]*>/;
 const labelBlock = /<div\b[^>]*\bclass="compare-label"[^>]*>([\s\S]*?)<\/div>/;
 const compareTag = /<Compare[\s>]/g;
-const divTag = /<div\b|<\/div>/g;
 const expectedSides = [
   { side: "bad", label: "Así no" },
   { side: "good", label: "Así sí" },
 ];
-
-function readDiv(html, start) {
-  divTag.lastIndex = start;
-  let depth = 0;
-  for (let tag = divTag.exec(html); tag; tag = divTag.exec(html)) {
-    depth += tag[0] === "</div>" ? -1 : 1;
-    if (depth === 0) return html.slice(start, divTag.lastIndex);
-  }
-  throw new Error("a div in the built page is never closed");
-}
 
 function readChildDivs(html) {
   const children = [];

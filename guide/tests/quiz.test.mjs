@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { test } from "node:test";
-import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, textOf } from "./support.mjs";
+import { attributeOf, builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, textOf } from "./support.mjs";
 
 const quizForm = /<form\b[^>]*\bclass="quiz"[^>]*>[\s\S]*?<\/form>/g;
 const optionStart = /(?=<div\b[^>]*\bclass="quiz-option")/;
@@ -19,10 +19,6 @@ const renderedIcon = /<div\b[^>]*\bclass="page-icon"[^>]*>([^<]*)<\/div>/;
 
 function frontmatterOf(source) {
   return source.match(frontmatter)?.[1] ?? "";
-}
-
-function attributeOf(tag, name) {
-  return tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
 }
 
 function describeQuizzes(page) {
