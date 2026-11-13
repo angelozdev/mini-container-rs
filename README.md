@@ -6,7 +6,7 @@ La guía vive en la carpeta `guide/`, es un sitio hecho con Starlight y está es
 
 ## Abrir la guía
 
-Hace falta Node y pnpm. Desde la raíz del repo:
+Hace falta Node 22.23.4 o más reciente (lo piden Astro 7.4.4 y `@astrojs/mdx` 8.1.5, según `guide/pnpm-lock.yaml`) y pnpm. El campo `packageManager` de `guide/package.json` fija pnpm 11.28.7. Desde la raíz del repo:
 
 ```sh
 pnpm --dir guide install
