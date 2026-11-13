@@ -570,6 +570,16 @@ Primero dice qué intentaba hacer el programa y después la causa. El `?` de `ru
 </Fragment>
 </Compare>
 
+## Resumen
+
+| Situación | Qué usar |
+| --- | --- |
+| Quieres un nombre propio solo para tu programa | `unshare(CloneFlags::CLONE_NEWUTS)` y después `sethostname` |
+| Una llamada puede fallar y quieres decir qué faltaba | `.context("…")` y `?`, no `.unwrap()` |
+| Tu programa falla con `EPERM: Operation not permitted` | Córrelo con `sudo`: crear el namespace pide permisos de administrador |
+| Quieres comprobar que tu máquina conserva su nombre | `hostname` en tu terminal, sin tu programa |
+| Cambiaste el nombre de la máquina sin querer | `sudo hostname mini-container-dev` |
+
 <Quiz kind="closing">
 <Fragment slot="question">Tu programa imprimió `container` y, después, `hostname` en tu terminal dijo `mini-container-dev`. ¿Por qué fuera sigue diciendo el nombre de la máquina?</Fragment>
 

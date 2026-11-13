@@ -608,6 +608,17 @@ Caused by:
 
 El mensaje no dice qué programa falló. Lo arreglas en el ejercicio.
 
+## Resumen
+
+| Situación | Qué usar |
+| --- | --- |
+| Quieres lanzar otro programa y esperar a que termine | `Command::new(&command.program).args(&command.args).status()` |
+| Quieres saber cómo terminó el hijo | `status.code()`: `Some(código)` si llamó a `exit`, `None` si lo mató una señal |
+| Una señal mató al hijo y tu programa debe devolver un código | `128` más el número de la señal: con `kill -9` sale `137` |
+| Una llamada puede fallar y quieres decir qué intentaba tu programa | `.context("…")` y `?` |
+| Te usaron mal: falta `run` o el programa | `eprintln!("{}", cli::USAGE)` y salir con el código `2` |
+| Cambiaste el código y el resultado no cambia | `cargo build` antes de correr el binario |
+
 <Quiz kind="closing">
 <Fragment slot="question">Tu programa devuelve 137 cuando el hijo muere con `kill -9`. ¿De dónde sale ese 137?</Fragment>
 

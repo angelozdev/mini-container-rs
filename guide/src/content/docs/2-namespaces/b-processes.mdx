@@ -885,6 +885,17 @@ El proceso que nació como PID 1 se convierte en el comando. En la lista solo qu
 </Fragment>
 </Compare>
 
+## Resumen
+
+| Situación | Qué usar |
+| --- | --- |
+| Quieres una lista de procesos propia y una de montajes propia | `unshare` con `CLONE_NEWPID` y `CLONE_NEWNS` |
+| Quieres que el comando sea el PID 1 de la lista nueva | Lanza otra copia de tu programa con `child` y que ella se convierta en el comando con `.exec()` |
+| `ps` muestra los procesos de la máquina, no los del contenedor | Un `/proc` nuevo, montado desde el hijo con `mount_proc` |
+| Quieres montar `/proc` sin tocar el de tu máquina | Primero `make_mounts_private`, después `mount_proc` |
+| `ps` falla en tu máquina porque quedó un `/proc` muerto | `sudo umount /proc`, solo si `ps` falla |
+| Quieres parar un contenedor y Ctrl-C no basta | `sudo kill -9 <PID>` desde tu máquina, con el PID real |
+
 <Quiz kind="closing">
 <Fragment slot="question">Tu programa podría lanzar el comando directamente, como en el primer paso. En cambio, se lanza a sí mismo con `child` y deja que `child` lance el comando. ¿Por qué?</Fragment>
 
