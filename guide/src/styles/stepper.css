@@ -26,9 +26,16 @@
 }
 
 .stepper-stage,
-.stepper-nav,
-.stepper-count {
+.stepper-player {
   display: none;
+}
+
+.stepper-radio:checked + .stepper-stage {
+  display: block;
+}
+
+.stepper-radio:checked + .stepper-stage + .stepper-player {
+  display: flex;
 }
 
 .stepper-stage {
@@ -154,7 +161,6 @@
 }
 
 .stepper-player {
-  display: flex;
   align-items: center;
   gap: 0.625rem;
   padding: 0.625rem 0.875rem;
@@ -162,6 +168,7 @@
 }
 
 .stepper-nav {
+  display: flex;
   gap: 0.375rem;
 }
 
@@ -228,36 +235,7 @@
   outline-offset: 3px;
 }
 
-.stepper:has(.stepper-radio[value="1"]:checked) :is(.stepper-stage, .stepper-count)[data-step="1"],
-.stepper:has(.stepper-radio[value="2"]:checked) :is(.stepper-stage, .stepper-count)[data-step="2"],
-.stepper:has(.stepper-radio[value="3"]:checked) :is(.stepper-stage, .stepper-count)[data-step="3"],
-.stepper:has(.stepper-radio[value="4"]:checked) :is(.stepper-stage, .stepper-count)[data-step="4"],
-.stepper:has(.stepper-radio[value="5"]:checked) :is(.stepper-stage, .stepper-count)[data-step="5"],
-.stepper:has(.stepper-radio[value="6"]:checked) :is(.stepper-stage, .stepper-count)[data-step="6"],
-.stepper:has(.stepper-radio[value="7"]:checked) :is(.stepper-stage, .stepper-count)[data-step="7"],
-.stepper:has(.stepper-radio[value="8"]:checked) :is(.stepper-stage, .stepper-count)[data-step="8"] {
-  display: block;
-}
-
-.stepper:has(.stepper-radio[value="1"]:checked) .stepper-nav[data-step="1"],
-.stepper:has(.stepper-radio[value="2"]:checked) .stepper-nav[data-step="2"],
-.stepper:has(.stepper-radio[value="3"]:checked) .stepper-nav[data-step="3"],
-.stepper:has(.stepper-radio[value="4"]:checked) .stepper-nav[data-step="4"],
-.stepper:has(.stepper-radio[value="5"]:checked) .stepper-nav[data-step="5"],
-.stepper:has(.stepper-radio[value="6"]:checked) .stepper-nav[data-step="6"],
-.stepper:has(.stepper-radio[value="7"]:checked) .stepper-nav[data-step="7"],
-.stepper:has(.stepper-radio[value="8"]:checked) .stepper-nav[data-step="8"] {
-  display: flex;
-}
-
-.stepper:has(.stepper-radio[value="1"]:checked) .stepper-segment:nth-child(-n + 1),
-.stepper:has(.stepper-radio[value="2"]:checked) .stepper-segment:nth-child(-n + 2),
-.stepper:has(.stepper-radio[value="3"]:checked) .stepper-segment:nth-child(-n + 3),
-.stepper:has(.stepper-radio[value="4"]:checked) .stepper-segment:nth-child(-n + 4),
-.stepper:has(.stepper-radio[value="5"]:checked) .stepper-segment:nth-child(-n + 5),
-.stepper:has(.stepper-radio[value="6"]:checked) .stepper-segment:nth-child(-n + 6),
-.stepper:has(.stepper-radio[value="7"]:checked) .stepper-segment:nth-child(-n + 7),
-.stepper:has(.stepper-radio[value="8"]:checked) .stepper-segment:nth-child(-n + 8) {
+.stepper-segment[data-filled] {
   background-color: var(--n-t-purple);
 }
 

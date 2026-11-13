@@ -1,4 +1,6 @@
 ---
+import { captionMarker, stepMarker } from "./stepper-protocol.mjs";
+
 interface Props {
   call?: string;
 }
@@ -6,10 +8,4 @@ interface Props {
 const { call } = Astro.props;
 ---
 
-<div class="stepper-stage">
-  <div class="stepper-scene"><slot /></div>
-  <div class="stepper-caption">
-    {call && <code class="stepper-call">{call}</code>}
-    <slot name="caption" />
-  </div>
-</div>
+{stepMarker}<slot />{captionMarker}{call && <code class="stepper-call">{call}</code>}<slot name="caption" />
