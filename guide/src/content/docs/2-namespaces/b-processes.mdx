@@ -63,12 +63,12 @@ Hay una regla del kernel que necesitas desde ya: `unshare` con la bandera de PID
 
 Un archivo nuevo y cinco cambios:
 
-1. `Cargo.toml` gana una feature de `nix`: `mount`.
-2. `src/namespaces.rs` pide dos copias más: la de procesos y la de montajes.
-3. `src/filesystem.rs` es el archivo nuevo. Prepara los montajes y monta `/proc`.
-4. `src/container.rs` gana `init`, lo que hace el hijo, y `run` cambia para lanzar al hijo.
-5. `src/cli.rs` aprende un subcomando que solo usa tu programa: `child`. Un *subcomando* es la palabra que va después del nombre del programa, como `run`.
-6. `src/main.rs` declara el módulo nuevo y conecta `child` con `init`.
+1. `src/namespaces.rs` pide dos copias más: la de procesos y la de montajes.
+2. `Cargo.toml` gana una feature de `nix`: `mount`.
+3. `src/filesystem.rs` es el archivo nuevo. Prepara los montajes y monta `/proc`. `src/main.rs` lo declara.
+4. `src/container.rs` gana `init`, lo que hace el hijo.
+5. `src/cli.rs` aprende un subcomando que solo usa tu programa: `child`. Un *subcomando* es la palabra que va después del nombre del programa, como `run`. `src/main.rs` lo conecta con `init`.
+6. `src/container.rs` cambia `run` para que lance al hijo.
 
 Hay un cambio de fondo. Hasta ahora `run` lanzaba el comando. Desde hoy lanza **otra copia de `mini-container`**, con la palabra `child` delante, y esa copia lanza el comando:
 
@@ -87,7 +87,7 @@ Antes de escribir, una predicción.
 
 <QuizOption correct>`1`.<Fragment slot="feedback">El shell es el primer hijo que tu programa lanza después de `unshare`. Nace en la lista nueva, y el primero que entra en ella es el número 1.</Fragment></QuizOption>
 
-<QuizOption>Un número grande, como `4173`.<Fragment slot="feedback">Ese sería el número del shell en la lista de la máquina. Pero el shell no nace ahí: nace en la lista nueva, y `$$` da el número que el shell tiene en su propia lista.</Fragment></QuizOption>
+<QuizOption>Un número grande, como `4173`.<Fragment slot="feedback">En la lista de la máquina el shell sí tiene otro número, como `4173`. Pero `$$` da el número que tiene en su propia lista, la nueva.</Fragment></QuizOption>
 
 <QuizOption>`2`, porque tu programa ya es el 1.<Fragment slot="feedback">Eso pasaría si tu programa estuviera dentro de la lista nueva. Pero `unshare` no mueve a quien lo llama: tu programa sigue en la lista de la máquina. Por eso el primero en entrar es el shell.</Fragment></QuizOption>
 </Quiz>
@@ -531,12 +531,13 @@ Antes de escribir, una predicción.
 
    Último cambio. En `src/container.rs`, `run` ya no lanza el comando. Lanza tu programa otra vez, con `child` delante:
 
-   ```rust title="src/container.rs" del={4} ins={5-7}
+   ```rust title="src/container.rs" del={5} ins={2,6-8}
    pub fn run(command: &CommandLine) -> Result<ExitCode> {
+       let executable = std::env::current_exe()?;
        namespaces::unshare_namespaces()?;
        namespaces::set_hostname(namespaces::HOSTNAME)?;
        let status = Command::new(&command.program)
-       let status = Command::new(std::env::current_exe()?)
+       let status = Command::new(executable)
            .arg("child")
            .arg(&command.program)
            .args(&command.args)
@@ -546,15 +547,17 @@ Antes de escribir, una predicción.
    }
    ```
 
-   - `std::env::current_exe()?`: la ruta del programa que está corriendo, es decir, la de tu `mini-container`. Si no la encuentra, el `?` sale de `run` con el error.
-   - `Command::new(...)`: ahora prepara lanzar tu programa, no el comando.
+   - `let executable = std::env::current_exe()?;`: guarda la ruta del programa que está corriendo, es decir, la de tu `mini-container`. Si no la encuentra, el `?` sale de `run` con el error.
+   - `Command::new(executable)`: ahora prepara lanzar tu programa, no el comando.
    - `.arg("child")`: la primera palabra que recibirá. Un `.arg` añade un solo argumento.
    - `.arg(&command.program)` y `.args(&command.args)`: después, el programa y los argumentos del usuario.
    - Juntos, el hijo recibe `child /bin/ps -o pid,comm`, que es justo lo que `parse` entiende.
-   - Las dos primeras líneas no cambian: siguen pidiendo las copias y escribiendo el hostname en `run`, el padre. El hijo nace después. Queda en la copia del hostname y en la de montajes de su padre, y nace en la lista de procesos nueva. Por eso es el PID 1.
+   - Las dos líneas de `namespaces` no cambian: siguen pidiendo las copias y escribiendo el hostname en `run`, el padre. El hijo nace después. Queda en la copia del hostname y en la de montajes de su padre, y nace en la lista de procesos nueva. Por eso es el PID 1.
    - `.status()` y lo demás no cambian. Como `.exec()` mantiene el proceso, el código de salida del hijo es el del comando.
 
-   Si hiciste el ejercicio 2a.1, tu línea de `set_hostname` es otra. Déjala como la tienes.
+   La ruta se lee antes de pedir las copias. Después de `unshare`, el kernel puede dar una ruta cortada si tu programa era el único que usaba su lista de montajes anterior, por ejemplo si lo lanzas con `unshare -m`, un comando que crea una copia de montajes y lanza el programa dentro de ella. Leerla antes evita ese caso.
+
+   Si hiciste el ejercicio 1a.1, tu línea de `.context(...)` es otra. Si hiciste el 2a.1, lo es la de `set_hostname`. Déjalas como las tienes.
 
    Compila por última vez. En Linux:
 
@@ -713,6 +716,38 @@ sudo umount /proc
 - `umount /proc`: desmonta lo que está montado en `/proc`. Quita el último montaje, el muerto, y vuelve a verse el `/proc` de debajo, el verdadero.
 - Efecto: tu máquina vuelve a ver su lista de procesos.
 
+## Por qué el PID 1 ignora señales
+
+En 1a, `run /bin/sh -c 'kill -9 $$'` daba `137`. Pruébalo ahora:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
+```
+
+- `run /bin/sh -c 'kill -9 $$'`: lanza `sh` con la orden `kill -9 $$`. El shell se manda a sí mismo la señal 9, `SIGKILL`.
+- `; echo $?`: imprime el código de salida del comando anterior.
+- Efecto: el shell intenta matarse.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
+0
+```
+
+</ShouldSee>
+
+Sale `0`, no `137`. El shell no murió: `kill` terminó bien y el shell salió con ese `0`.
+
+El PID 1 de una lista es especial. Solo recibe las señales para las que tiene un *manejador*, que es el código con el que un programa decide qué hacer al recibirlas. Las demás se pierden, incluso `SIGKILL`, si las manda un proceso de su misma lista. Aquí el PID 1 es el shell, y se la mandó a sí mismo.
+
+Hay una excepción: `SIGKILL` y `SIGSTOP` sí llegan si las manda un proceso de fuera de su lista. Por eso `sudo kill -9 <PID>`, desde tu máquina, sí lo mata. Es lo que haces al final del ejercicio 2b.1.
+
+Esto tiene dos consecuencias:
+
+- La comprobación del `137` de 1a ya no se puede hacer desde dentro. Ahora se mata al hijo desde fuera, y `run` devuelve `137` igual.
+- Ctrl-C no detiene al comando. Ctrl-C manda la señal `SIGINT`. Tu programa muere, pero el comando es el PID 1 y no tiene manejador para ella, así que no la recibe y sigue vivo. La parte 3 lo resuelve.
+
 ## Reemplazar el proceso, no lanzar otro
 
 `init` termina con `.exec()`. Hay una forma más familiar: la de `run`, con `.status()`. Lanza el comando como un proceso nuevo y espera.
@@ -815,7 +850,7 @@ En este ejemplo, la respuesta es `19594`.
 - `grep 'sleep 300'`: se queda con las líneas que contienen ese texto.
 - Efecto: ninguno. Solo lee.
 
-Al terminar, para el contenedor con el número que encontraste. No uses Ctrl-C: mata a tu programa, pero `sleep` sigue vivo, huérfano. Un proceso *huérfano* es el que sigue corriendo sin el proceso que lo lanzó. La parte 3 lo resuelve.
+Al terminar, para el contenedor con el número que encontraste. No uses Ctrl-C: mata a tu programa, pero `sleep` sigue vivo, huérfano. Un proceso *huérfano* es el que sigue corriendo sin el proceso que lo lanzó. El motivo está en [«Por qué el PID 1 ignora señales»](#por-qué-el-pid-1-ignora-señales). La parte 3 lo resuelve.
 
 **Destructivo:** el comando mata el proceso que lleva ese número. Revísalo antes de ejecutarlo: si te equivocas, matas otro proceso de tu máquina.
 
@@ -851,7 +886,7 @@ grep NSpid /proc/<PID>/status
 ## Fuentes
 
 - `unshare(2)`: `CLONE_NEWPID` crea una lista de PID nueva para los hijos del proceso que llama. «The calling process is not moved into the new namespace. The first child created by the calling process will have the process ID 1». `CLONE_NEWNS` da al proceso una copia privada de su namespace de montajes. [man7.org/linux/man-pages/man2/unshare.2.html](https://man7.org/linux/man-pages/man2/unshare.2.html), Linux man-pages 6.19. Consultada el 2026-11-13.
-- `pid_namespaces(7)`: el primer proceso de un namespace de PID, el primer hijo tras `unshare` con `CLONE_NEWPID`, tiene el PID 1. «A /proc filesystem shows (in the /proc/pid directories) only processes visible in the PID namespace of the process that performed the mount». Un namespace de montajes simultáneo permite montar un `/proc` nuevo directamente sobre `/proc`. [man7.org/linux/man-pages/man7/pid_namespaces.7.html](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html). Consultada el 2026-11-13.
+- `pid_namespaces(7)`: el primer proceso de un namespace de PID, el primer hijo tras `unshare` con `CLONE_NEWPID`, tiene el PID 1. «A /proc filesystem shows (in the /proc/pid directories) only processes visible in the PID namespace of the process that performed the mount». Un namespace de montajes simultáneo permite montar un `/proc` nuevo directamente sobre `/proc`. Sobre las señales: «Only signals for which the "init" process has established a signal handler can be sent to the "init" process by other members of the PID namespace.» Y desde un namespace ancestro: «SIGKILL or SIGSTOP are treated exceptionally: these signals are forcibly delivered when sent from an ancestor PID namespace.» [man7.org/linux/man-pages/man7/pid_namespaces.7.html](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html). Consultada el 2026-11-13.
 - `mount_namespaces(7)`: con `unshare`, la lista de montajes nueva es una copia de la del llamador. `MS_SHARED` propaga montajes y desmontajes entre los miembros de un grupo de pares, y `MS_PRIVATE`, no. [man7.org/linux/man-pages/man7/mount_namespaces.7.html](https://man7.org/linux/man-pages/man7/mount_namespaces.7.html). Consultada el 2026-11-13.
 - `mount(2)`: `MS_PRIVATE` hace el montaje privado, y `MS_REC` cambia de forma recursiva el tipo de propagación de todos los montajes de un subárbol. [man7.org/linux/man-pages/man2/mount.2.html](https://man7.org/linux/man-pages/man2/mount.2.html). Consultada el 2026-11-13.
 - `execve(2)`: «there is no new process; many attributes of the calling process remain unchanged (in particular, its PID)». [man7.org/linux/man-pages/man2/execve.2.html](https://man7.org/linux/man-pages/man2/execve.2.html). Consultada el 2026-11-13.
@@ -862,6 +897,8 @@ grep NSpid /proc/<PID>/status
 - Que `/` es `shared` en la máquina de pruebas: `findmnt -no PROPAGATION /` imprimió `shared`, el 2026-11-13.
 - La trampa de los montajes: comprobada en un namespace de montajes desechable, creado con `unshare -m` sobre la máquina de pruebas, y con `/` marcado como `shared` dentro de él (`mount --make-rshared /`) para imitar a la máquina. Allí, `init` sin `make_mounts_private` dejó `ps -e` con el error `Error, do this: mount -t proc proc /proc`, y `umount /proc` lo arregló. Con `sudo` desde un usuario normal también. La máquina no se tocó. El 2026-11-13.
 - `child` a mano: comprobado en el mismo tipo de namespace desechable. Dejó `/` en `private` y dos montajes en `/proc`. El 2026-11-13.
-- Ctrl-C: comprobado en la máquina de pruebas con una terminal simulada. Tras Ctrl-C, `sudo` y `mini-container` desaparecen, pero `sleep` sigue vivo. Es coherente con `pid_namespaces(7)`: «Only signals for which the "init" process has established a signal handler can be sent to the "init" process by other members of the PID namespace.». El 2026-11-13.
+- `kill -9 $$` dentro del contenedor: `sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?` imprimió `0`, con el binario de 2b en la máquina de pruebas, el 2026-11-13. `sudo kill -9` sobre el PID real de un `sleep` del contenedor, desde la máquina, lo terminó, y `run` salió con 137.
+- Ctrl-C: comprobado en la máquina de pruebas con una terminal simulada. Tras Ctrl-C, `sudo` y `mini-container` desaparecen, pero `sleep`, el PID 1, sigue vivo. `SigCgt` en `/proc/<PID>/status` de ese `sleep` vale `0`: no tiene ningún manejador. El 2026-11-13.
+- Lanzar `mini-container` con `unshare -m`, donde es el único proceso de su namespace de montajes: sin leer la ruta antes de `unshare`, `current_exe()` devolvió una ruta cortada y el `run` falló con `No such file or directory`. Con la ruta leída antes, funciona. Comprobado en la máquina de pruebas, el 2026-11-13.
 - `NSpid` de un contenedor de `sleep`: mostró dos números, el de la máquina y `1`. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.
