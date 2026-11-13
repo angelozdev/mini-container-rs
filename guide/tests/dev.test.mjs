@@ -19,6 +19,7 @@ const sequencePages = [
   { path: "/2-namespaces/b-processes/", source: "2-namespaces/b-processes.mdx" },
   { path: "/2-namespaces/c-filesystem/", source: "2-namespaces/c-filesystem.mdx" },
   { path: "/3-cgroups/a-memory/", source: "3-cgroups/a-memory.mdx" },
+  { path: "/3-cgroups/b-cleanup/", source: "3-cgroups/b-cleanup.mdx" },
 ];
 const stepTag = /<Step[\s>]/g;
 const sectionPaths = listSectionPaths();

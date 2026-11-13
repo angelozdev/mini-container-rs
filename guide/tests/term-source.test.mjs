@@ -18,6 +18,30 @@ const documentedExceptions = [
     excerpt: "«Por qué el PID 1 ignora señales»",
     reason: "the use is the quoted title of a later section, not the concept",
   },
+  {
+    page: "2-namespaces/b-processes.mdx",
+    id: "sigkill",
+    excerpt: "SIGKILL or SIGSTOP are treated exceptionally",
+    reason: "the use is inside a quotation of pid_namespaces(7) in the sources, not the concept",
+  },
+  {
+    page: "2-namespaces/b-processes.mdx",
+    id: "sigkill",
+    excerpt: "«SIGKILL P1990 Term Kill signal»",
+    reason: "the use is inside a quotation of the signal table of signal(7) in the sources, not the concept",
+  },
+  {
+    page: "2-namespaces/b-processes.mdx",
+    id: "sigkill",
+    excerpt: "The signals SIGKILL and SIGSTOP cannot be caught",
+    reason: "the use is inside a quotation of signal(7) in the sources, not the concept",
+  },
+  {
+    page: "3-cgroups/a-memory.mdx",
+    id: "process-group",
+    excerpt: "limita lo que un grupo de procesos puede gastar",
+    reason: "the sentence defines a cgroup with the everyday sense of a group of processes, not the group the terminal uses for Ctrl-C",
+  },
 ];
 
 const mdx = (...lines) => lines.join("\n");

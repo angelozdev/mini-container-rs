@@ -35,6 +35,12 @@ const expectedOutcomes = [
     ok: { label: "Ok(())", note: "el kernel guarda el tope: 52428800" },
     error: { label: "Err(EINVAL)", note: "el kernel no entiende el valor: sale con 1" },
   },
+  {
+    page: "3-cgroups/b-cleanup.mdx",
+    call: "fs::remove_dir(&path)",
+    ok: { label: "Ok(())", note: "el cgroup estaba vacío: la carpeta desaparece" },
+    error: { label: "Err(EBUSY)", note: "todavía hay un proceso dentro: la carpeta se queda" },
+  },
 ];
 
 test("every diagram of every page carries the dot grid class", () => {

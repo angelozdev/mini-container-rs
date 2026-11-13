@@ -1,0 +1,723 @@
+---
+title: 3b · Limpiar aunque pulses Ctrl-C
+description: Ctrl-C ya no deja un cgroup ni un comando huérfano, y si matan a tu programa con SIGKILL, el comando muere con él.
+checkpoint: 3b
+icon: 🧹
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+import CallOutcomes from "../../../components/diagram/CallOutcomes.astro";
+import KernelBox from "../../../components/diagram/KernelBox.astro";
+import KernelEntry from "../../../components/diagram/KernelEntry.astro";
+import Lane from "../../../components/diagram/Lane.astro";
+import Process from "../../../components/diagram/Process.astro";
+import Step from "../../../components/diagram/Step.astro";
+import Stepper from "../../../components/diagram/Stepper.astro";
+import Compare from "../../../components/Compare.astro";
+import Hint from "../../../components/Hint.astro";
+import Quiz from "../../../components/Quiz.astro";
+import QuizOption from "../../../components/QuizOption.astro";
+import ShouldSee from "../../../components/ShouldSee.astro";
+import Term from "../../../components/Term.astro";
+
+**Al terminar:** si pulsas Ctrl-C, tu programa espera a que el comando termine y borra el <Term id="cgroup">cgroup</Term>. Y si matan a tu programa con <Term id="sigkill">SIGKILL</Term>, el comando muere con él.
+
+Ctrl-C es el atajo con el que le pides a la <Term id="terminal">terminal</Term> que interrumpa lo que corre. La terminal lo hace con una <Term id="signal">señal</Term>: un aviso que el <Term id="kernel">kernel</Term> le manda a un <Term id="process">proceso</Term>. La que manda Ctrl-C es <Term id="sigint">SIGINT</Term>.
+
+*SIGINT* es la señal 2. Por defecto, mata al proceso que la recibe. *SIGKILL* es la señal 9. Mata al proceso en el acto, y no se puede capturar, bloquear ni ignorar.
+
+3a dejó un cabo suelto. Si pulsas Ctrl-C, tu programa muere antes de que `Drop` borre el cgroup. Y el comando sigue vivo, solo. Hoy lo cierras con dos piezas del kernel.
+
+La primera es la <Term id="signal-mask">máscara de señales</Term>. Cada proceso tiene una: es la lista de señales que tiene bloqueadas. Una señal bloqueada no se entrega. Queda pendiente hasta que se desbloquee. Con SIGINT bloqueada, Ctrl-C no mata a tu programa mientras espera. Un hijo hereda la máscara de su padre: más abajo ves el problema que trae.
+
+La segunda es la <Term id="pdeathsig">pdeathsig</Term>. Es una señal que le pides al kernel que te mande cuando tu proceso padre muere. Su nombre viene de «parent death signal», señal de muerte del padre. La usa el hijo: si tu programa muere de todos modos, el kernel mata al comando con él.
+
+Antes del código, mira quién recibe un Ctrl-C. Lo recibe un <Term id="process-group">grupo de procesos</Term>.
+
+Un *grupo de procesos* es un conjunto de procesos que la terminal trata como uno solo. El <Term id="shell">shell</Term> crea uno por cada comando que lanzas, y todo lo que ese comando lance entra en él. El grupo que usa tu terminal en ese momento es el de «primer plano». Ctrl-C manda su señal a **todos** los procesos de ese grupo. No es un cgroup: un cgroup limita lo que se gasta, y un grupo de procesos solo reparte las señales de la terminal.
+
+El diagrama sigue un Ctrl-C de principio a fin, con tu programa tal como queda hoy.
+
+<Stepper name="ctrlc" title="El camino del Ctrl-C · paso a paso">
+<Step>
+<Lane title="Tu programa">
+<Process>mini-container</Process>
+</Lane>
+<KernelBox label="SIGINT en la máscara del padre">
+<KernelEntry note="la máscara está vacía">libre</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">Tu programa arranca. Todavía no bloquea nada: con un Ctrl-C ahora, moriría.</Fragment>
+</Step>
+<Step call="signals::block_interrupts()">
+<Lane title="Tu programa">
+<Process>mini-container</Process>
+</Lane>
+<KernelBox label="SIGINT en la máscara del padre">
+<KernelEntry change="edited" note="si llega, queda pendiente">bloqueada</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">Lo primero que hace `run` es bloquear SIGINT. Lo hace antes de lanzar al hijo.</Fragment>
+</Step>
+<Step call='Command::new(executable).arg("child")'>
+<Lane title="Grupo de primer plano de tu terminal">
+<Process>mini-container</Process>
+<Process isChild>hijo: sleep 3</Process>
+</Lane>
+<KernelBox label="SIGINT en la máscara de cada uno">
+<KernelEntry note="la tiene bloqueada">el padre</KernelEntry>
+<KernelEntry change="new" note="la desbloqueó antes del exec">el hijo</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">Tu programa lanza al hijo y espera. El hijo se convierte en `sleep 3`. Los dos están en el mismo grupo de procesos: el de primer plano de tu terminal.</Fragment>
+</Step>
+<Step call="Ctrl-C">
+<Lane title="Grupo de primer plano de tu terminal">
+<Process highlighted>mini-container</Process>
+<Process highlighted isChild>hijo: sleep 3</Process>
+</Lane>
+<KernelBox label="SIGINT llega a">
+<KernelEntry highlighted>mini-container, el padre</KernelEntry>
+<KernelEntry highlighted>sleep, el hijo</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">Pulsas Ctrl-C. La terminal manda SIGINT a **todos** los procesos del grupo. No elige: el padre y el hijo la reciben a la vez.</Fragment>
+</Step>
+<Step>
+<Lane title="Padre">
+<Process>mini-container</Process>
+</Lane>
+<Lane title="Hijo, el PID 1 de su lista">
+<Process>sleep 3</Process>
+</Lane>
+<KernelBox label="Qué hace cada uno con SIGINT">
+<KernelEntry note="la tiene bloqueada: queda pendiente">el padre sigue esperando</KernelEntry>
+<KernelEntry note="sin manejador, y es el PID 1: el kernel la descarta">el hijo sigue durmiendo</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">Cada uno reacciona a su manera. El padre tiene SIGINT bloqueada, así que no hace nada. `sleep` es el PID 1 de su lista y no tiene manejador para SIGINT: el kernel la descarta.</Fragment>
+</Step>
+<Step>
+<Lane title="Tu programa">
+<Process output="el código de salida de sleep: 0">mini-container</Process>
+</Lane>
+<KernelBox label="Tras 3 segundos">
+<KernelEntry highlighted note="terminó solo">sleep</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">A los 3 segundos `sleep` termina por su cuenta. El padre estaba esperando: recibe su código de salida, el 0.</Fragment>
+</Step>
+<Step call="fs::remove_dir(&self.path)">
+<Lane title="Tu programa">
+<Process>mini-container</Process>
+</Lane>
+<KernelBox label="/sys/fs/cgroup">
+<KernelEntry note="mini-container-4172 ya no existe">…</KernelEntry>
+</KernelBox>
+<Fragment slot="caption">`run` termina y Rust borra el cgroup con `Drop`, como en 3a. Tu programa sale con el 0. Ctrl-C no dejó nada atrás.</Fragment>
+</Step>
+</Stepper>
+
+<Aside type="note" title="Analogía">
+Una jefa y su ayudante limpian una sala. Un altavoz avisa «¡evacuar!» a todos los que están en la sala. Si la jefa sale, nadie borra lo que hay en la pizarra. Para evitarlo, la jefa se pone tapones en los oídos: el aviso suena, pero ella no lo oye, y termina de limpiar. El ayudante recibe el aviso, pero tiene la orden de no hacer caso a los avisos de fuera de su sala.
+
+Y le da otra orden: «si yo me voy sin avisar, vete tú también».
+</Aside>
+
+La sala es el grupo de procesos y el altavoz es Ctrl-C. Los tapones son la máscara de señales. La orden de irse con la jefa es la pdeathsig. El ayudante es el <Term id="pid">PID</Term> 1 de su lista de procesos: el <Term id="namespace">namespace</Term> de PID que creaste en 2b.
+
+## Qué vas a escribir
+
+Un archivo nuevo y tres cambios:
+
+1. `Cargo.toml`: una <Term id="feature">feature</Term> más de `nix`.
+2. `src/signals.rs` es el archivo nuevo. Tiene tres funciones: bloquear SIGINT, desbloquearla y pedir la pdeathsig.
+3. `src/main.rs`: declara el módulo nuevo.
+4. `src/container.rs`: `run` bloquea SIGINT. `init` pide la pdeathsig y, justo antes del `exec`, desbloquea SIGINT.
+
+Teclea cada trozo, como en 3a. Antes de escribir, mira el cabo suelto con tu programa de hoy. Corre un comando que dura 3 segundos y pulsa Ctrl-C en cuanto empiece:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/sleep 3
+```
+
+- `sudo`: corre el comando como administrador.
+- `run /bin/sleep 3`: lanza `sleep`, que duerme 3 segundos.
+- Efecto: pulsa Ctrl-C antes de que pasen los 3 segundos. Después, mira qué quedó:
+
+```sh title="En Linux"
+echo $?; ls -d /sys/fs/cgroup/mini-container-*; pgrep -a sleep
+```
+
+- `echo $?`: imprime el <Term id="exit-code">código de salida</Term> del comando anterior.
+- `ls -d /sys/fs/cgroup/mini-container-*`: lista las carpetas de cgroup de tu programa. `-d` imprime la carpeta, no lo que tiene dentro.
+- `pgrep -a sleep`: busca los procesos que se llaman `sleep` e imprime su PID y su comando. `-a` imprime el comando entero.
+- Efecto: ninguno. Solo lee.
+
+Esto es lo que sale con el programa de 3a. La salida es la de tu programa de hoy, compilado y corrido:
+
+```sh title="Lo que ves hoy"
+$ sudo ./target/debug/mini-container run /bin/sleep 3
+^C
+$ echo $?; ls -d /sys/fs/cgroup/mini-container-*; pgrep -a sleep
+130
+/sys/fs/cgroup/mini-container-86610
+86611 /bin/sleep 3
+```
+
+- `^C`: lo escribe tu terminal cuando pulsas Ctrl-C.
+- La línea de comandos vuelve en el acto. Tu programa murió.
+- `130`: el código de salida es 128 más 2, el número de SIGINT. Como en 1a con el 137.
+- `/sys/fs/cgroup/mini-container-86610`: la carpeta del cgroup sigue ahí. Tu programa murió antes de que `Drop` la borrara. Rust no corre ningún <Term id="destructor">destructor</Term> si la señal mata al proceso.
+- `86611 /bin/sleep 3`: el comando sigue vivo. Es un <Term id="orphan-process">huérfano</Term>, como viste en 2b. Los números cambian en cada ejecución.
+
+Espera 3 segundos a que `sleep` termine. La carpeta se queda vacía, y la borras con el comando de más abajo.
+
+Antes de escribir, una predicción.
+
+<Quiz kind="prediction">
+<Fragment slot="question">Tu programa ya bloquea SIGINT. Corres `run /bin/sleep 3` y pulsas Ctrl-C. Sigue la señal: ¿llega a `sleep`? ¿Tiene `sleep` un manejador para ella? ¿Qué le pasa?</Fragment>
+
+<QuizOption>Muere en el acto: es la acción por defecto de SIGINT.<Fragment slot="feedback">Es lo que le pasaría a un proceso cualquiera. Pero `sleep` es el PID 1 de su lista de procesos, y un PID 1 sin manejador no recibe las señales que vienen de fuera de su lista. El kernel descarta SIGINT.</Fragment></QuizOption>
+
+<QuizOption correct>No muere: el kernel descarta SIGINT, porque `sleep` es el PID 1 y no tiene manejador.<Fragment slot="feedback">Es lo que viste en 2b. Por eso tu programa tiene que esperar: el comando no se va a ir solo antes de tiempo, y tu programa no debe irse antes que él.</Fragment></QuizOption>
+
+<QuizOption>No muere: tu programa bloqueó SIGINT también para su hijo.<Fragment slot="feedback">La máscara sí se copia al hijo, y más abajo ves el problema que trae. Pero `sleep` no se salva por eso: el hijo la desbloquea antes del `exec`, y `sleep` sobrevive porque es el PID 1 sin manejador.</Fragment></QuizOption>
+</Quiz>
+
+## Los trozos
+
+<Steps>
+
+1. **Pide la feature `signal`.**
+
+   `nix` guarda las funciones de señales detrás de una feature, como hizo con `mount` en 2b. En Linux, en la raíz del repo:
+
+   ```sh title="En Linux"
+   cargo add nix@0.31.3 --features signal
+   ```
+
+   - `cargo add`: añade una dependencia o cambia una que ya tienes.
+   - `nix@0.31.3`: el mismo <Term id="crate">crate</Term> y la misma versión de siempre.
+   - `--features signal`: la feature nueva. Las que ya tenías se quedan.
+   - Efecto: reescribe la línea de `nix` en `Cargo.toml`.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo add nix@0.31.3 --features signal
+       Updating crates.io index
+         Adding nix v0.31.3 to dependencies
+                Features:
+                + fs
+                + hostname
+                + mount
+                + process
+                + sched
+                + signal
+                + uio
+                29 deactivated features
+   ```
+
+   </ShouldSee>
+
+   - `Features:`: las features que quedan activas. Son siete. `sched`, `hostname`, `mount` y `fs` ya las tenías, y `signal` la pediste ahora. `process` la activan `sched` y `signal`, y `uio` la activa `mount`.
+   - `process` es la de `set_pdeathsig`. Ya estaba activa, así que no hay que pedirla.
+   - `29 deactivated features`: las demás quedan apagadas.
+   - No hay `Locking`: no hace falta ningún paquete nuevo.
+
+   Abre `Cargo.toml` en Zed. La línea de `nix` cambia:
+
+   ```toml title="Cargo.toml" del={8} ins={9}
+   [package]
+   name = "mini-container"
+   version = "0.1.0"
+   edition = "2024"
+
+   [dependencies]
+   anyhow = "1.0.104"
+   nix = { version = "0.31.3", features = ["sched", "hostname", "mount", "fs"] }
+   nix = { version = "0.31.3", features = ["sched", "hostname", "mount", "fs", "signal"] }
+   ```
+
+   - `features = ["sched", "hostname", "mount", "fs", "signal"]`: las cinco features que pediste.
+
+2. **Declara el módulo y escribe lo de arriba.**
+
+   En `src/main.rs`, añade una línea al final de los `mod`:
+
+   ```rust title="src/main.rs" ins={6}
+   mod cgroup;
+   mod cli;
+   mod container;
+   mod filesystem;
+   mod namespaces;
+   mod signals;
+   ```
+
+   - `mod signals;`: declara el módulo nuevo. Rust lo busca en `src/signals.rs`.
+
+   Crea el archivo `src/signals.rs` y escribe las dos primeras funciones:
+
+   ```rust title="src/signals.rs" ins={1-15}
+   use anyhow::{Context, Result};
+   use nix::sys::prctl::set_pdeathsig;
+   use nix::sys::signal::{SigSet, Signal};
+
+   pub fn block_interrupts() -> Result<()> {
+       interrupts()
+           .thread_block()
+           .context("could not block SIGINT")
+   }
+
+   pub fn unblock_interrupts() -> Result<()> {
+       interrupts()
+           .thread_unblock()
+           .context("could not unblock SIGINT")
+   }
+   ```
+
+   - `anyhow::{Context, Result}`: lo mismo que en los otros archivos.
+   - `nix::sys::prctl::set_pdeathsig`: la función que pide la pdeathsig. `prctl` es una <Term id="system-call">llamada al sistema</Term> que cambia una propiedad del proceso que la llama. Se usa en el trozo siguiente.
+   - `SigSet` y `Signal`: `Signal` es la lista de señales, con nombres como `Signal::SIGINT`. `SigSet` es un conjunto de ellas.
+   - `block_interrupts`: bloquea las señales de interrupción. `interrupts()` es una función tuya, del trozo siguiente: arma el conjunto de señales.
+   - `.thread_block()`: añade ese conjunto a la máscara del hilo que llama. Un hilo es una línea de ejecución dentro de un proceso, y tu programa tiene una sola. Así que es la máscara de todo tu programa.
+   - `.context("could not block SIGINT")`: si falla, el error dice qué se quería hacer.
+   - `unblock_interrupts`: lo contrario. `.thread_unblock()` quita ese conjunto de la máscara. La usa el hijo.
+   - Sin `unsafe`: `nix` hace segura la llamada.
+
+3. **Pide la pdeathsig y arma el conjunto.**
+
+   Debajo de `unblock_interrupts`, con una línea en blanco:
+
+   ```rust title="src/signals.rs" ins={1-9}
+   pub fn die_with_parent() -> Result<()> {
+       set_pdeathsig(Signal::SIGKILL).context("could not ask to die with the parent")
+   }
+
+   fn interrupts() -> SigSet {
+       let mut signals = SigSet::empty();
+       signals.add(Signal::SIGINT);
+       signals
+   }
+   ```
+
+   - `die_with_parent`: la usa el hijo, lo primero que hace.
+   - `set_pdeathsig(Signal::SIGKILL)`: le pide al kernel que, cuando muera el padre de este proceso, le mande SIGKILL. Es la señal que no se puede evitar. El hijo se la pide a sí mismo. Un proceso conserva su pdeathsig al hacer `exec`, así que el comando también la tiene.
+   - `fn interrupts() -> SigSet`: sin `pub`, solo este archivo la usa.
+   - `SigSet::empty()`: un conjunto vacío.
+   - `let mut signals`: `mut` porque `add` lo cambia.
+   - `signals.add(Signal::SIGINT)`: pone SIGINT en el conjunto.
+   - `signals`: la última línea devuelve el conjunto. Hoy tiene una sola señal.
+
+4. **El padre bloquea SIGINT: `run`.**
+
+   En `src/container.rs`, cambia la línea de `use` que trae los módulos:
+
+   ```rust title="src/container.rs" del={3} ins={4}
+   use crate::cgroup::{self, Cgroup, MEMORY_MAX};
+   use crate::cli::CommandLine;
+   use crate::{filesystem, namespaces};
+   use crate::{filesystem, namespaces, signals};
+   ```
+
+   - `signals`: trae tu módulo nuevo, para escribir `signals::block_interrupts()`.
+
+   Ahora `run`. Añade una línea al principio:
+
+   ```rust title="src/container.rs" ins={2}
+   pub fn run(command: &CommandLine) -> Result<ExitCode> {
+       signals::block_interrupts()?;
+       let executable = std::env::current_exe()?;
+   ```
+
+   - `signals::block_interrupts()?;`: lo primero que hace `run`. Cuanto antes se bloquea, menos tiempo hay para que un Ctrl-C la mate. El resto de la función no cambia.
+
+   Si hiciste el ejercicio 1a.1, 2a.1 o 3a.1, el resto de tu `run` es distinto del de la guía. No lo toques. Solo añades esa línea.
+
+5. **El hijo muere con su padre: `init`.**
+
+   Añade una línea al principio de `init`:
+
+   ```rust title="src/container.rs" ins={2}
+   pub fn init(cgroup: &Path, command: &CommandLine) -> Result<Infallible> {
+       signals::die_with_parent()?;
+       cgroup::join(cgroup)?;
+   ```
+
+   - `signals::die_with_parent()?;`: lo primero que hace el hijo. Va lo primero porque, si tu programa ya murió cuando el hijo la pide, la señal no llega. El manual lo dice. Cuanto antes la pida, menos tiempo hay para que eso pase.
+
+6. **El hijo desbloquea SIGINT justo antes del `exec`.**
+
+   El hijo nace con la misma máscara que su padre. Y la conserva cuando se convierte en el comando, y los procesos que el comando lance la heredan. Si nadie la desbloquea, Ctrl-C tampoco le llega al comando.
+
+   Otra predicción. Es de las que no se sacan de memoria: sigue la señal.
+
+   <Quiz kind="prediction">
+   <Fragment slot="question">El hijo hereda la máscara de su padre y no la cambia: nace con SIGINT bloqueada. Corres `run /bin/sh -c 'trap "echo got" INT; sleep 4'` y pulsas Ctrl-C. `trap "echo got" INT` le dice al shell: «cuando llegue SIGINT, imprime got». Sigue la señal: ¿en qué proceso está bloqueada? ¿Qué se imprime?</Fragment>
+
+   <QuizOption>`got`, en el acto: el shell tiene un manejador para SIGINT.<Fragment slot="feedback">Así sería con la máscara limpia. Pero con SIGINT bloqueada la señal no se entrega, y un manejador no corre nunca. Ni el shell ni `sleep` la reciben.</Fragment></QuizOption>
+
+   <QuizOption correct>Nada: la señal queda pendiente, y el comando tarda sus 4 segundos.<Fragment slot="feedback">Los dos procesos la tienen bloqueada. SIGINT queda pendiente en cada uno, el manejador de `trap` no corre y `sleep` no se interrumpe. Es la trampa de esta sección: más abajo ves la salida.</Fragment></QuizOption>
+
+   <QuizOption>Tu programa muere.<Fragment slot="feedback">Tu programa también la tiene bloqueada, así que no muere. Y aunque muriera, el comando no se enteraría.</Fragment></QuizOption>
+   </Quiz>
+
+   Para evitarlo, el hijo quita SIGINT de su máscara justo antes de convertirse en el comando. Debajo de `mount_proc`, justo antes del `exec`:
+
+   ```rust title="src/container.rs" ins={2}
+       filesystem::mount_proc()?;
+       signals::unblock_interrupts()?;
+       let error = Command::new(&command.program).args(&command.args).exec();
+   ```
+
+   - `signals::unblock_interrupts()?;`: quita SIGINT de la máscara del hijo. Tu programa, el padre, la sigue teniendo bloqueada: es otro proceso, con su propia máscara.
+   - Va lo último, justo antes de `exec`: mientras el hijo prepara el cgroup y el sistema de archivos, no debe interrumpirse. El comando, en cambio, debe nacer con la máscara limpia.
+   - Lo demás de `init` no cambia.
+
+7. **Compila.**
+
+   En Linux:
+
+   ```sh title="En Linux"
+   cargo build
+   ```
+
+   - `cargo build`: compila lo que cambió.
+
+   <ShouldSee>
+
+   ```sh title="Deberías ver"
+   $ cargo build
+      Compiling mini-container v0.1.0 (/Users/tu-usuario/mini-container-rs)
+       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
+   ```
+
+   </ShouldSee>
+
+   No hay avisos: todo lo que escribiste se usa.
+
+</Steps>
+
+## Corre tu programa
+
+Corre otra vez el comando de 3 segundos, y pulsa Ctrl-C en cuanto empiece:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/sleep 3
+```
+
+- `run /bin/sleep 3`: lanza `sleep`, que duerme 3 segundos.
+- Efecto: pulsa Ctrl-C antes de que pasen los 3 segundos. Tu programa no muere: espera.
+
+Después, mira qué quedó:
+
+```sh title="En Linux"
+echo $?; ls -d /sys/fs/cgroup/mini-container-*
+```
+
+- `echo $?`: imprime el código de salida.
+- `ls -d ...`: lista las carpetas de cgroup de tu programa.
+- Efecto: ninguno. Solo lee.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo ./target/debug/mini-container run /bin/sleep 3
+^C$ echo $?; ls -d /sys/fs/cgroup/mini-container-*
+0
+ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
+```
+
+</ShouldSee>
+
+- `^C`: lo escribe tu terminal. Después no pasa nada durante unos segundos: tu programa espera. A los 3 segundos vuelve la línea de comandos, pegada al `^C`, y ahí escribes el comando de arriba. Según tu shell, puede aparecer en una línea nueva.
+- `0`: el código de salida es el de `sleep`, que terminó bien. Tu programa no murió y devolvió el código del comando.
+- `ls: cannot access ...`: el error es la buena noticia. No hay ninguna carpeta: `Drop` borró el cgroup.
+
+Ahora el segundo resultado: que el comando muera con tu programa. Matar a tu programa con SIGKILL desde otro proceso es una prueba difícil de escribir en una sola línea, así que se hace con un shell de administrador:
+
+```sh title="En Linux"
+sudo sh -c './target/debug/mini-container run /bin/sleep 30 & pid=$!; sleep 1; kill -KILL $pid; sleep 1; echo "sleeps left: $(pgrep -cx sleep)"; ls -d /sys/fs/cgroup/mini-container-*'
+```
+
+- `sudo sh -c '...'`: corre un shell como administrador. Ejecuta lo que va entre comillas simples.
+- `./target/debug/mini-container run /bin/sleep 30 &`: lanza tu programa con un comando de 30 segundos. El `&` lo manda a segundo plano.
+- `pid=$!`: guarda el PID de tu programa. `$!` es el PID del último proceso que mandaste a segundo plano.
+- `sleep 1`: espera un segundo, para que el contenedor ya esté corriendo.
+- `kill -KILL $pid`: manda SIGKILL a tu programa. Solo a él: no al comando.
+- `sleep 1`: espera otro segundo, a que el kernel termine de limpiar.
+- `echo "sleeps left: $(pgrep -cx sleep)"`: cuenta los procesos que se llaman exactamente `sleep`. `pgrep -c` cuenta, y `-x` pide el nombre exacto. Cuenta los de toda la máquina: si tienes otro `sleep` corriendo, el número será mayor.
+- `ls -d /sys/fs/cgroup/mini-container-*`: lista las carpetas de cgroup de tu programa.
+- Efecto: mata a tu programa, y no toca nada más.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo sh -c './target/debug/mini-container run /bin/sleep 30 & pid=$!; sleep 1; kill -KILL $pid; sleep 1; echo "sleeps left: $(pgrep -cx sleep)"; ls -d /sys/fs/cgroup/mini-container-*'
+sleeps left: 0
+/sys/fs/cgroup/mini-container-85632
+```
+
+</ShouldSee>
+
+- `sleeps left: 0`: el comando murió con tu programa. Sin la pdeathsig, saldría `1`.
+- `/sys/fs/cgroup/mini-container-85632`: la carpeta del cgroup sigue ahí. El número cambia en cada ejecución.
+
+Esa carpeta es la limitación conocida. SIGKILL no se puede capturar, bloquear ni ignorar. Tu programa murió sin correr `Drop`, y ya no hay forma de evitarlo desde dentro. Lo que sí hace tu programa es que no queden procesos: el cgroup queda vacío, sin un comando dentro.
+
+Un cgroup vacío se borra con `rmdir`. Es lo que hace `Drop`: `fs::remove_dir` es la llamada de Rust a `rmdir`. Esa llamada tiene dos resultados. Mira:
+
+<CallOutcomes
+  call="fs::remove_dir(&path)"
+  ok="Ok(())"
+  okNote="el cgroup estaba vacío: la carpeta desaparece"
+  error="Err(EBUSY)"
+  errorNote="todavía hay un proceso dentro: la carpeta se queda"
+/>
+
+`EBUSY` es el código de error del sistema para «recurso ocupado». Sale con el mensaje `Device or resource busy`. Es una red de seguridad: el comando de limpieza no puede borrar un contenedor que sigue corriendo.
+
+**Destructivo:** el comando borra todas las carpetas de cgroup cuyo nombre empieza por `mini-container-` y están vacías. Una que tenga un proceso dentro no se borra. Revisa lo que lista `ls -d /sys/fs/cgroup/mini-container-*` antes de ejecutarlo.
+
+```sh title="En Linux"
+sudo rmdir /sys/fs/cgroup/mini-container-*
+```
+
+- `sudo`: pide permisos de administrador. Los cgroups son de `root`.
+- `rmdir`: borra carpetas vacías. En un cgroup es la forma de borrarlo: el kernel solo lo permite si no tiene procesos ni cgroups dentro.
+- `/sys/fs/cgroup/mini-container-*`: todas las carpetas que empiezan por ese nombre. `*` es cualquier texto.
+- Efecto: las que están vacías desaparecen. En una que todavía tiene un proceso, `rmdir` dice `Device or resource busy` y no la borra.
+
+Comprueba que se fue:
+
+```sh title="En Linux"
+ls -d /sys/fs/cgroup/mini-container-*
+```
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ ls -d /sys/fs/cgroup/mini-container-*
+ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
+```
+
+</ShouldSee>
+
+<Aside type="caution" title="Trampa típica">
+Bloquear SIGINT en el padre y olvidar desbloquearla en el hijo. Todo compila y Ctrl-C ya no mata a tu programa. Pero la máscara se hereda: el hijo nace con SIGINT bloqueada, y el comando también. Los programas del contenedor que quieren reaccionar a Ctrl-C nunca se enteran.
+
+- Así sí: ① `block_interrupts()` en `run`, ② `unblock_interrupts()` en `init`, justo antes del `exec`.
+- Así no: solo ①. El compilador te avisa: `function unblock_interrupts is never used`.
+
+Es seguro probarlo: lo peor que pasa es esperar 4 segundos.
+</Aside>
+
+Esto es lo que sale con tu programa sin la línea de `unblock_interrupts()`. La salida es la de tu programa con ese cambio, compilado y corrido. El comando es un shell con un `trap`, y pulsas Ctrl-C en el primer segundo:
+
+```sh title="En Linux"
+sudo ./target/debug/mini-container run /bin/sh -c 'trap "echo got" INT; sleep 4'
+```
+
+- `run /bin/sh -c '...'`: lanza `sh` con la orden entre comillas simples.
+- `trap "echo got" INT`: un <Term id="signal-handler">manejador</Term>: cuando el shell reciba SIGINT, ejecuta `echo got`. Un *manejador* es el código con el que un programa decide qué hacer al recibir una señal.
+- `sleep 4`: el comando duerme 4 segundos.
+- Efecto: pulsa Ctrl-C en el primer segundo.
+
+```sh title="Lo que ves sin el desbloqueo"
+$ sudo ./target/debug/mini-container run /bin/sh -c 'trap "echo got" INT; sleep 4'
+^C$ echo $?
+0
+```
+
+- `^C` y nada más: durante 4 segundos no pasa nada. No sale `got`. El shell y `sleep` tienen SIGINT bloqueada.
+- `0`: el comando terminó solo, a los 4 segundos.
+
+Con la línea en su sitio, la señal llega:
+
+```sh title="Lo que ves con el desbloqueo"
+$ sudo ./target/debug/mini-container run /bin/sh -c 'trap "echo got" INT; sleep 4'
+^Cgot
+$ echo $?
+130
+```
+
+- `got`: lo imprime el manejador del shell de <Term id="alpine">Alpine</Term>. El shell es el PID 1 y tiene un manejador, así que recibe SIGINT aunque venga de fuera de su lista.
+- `130`: `sleep` murió por SIGINT, y el shell sale con 128 más 2.
+- El comando vuelve en el acto, no a los 4 segundos.
+
+## Comprueba tu código
+
+Compila con `cargo build`: la prueba usa el binario del último `cargo build`, así que sin compilar antes comprueba el viejo.
+
+La prueba necesita Alpine en `/var/lib/mini-container/alpine`. Si falta, se detiene y lo dice antes de correr nada.
+
+Corre la prueba de esta sección sobre tu programa. Funciona igual que en 3a. En Linux, desde la raíz del repo:
+
+```sh title="En Linux"
+sudo guide/scripts/check-my-code.sh 3b
+```
+
+- `sudo`: corre el comando como administrador. Tu programa lo necesita, y la prueba también lo corre una vez sin él, para ver si el error dice qué falta.
+- `guide/scripts/check-my-code.sh`: el script de la guía que corre la prueba sobre tu programa.
+- `3b`: la sección cuya prueba se corre.
+- Efecto: corre `target/debug/mini-container`, tu binario, con las comprobaciones de 3b. Son las de 3a y tres casos nuevos, que se listan debajo. La prueba tarda unos 3 segundos más que la de 3a, porque espera a un `sleep 3`.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ sudo guide/scripts/check-my-code.sh 3b
+OK 3b
+```
+
+</ShouldSee>
+
+`OK 3b` dice que tu programa pasó todas las comprobaciones. Si una falla, el script la nombra y sale con un código distinto de 0, como en 1a.
+
+Los casos nuevos de 3b son estos. En los tres, el programa se lanza en un grupo de procesos propio. En los dos primeros, SIGINT se manda a todo ese grupo, como haría la terminal con Ctrl-C:
+
+- Con `run /bin/sleep 3`: SIGINT al grupo. El programa sale con 0, no queda ninguna carpeta `mini-container-*` y no queda ningún `sleep 3`.
+- Con `run /bin/sh -c 'trap "echo got" INT; sleep 4'`: SIGINT al grupo. La salida es `got`, y no quedan procesos ni carpetas.
+- Con `run /bin/sleep 30`: SIGKILL solo a tu programa. Sale con 137, a los 0,5 segundos no queda ningún `sleep 30` y queda exactamente una carpeta de cgroup, vacía. El comando de limpieza de arriba la borra, y después no queda ninguna.
+
+Si una de estas comprobaciones falla a medias, puede dejar una carpeta `mini-container-*` o un `sleep` vivo unos segundos. Espera a que el `sleep` termine y usa el comando de limpieza.
+
+Hagas o no los ejercicios 1a.1, 2a.1, 2c.1, 3a.1 y 3b.1, la prueba da `OK`. El 2b.1 no escribe código.
+
+## Bloquear, no atrapar
+
+Hay otra forma de que Ctrl-C no mate a tu programa: instalar un manejador con `signal()`. En `nix`, `signal()` es una función `unsafe`. Mira las dos, y lo que sale de cada una. La salida de «Así no» es la de tu programa con ese cambio, compilado y corrido.
+
+<Compare>
+<Fragment slot="bad">
+
+```rust title="Con signal()"
+extern "C" fn ignore_interrupt(_signal: i32) {}
+
+pub fn ignore_interrupts() -> Result<()> {
+    unsafe { signal(Signal::SIGINT, SigHandler::Handler(ignore_interrupt)) }
+        .context("could not install the SIGINT handler")?;
+    Ok(())
+}
+```
+
+```sh title="Lo que ves"
+$ sudo ./target/debug/mini-container run /bin/sleep 3
+^C$ echo $?
+0
+```
+
+Funciona igual. Lo que cambia es el precio. `unsafe` marca el lugar donde respondes tú, y no el compilador, de que el código es correcto. El manejador corre en mitad de cualquier línea de tu programa, y solo puede llamar a funciones «seguras para señales». La documentación define una así: «An async-signal-safe function is one that can be safely called from within a signal handler». Muchas no lo son, y `printf`, la función de C que imprime, es una de ellas. Si alguien añade al manejador una llamada que no es segura, el compilador no avisa.
+
+**No lo pruebes**: esta guía no usa `unsafe` en ningún trozo, y el «Así sí» hace lo mismo sin él.
+
+</Fragment>
+<Fragment slot="good">
+
+```rust title="Bloqueando"
+pub fn block_interrupts() -> Result<()> {
+    interrupts()
+        .thread_block()
+        .context("could not block SIGINT")
+}
+```
+
+```sh title="Lo que ves"
+$ sudo ./target/debug/mini-container run /bin/sleep 3
+^C$ echo $?
+0
+```
+
+Sin `unsafe`: `thread_block` es una función normal. La señal no se descarta: queda pendiente, y no corre ningún manejador, así que no hay código que pueda salir mal. El precio es el de la trampa: la máscara se hereda y hay que desbloquearla en el hijo. Un manejador no tiene ese problema: el `exec` lo reinicia. Es un precio que se paga con una línea, y el compilador te avisa si la olvidas.
+
+</Fragment>
+</Compare>
+
+## Resumen
+
+| Situación | Qué usar |
+| --- | --- |
+| Quieres que Ctrl-C no mate a tu programa mientras espera | `signals::block_interrupts()`, lo primero de `run`: bloquea SIGINT en la máscara |
+| Los programas del contenedor no reaccionan a Ctrl-C | `signals::unblock_interrupts()` en `init`, justo antes del `exec`: la máscara se hereda |
+| Quieres que el comando muera si matan a tu programa | `signals::die_with_parent()`, lo primero de `init`: pide la pdeathsig con `SIGKILL` |
+| Quieres bloquear una señal sin `unsafe` | `SigSet` y `thread_block()`, no `signal()` |
+| Tras un SIGKILL a tu programa quedó un cgroup vacío | **Destructivo:** `sudo rmdir /sys/fs/cgroup/mini-container-*` |
+
+<Quiz kind="closing">
+<Fragment slot="question">Matan a tu programa con SIGKILL y queda una carpeta de cgroup, pero el comando ya no vive. ¿Por qué quedó la carpeta, y por qué murió el comando?</Fragment>
+
+<QuizOption>La carpeta quedó porque tu programa no bloqueó SIGKILL. El comando murió porque tu programa le mandó SIGKILL antes de morir.<Fragment slot="feedback">SIGKILL no se puede bloquear: ningún programa puede. Y tu programa no alcanza a mandar nada: muere en el acto, sin correr ni una línea más.</Fragment></QuizOption>
+
+<QuizOption correct>La carpeta quedó porque SIGKILL mata a tu programa sin correr `Drop`. El comando murió porque el kernel le mandó la pdeathsig.<Fragment slot="feedback">Las dos mitades son del kernel. Tu programa solo pidió la pdeathsig al arrancar el hijo, y por eso el kernel mata al comando cuando el padre muere. Y por eso se queda la carpeta: nadie quedó vivo para borrarla.</Fragment></QuizOption>
+
+<QuizOption>La carpeta quedó porque el comando seguía dentro cuando el cgroup se borró. El comando murió por Ctrl-C.<Fragment slot="feedback">Un cgroup con un proceso dentro no se puede borrar: `rmdir` falla con `EBUSY`. Y aquí no hubo Ctrl-C: el comando murió porque murió su padre.</Fragment></QuizOption>
+</Quiz>
+
+## Ejercicios
+
+<Aside type="tip" title="Regla de los 5 minutos">
+Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las dudas se las puedes preguntar al agente.
+</Aside>
+
+### 3b.1 Que SIGTERM tampoco deje nada
+
+**Objetivo:** haz que `kill <PID de tu programa>` tampoco deje una carpeta de cgroup. Con esa orden, tu programa debe esperar a que el comando termine y limpiar.
+
+La señal que manda `kill` cuando no le dices otra es <Term id="sigterm">SIGTERM</Term>. *SIGTERM* es la señal 15. Pide al proceso que termine, y por defecto lo mata.
+
+Mira lo que pasa hoy. Borra primero cualquier carpeta vieja con el comando de limpieza, y corre:
+
+```sh title="Antes"
+$ sudo sh -c './target/debug/mini-container run /bin/sleep 3 & pid=$!; sleep 1; kill $pid; wait $pid; echo $?; ls -d /sys/fs/cgroup/mini-container-*'
+Terminated
+143
+/sys/fs/cgroup/mini-container-86511
+```
+
+- `sudo sh -c '...'`: corre un shell como administrador, con lo que va entre comillas simples.
+- `./target/debug/mini-container run /bin/sleep 3 &`: lanza tu programa con un comando de 3 segundos, en segundo plano.
+- `pid=$!`: guarda el PID de tu programa.
+- `sleep 1`: espera un segundo.
+- `kill $pid`: manda SIGTERM a tu programa. Sin una opción, `kill` manda SIGTERM.
+- `wait $pid`: espera a que tu programa termine.
+- `echo $?`: imprime el código de salida de lo que esperó.
+- `ls -d ...`: lista las carpetas de cgroup de tu programa.
+- Efecto: el único proceso que recibe la señal es tu programa.
+- `Terminated`: lo imprime el shell cuando un trabajo en segundo plano muere por SIGTERM.
+- `143`: 128 más 15, el número de SIGTERM. Tu programa murió por la señal.
+- La carpeta se quedó. El comando también murió, por la pdeathsig, así que no hay `sleep` vivo. Borra la carpeta con el comando de limpieza antes de seguir.
+
+El resultado esperado, con el mismo comando, es otro:
+
+```sh title="Resultado esperado"
+$ sudo sh -c './target/debug/mini-container run /bin/sleep 3 & pid=$!; sleep 1; kill $pid; wait $pid; echo $?; ls -d /sys/fs/cgroup/mini-container-*'
+0
+ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
+```
+
+- `0`: tu programa no murió. Esperó a que `sleep` terminara, 2 segundos más, y salió con su código.
+- `ls: cannot access ...`: no queda ninguna carpeta. `Drop` la borró.
+
+Con esto, `kill` ya no detiene al comando: tu programa espera a que termine. Parar un contenedor de verdad pide reenviar la señal al hijo. Esa parte queda fuera de esta guía.
+
+Tu cambio queda en `src/signals.rs`. La prueba de 3b sigue dando `OK`.
+
+<Hint n={1}>Ya sabes bloquear una señal en el padre: es lo que haces con SIGINT. SIGTERM se llama `Signal::SIGTERM`.</Hint>
+
+<Hint n={2}>`block_interrupts` y `unblock_interrupts` no arman el conjunto cada una por su lado: las dos llaman a la misma función. Mira cuál.</Hint>
+
+<Hint n={3}>Añade una línea a esa función, igual a la de SIGINT. El hijo también desbloquea el conjunto entero, así que el comando no hereda el bloqueo.</Hint>
+
+## Fuentes
+
+- `signal(7)`: la tabla de señales dice «SIGINT P1990 Term Interrupt from keyboard», «SIGKILL P1990 Term Kill signal» y «SIGTERM P1990 Term Termination signal». Sobre la máscara: «A signal may be blocked, which means that it will not be delivered until it is later unblocked. Between the time when it is generated and when it is delivered a signal is said to be pending.» Sobre la herencia: «A child created via fork(2) inherits a copy of its parent's signal mask; the signal mask is preserved across execve(2).» Y sobre los manejadores: «During an execve(2), the dispositions of handled signals are reset to the default». Por último: «The signals SIGKILL and SIGSTOP cannot be caught, blocked, or ignored.» [man7.org/linux/man-pages/man7/signal.7.html](https://man7.org/linux/man-pages/man7/signal.7.html), Linux man-pages 6.19, 2026-02-08. Consultada el 2026-11-13.
+- `sigprocmask(2)`: «The signal mask is the set of signals whose delivery is currently blocked for the caller». `SIG_BLOCK`: «The set of blocked signals is the union of the current set and the set argument.» `SIG_UNBLOCK`: «The signals in set are removed from the current set of blocked signals.» [man7.org/linux/man-pages/man2/sigprocmask.2.html](https://man7.org/linux/man-pages/man2/sigprocmask.2.html), Linux man-pages 6.19, 2026-02-08. Consultada el 2026-11-13.
+- `credentials(7)`: «A process group (sometimes called a "job") is a collection of processes that share the same process group ID; the shell creates a new process group for the process(es) used to execute single command or pipeline». Y: «When terminal keys that generate a signal (such as the interrupt key, normally control-C) are pressed, the signal is sent to the processes in the foreground job.» [man7.org/linux/man-pages/man7/credentials.7.html](https://man7.org/linux/man-pages/man7/credentials.7.html), Linux man-pages 6.19, 2026-07-02. Consultada el 2026-11-13.
+- `termios(3)`: «VINTR (003, ETX, Ctrl-C, or also 0177, DEL, rubout) Interrupt character (INTR). Send a SIGINT signal.» [man7.org/linux/man-pages/man3/termios.3.html](https://man7.org/linux/man-pages/man3/termios.3.html), Linux man-pages 6.18, 2026-02-08. Consultada el 2026-11-13.
+- `pid_namespaces(7)`: «Only signals for which the "init" process has established a signal handler can be sent to the "init" process by other members of the PID namespace.» Y desde un namespace ancestro: «SIGKILL or SIGSTOP are treated exceptionally: these signals are forcibly delivered when sent from an ancestor PID namespace.» [man7.org/linux/man-pages/man7/pid_namespaces.7.html](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html), Linux man-pages 6.19, 2026-05-13. Consultada el 2026-11-13.
+- `PR_SET_PDEATHSIG(2const)`: «This is the signal that the calling process will get when its parent dies.» Sobre `fork` y `exec`: «The parent-death signal setting is cleared for the child of a fork(2).» y «otherwise, this value is preserved across execve(2)». Sobre quién es «el padre»: «The "parent" in this case is considered to be the thread that created this process.» Y sobre una carrera: «If the parent thread and all ancestor subreapers have already terminated by the time of the PR_SET_PDEATHSIG operation, then no parent-death signal is sent to the caller.» [man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html), Linux man-pages 6.19, 2026-02-08. Consultada el 2026-11-13.
+- `signal-safety(7)`: «An async-signal-safe function is one that can be safely called from within a signal handler.» Sobre la biblioteca `stdio` de C, donde está `printf`: «all of whose functions are not async-signal-safe». Para usar un manejador, hay que «Ensure that (1) the signal handler calls only async-signal-safe functions, and (2) the signal handler itself is reentrant with respect to global variables in the main program.» [man7.org/linux/man-pages/man7/signal-safety.7.html](https://man7.org/linux/man-pages/man7/signal-safety.7.html), Linux man-pages 6.19, 2026-06-05. Consultada el 2026-11-13.
+- `kill(1)`, de util-linux: «If no signal is specified, the TERM signal is sent. The default action for this signal is to terminate the process.» Y: «If a process does not terminate after a TERM signal has been sent, then the KILL signal may be used; be aware that the latter signal cannot be caught». [man7.org/linux/man-pages/man1/kill.1.html](https://man7.org/linux/man-pages/man1/kill.1.html), util-linux 2.43, 2026-05-24. Consultada el 2026-11-13. El `kill` del ejercicio es el del shell `sh`, que también manda SIGTERM: el código de salida 143 lo comprobó en la máquina de pruebas.
+- Documentación de cgroup v2 del kernel: «A cgroup which doesn't have any children or live processes can be destroyed by removing the directory.» [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-13.
+- `nix` 0.31.3: `SigSet::thread_block` es una función normal, «Adds the set of signals to the signal mask for the calling thread.», y `SigSet` está «Available on crate feature `signal` only.» [docs.rs/nix/0.31.3/nix/sys/signal/struct.SigSet.html](https://docs.rs/nix/0.31.3/nix/sys/signal/struct.SigSet.html). `prctl::set_pdeathsig`: «Set the parent-death signal of the calling process.», «Available on crate feature `process` only.» [docs.rs/nix/0.31.3/nix/sys/prctl/fn.set_pdeathsig.html](https://docs.rs/nix/0.31.3/nix/sys/prctl/fn.set_pdeathsig.html). `signal::signal` se declara `pub unsafe fn signal(signal: Signal, handler: SigHandler) -> Result<SigHandler>`. [docs.rs/nix/0.31.3/nix/sys/signal/fn.signal.html](https://docs.rs/nix/0.31.3/nix/sys/signal/fn.signal.html). Consultadas el 2026-11-13. Que `signal` activa `process` lo mostró `cargo add`, con `+ process` y `+ signal`.
+- La máscara llega al comando: comprobado en la máquina de pruebas con Rust 1.99.1. Una prueba pequeña bloqueó SIGINT y lanzó `/bin/grep Sig /proc/self/status` con `Command::status()` y con `CommandExt::exec()`: en las dos, `SigBlk` valía `0000000000000002`. La documentación de `std::process::Command` no dice nada sobre la máscara. Con el programa de 3b y sin `unblock_interrupts()`, `SigBlk` valía `2` en el padre y en el comando. Con la línea, valía `2` en el padre y `0` en el comando.
+- Ctrl-C con el programa de 3a, en una terminal simulada con un pseudoterminal: `echo $?` imprimió `130`, quedó la carpeta del cgroup y `pgrep -a sleep` listó `/bin/sleep 3`. Con el programa de 3b: el prompt volvió a los 3 segundos, `echo $?` imprimió `0` y no quedó ninguna carpeta ni ningún `sleep`. Con `sleep` como PID 1 y SIGINT mandada al grupo con `kill -INT -- -<PGID>`, `/proc/<PID>/status` mostró en el padre `SigBlk: 2` y `ShdPnd: 2`: la señal quedó pendiente. En `sleep`, `SigBlk: 0`, `SigCgt: 0` y nada pendiente: el kernel descartó la señal. El shell de Alpine, en cambio, tiene `SigCgt: 10002`: instaló un manejador para SIGINT, y por eso `trap "echo got" INT` recibe la señal aunque sea el PID 1. Comprobado en la máquina de pruebas, el 2026-11-13.
+- El `trap`: con `sh -c 'trap "echo got" INT; sleep 4'` y Ctrl-C a 1 segundo, sin `unblock_interrupts()` el programa terminó a los 4 segundos con código 0 y sin `got`. Con la línea, imprimió `got` y salió con 130 en el acto. Con el manejador de `signal()` en lugar de la máscara, las dos salidas fueron iguales a las de la máscara con el desbloqueo. Comprobado en la máquina de pruebas, el 2026-11-13.
+- SIGKILL al padre: con `run /bin/sleep 30` y `kill -KILL` a tu programa, `sleep` murió en menos de 0,5 segundos y quedó una carpeta vacía, que `rmdir` borró. Con el programa de 3a, `sleep` siguió vivo, con la carpeta ocupada por él. `fs::remove_dir` sobre un cgroup con un contenedor vivo devolvió `Device or resource busy (os error 16)`, y sobre uno vacío devolvió `Ok(())`. Comprobado en la máquina de pruebas, el 2026-11-13.
+- La prueba de aceptación no puede lanzar el programa con un simple `&`: un trabajo en segundo plano de un shell sin control de trabajos hereda SIGINT ignorada. Con el programa de 3a y esa forma, el programa ni murió, y la prueba habría dado verde. Por eso la prueba lo lanza con `setsid env --default-signal=INT`. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Ejercicio 3b.1: con SIGTERM en el conjunto de `interrupts()`, `kill` a tu programa lo dejó esperando a `sleep 3`, salió con 0 y no dejó ninguna carpeta. Sin el cambio, salió con 143 y dejó la carpeta. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. Los PID de los ejemplos cambian en cada ejecución. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.

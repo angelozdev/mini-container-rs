@@ -209,6 +209,14 @@
     "definition": "Una caída del programa: Rust imprime dónde pasó y sale con el código 101."
   },
   {
+    "id": "pdeathsig",
+    "term": "pdeathsig",
+    "match": [
+      "pdeathsig"
+    ],
+    "definition": "Una señal que le pides al kernel que te mande cuando tu proceso padre muere. El nombre viene de «parent death signal»."
+  },
+  {
     "id": "pid",
     "term": "PID",
     "match": [
@@ -234,6 +242,15 @@
       "procesos"
     ],
     "definition": "Un programa en ejecución."
+  },
+  {
+    "id": "process-group",
+    "term": "grupo de procesos",
+    "match": [
+      "grupo de procesos",
+      "grupos de procesos"
+    ],
+    "definition": "Un conjunto de procesos que la terminal trata como uno solo. Ctrl-C manda su señal a todos los del grupo en primer plano. No es un cgroup."
   },
   {
     "id": "ram",
@@ -268,6 +285,22 @@
     "definition": "El programa que lee lo que escribes en la terminal y lo ejecuta."
   },
   {
+    "id": "sigint",
+    "term": "SIGINT",
+    "match": [
+      "SIGINT"
+    ],
+    "definition": "La señal 2, la que manda la terminal cuando pulsas Ctrl-C. Por defecto, mata al proceso que la recibe."
+  },
+  {
+    "id": "sigkill",
+    "term": "SIGKILL",
+    "match": [
+      "SIGKILL"
+    ],
+    "definition": "La señal 9. Mata al proceso en el acto, y no se puede capturar, bloquear ni ignorar."
+  },
+  {
     "id": "signal",
     "term": "señal",
     "match": [
@@ -284,6 +317,23 @@
       "manejadores"
     ],
     "definition": "El código con el que un programa decide qué hacer al recibir una señal."
+  },
+  {
+    "id": "signal-mask",
+    "term": "máscara de señales",
+    "match": [
+      "máscara de señales",
+      "máscaras de señales"
+    ],
+    "definition": "La lista de señales que un proceso tiene bloqueadas. Una señal bloqueada no se entrega: queda pendiente. Un proceso hijo hereda la máscara de su padre."
+  },
+  {
+    "id": "sigterm",
+    "term": "SIGTERM",
+    "match": [
+      "SIGTERM"
+    ],
+    "definition": "La señal 15, la que manda `kill` si no le pides otra. Pide al proceso que termine, y por defecto lo mata."
   },
   {
     "id": "stderr",
