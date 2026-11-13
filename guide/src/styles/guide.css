@@ -241,6 +241,10 @@
   margin-block: 0.75rem;
 }
 
+.compare-side {
+  min-width: 0;
+}
+
 .compare-label {
   display: flex;
   align-items: center;
@@ -248,6 +252,17 @@
   margin-bottom: 0.25rem;
   font-size: var(--sl-text-sm);
   font-weight: 600;
+}
+
+.compare-side > p {
+  margin: 0.5rem 0 0;
+  font-size: var(--sl-text-sm);
+}
+
+.compare-side .expressive-code {
+  --ec-codeFontSize: 0.75rem;
+  --ec-codePadInl: 0.625rem;
+  margin-top: 0.5rem;
 }
 
 .compare-side[data-side="bad"] .compare-label::before {
