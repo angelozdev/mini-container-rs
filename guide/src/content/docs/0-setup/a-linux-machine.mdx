@@ -35,6 +35,24 @@ Tu Mac es tu casa. La máquina de OrbStack es un taller alquilado en el mismo ed
 
 *OrbStack* es un programa para Mac que crea máquinas Linux ligeras y las comparte con el Mac. Ya lo tienes instalado. Su comando es `orb`.
 
+## Antes de empezar: una predicción
+
+Vas a instalar Rust con tu usuario, no como administrador. Rust quedará en tu carpeta personal, en `~/.cargo/bin`. El `~` significa «tu carpeta personal».
+
+Después correrás `sudo cargo --version`. `sudo` corre un comando como administrador.
+
+Para razonarlo, hay que saber cómo se encuentra un programa. Un *shell* es el programa que lee lo que escribes en la terminal y lo ejecuta. Cuando escribes un nombre como `cargo`, el shell lo busca en una lista de carpetas llamada `PATH`. Tu `PATH` incluye `~/.cargo/bin`.
+
+<Quiz kind="prediction">
+<Fragment slot="question">Con Rust instalado en `~/.cargo/bin`, corres `sudo cargo --version`. ¿Qué pasa?</Fragment>
+
+<QuizOption>Imprime la versión de Cargo, porque `sudo` usa tu `PATH`.<Fragment slot="feedback">`sudo` no usa tu `PATH`. Usa el que fija su propia configuración, y `~/.cargo/bin` no está en él.</Fragment></QuizOption>
+
+<QuizOption correct>Dice que no encuentra el comando `cargo`.<Fragment slot="feedback">Rust se instaló para tu usuario, en tu carpeta personal. `sudo` busca en la lista que fija `/etc/sudoers` con la opción `secure_path`, y esa lista no llega a tu carpeta. Lo comprobarás en la trampa de más abajo.</Fragment></QuizOption>
+
+<QuizOption>Pide instalar Rust otra vez, ahora para el administrador.<Fragment slot="feedback">`sudo` nunca instala nada por su cuenta. Solo corre el comando que le pasas, y si no lo encuentra, falla.</Fragment></QuizOption>
+</Quiz>
+
 ## Los pasos
 
 Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
@@ -61,7 +79,7 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
 
    - `orb list`: muestra las máquinas que tienes.
 
-   Cada fila es una máquina: nombre, estado, distribución, versión, arquitectura, tamaño e IP. El tamaño y la IP cambian en cada máquina.
+   Cada fila es una máquina: nombre, estado, distribución, versión, arquitectura, tamaño e IP. Esta fila es un ejemplo: viene de otra máquina, con el nombre cambiado a `mini-container-dev`. En la tuya el tamaño y la IP serán otros.
 
    ```sh title="Deberías ver"
    $ orb list
@@ -171,7 +189,7 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
 
    `rustup` es el instalador y actualizador de Rust. `rustc` es el compilador. `cargo` es la herramienta que usarás todo el tiempo: compila, corre y administra dependencias.
 
-   Fijamos la versión 1.99.1 para que lo que ves en pantalla sea igual a lo que ves en esta guía. Es la versión más nueva con más de dos semanas de edad el 2026-11-12. La 1.100.0 salió ese mismo día.
+   Fijamos la versión 1.99.1 para que lo que ves en pantalla sea igual a lo que ves en esta guía.
 
    ```sh title="Deberías ver"
    info: downloading installer
@@ -196,13 +214,19 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
    ```
 
    - `.`: ejecuta un archivo dentro de la terminal actual, para que sus cambios se queden.
-   - `"$HOME/.cargo/env"`: el archivo que añade `~/.cargo/bin` al `PATH`. El `PATH` es la lista de carpetas donde el shell busca los programas.
-   - Efecto: desde ahora esta terminal encuentra `cargo`. Las terminales nuevas lo encuentran solas.
+   - `"$HOME/.cargo/env"`: el archivo que añade `~/.cargo/bin` al `PATH`. Las comillas protegen la ruta si tuviera espacios.
+   - Efecto: desde ahora esta terminal encuentra `cargo`. Las terminales nuevas lo encuentran solas, porque el instalador añadió esa misma línea a tus archivos `~/.profile` y `~/.bashrc`, que el shell lee al abrirse.
+
+   Comprueba que Rust responde:
 
    ```sh title="En Linux"
    rustc --version
    cargo --version
    ```
+
+   - `rustc --version`: imprime la versión del compilador.
+   - `cargo --version`: imprime la versión de `cargo`.
+   - Efecto: solo imprimen. Si dicen `command not found`, la terminal no encontró Rust: repite el comando de `. "$HOME/.cargo/env"`.
 
    ```sh title="Deberías ver"
    $ rustc --version
@@ -231,22 +255,16 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
 
 </Steps>
 
-<Quiz kind="prediction">
-<Fragment slot="question">Instalaste Rust con tu usuario. Ahora corres `sudo cargo --version`. ¿Qué pasa?</Fragment>
-
-<QuizOption>Imprime la versión de Cargo, porque `sudo` hereda tu `PATH`.<Fragment slot="feedback">`sudo` no hereda tu `PATH`. Usa una lista de carpetas fija y segura, y `~/.cargo/bin` no está en ella.</Fragment></QuizOption>
-
-<QuizOption correct>Dice que no encuentra el comando `cargo`.<Fragment slot="feedback">Rust se instaló para tu usuario, en tu carpeta personal. `sudo` busca solo en sus carpetas fijas y no llega ahí.</Fragment></QuizOption>
-
-<QuizOption>Pide instalar Rust otra vez, ahora para el administrador.<Fragment slot="feedback">`sudo` nunca instala nada por su cuenta. Solo corre el comando que le pasas, y si no lo encuentra, falla.</Fragment></QuizOption>
-</Quiz>
-
 <Aside type="caution" title="Trampa típica">
 `sudo cargo run` falla. Compruébalo:
 
 ```sh title="En Linux"
 sudo cargo --version
 ```
+
+- `sudo`: corre el comando que sigue como administrador.
+- `cargo --version`: el comando que `sudo` debe encontrar y correr.
+- Efecto: no cambia nada. Solo falla.
 
 ```sh title="Deberías ver"
 $ sudo cargo --version
@@ -255,12 +273,18 @@ sudo: 'cargo': command not found
 
 Otras versiones de `sudo` escriben el mensaje sin las comillas: `sudo: cargo: command not found`. Es el mismo error.
 
-El motivo está en el `PATH` que usa `sudo`:
+El motivo está en el `PATH` que usa `sudo`. Mira los dos `PATH`:
 
 ```sh title="En Linux"
 sudo sh -c 'echo $PATH'
 which cargo
 ```
+
+- `sudo sh -c '...'`: `sh` es un shell. `-c` le dice «ejecuta este texto». Así el texto corre dentro de `sudo`, con el `PATH` de `sudo`.
+- `echo $PATH`: `echo` imprime. `$PATH` es el valor de la variable `PATH`.
+- Las comillas simples evitan que tu shell cambie `$PATH` por su propio valor antes de que `sh` lo vea.
+- `which cargo`: imprime dónde está un programa, buscándolo en el `PATH` de tu usuario.
+- Efecto: solo imprimen.
 
 ```sh title="Deberías ver"
 $ sudo sh -c 'echo $PATH'
@@ -269,16 +293,18 @@ $ which cargo
 /home/TU_USUARIO/.cargo/bin/cargo
 ```
 
-`TU_USUARIO` es tu nombre de usuario en Linux. `which` imprime dónde está un programa. Ninguna carpeta de la primera línea es `~/.cargo/bin`.
+`TU_USUARIO` es tu nombre de usuario en Linux. Ninguna carpeta de la primera línea es `~/.cargo/bin`. Esa lista sale de la opción `secure_path` del archivo `/etc/sudoers`: cuando existe, `sudo` la usa en lugar de tu `PATH`.
 
-La salida correcta es compilar con tu usuario y correr solo el binario con `sudo`:
+La salida correcta es compilar con tu usuario y correr solo el binario con `sudo`. Estos comandos son para 1a, cuando ya tengas un proyecto. No los corras todavía:
 
 ```sh title="En Linux"
 cargo build
 sudo ./target/debug/mini-container
 ```
 
-Con la ruta completa del binario, `sudo` no necesita buscar nada en el `PATH`. Lo usaremos a partir de 1a.
+- `cargo build`: compila el proyecto y deja el binario en `target/debug/`. Lo corres con tu usuario, que sí encuentra `cargo`.
+- `sudo ./target/debug/mini-container`: corre el binario como administrador. El `.` es la carpeta actual. Como la ruta lleva `/`, el shell la usa tal cual y no la busca en el `PATH`.
+- Efecto: el programa corre con permisos de administrador y `sudo` no necesita encontrar `cargo`.
 </Aside>
 
 <Quiz kind="closing">
@@ -286,7 +312,7 @@ Con la ruta completa del binario, `sudo` no necesita buscar nada en el `PATH`. L
 
 <QuizOption>Porque `cargo` no puede correr programas con `sudo`.<Fragment slot="feedback">`cargo` sí puede correr con `sudo`. El problema es que `sudo` no lo encuentra, porque su `PATH` no incluye `~/.cargo/bin`.</Fragment></QuizOption>
 
-<QuizOption correct>Porque `sudo` no encuentra `cargo`, pero sí puede ejecutar un binario si le das su ruta.<Fragment slot="feedback">Con `./target/debug/mini-container` no hay nada que buscar en el `PATH`: la ruta ya dice dónde está el archivo.</Fragment></QuizOption>
+<QuizOption correct>Porque `sudo` no encuentra `cargo`, pero sí puede ejecutar un binario si le das su ruta.<Fragment slot="feedback">Con `./target/debug/mini-container` no hay nada que buscar en el `PATH`: una ruta con `/` ya dice dónde está el archivo.</Fragment></QuizOption>
 
 <QuizOption>Porque compilar como administrador daría errores de enlazado.<Fragment slot="feedback">Compilar como administrador no produce errores de enlazado. El motivo real es otro: `sudo` no encuentra `cargo`.</Fragment></QuizOption>
 </Quiz>
@@ -316,6 +342,7 @@ Tu lista debe incluir `cpu` y `memory`. Puede traer más o menos controladores q
 
 - Documentación de cgroup v2 del kernel, «Mounting» y `cgroup.controllers`: el sistema de archivos de cgroup v2 se llama `cgroup2`, y `cgroup.controllers` es un archivo de solo lectura que lista los controladores disponibles. [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-12.
 - `stat(1)`: `%T` imprime el tipo del sistema de archivos en texto. [man7.org/linux/man-pages/man1/stat.1.html](https://man7.org/linux/man-pages/man1/stat.1.html). Consultada el 2026-11-12.
-- Versiones de Rust: la 1.100.0 salió el 2026-11-12 y la 1.99.1 el 2026-10-15. [github.com/rust-lang/rust, RELEASES.md](https://github.com/rust-lang/rust/blob/master/RELEASES.md). Consultada el 2026-11-12.
+- `sudoers-rs(5)`, opción `secure_path`: «If set, sudo will use this value in place of the user's PATH environment variable». Página man del paquete `sudo-rs` 0.2.13 de Ubuntu 26.04, leída en la máquina el 2026-11-12. En esa máquina, `/etc/sudoers` define `secure_path` con la lista que muestra la trampa.
+- Las terminales nuevas encuentran `cargo`: comprobado en la máquina con `bash -ic 'command -v cargo'`, que imprime `/home/TU_USUARIO/.cargo/bin/cargo`, y con `grep cargo ~/.profile ~/.bashrc`, que muestra la línea `. "$HOME/.cargo/env"` en los dos archivos. El 2026-11-12.
 - Sintaxis de `orb create` y de `orb -m`: salida de `orb create --help` y `orbctl run --help`, OrbStack 2.2.5, el 2026-11-12.
-- Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, el 2026-11-12. La fila de `orb list` viene de la máquina de verificación, con el nombre cambiado.
+- Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, el 2026-11-12. La fila de `orb list` es un ejemplo, con el nombre cambiado.
