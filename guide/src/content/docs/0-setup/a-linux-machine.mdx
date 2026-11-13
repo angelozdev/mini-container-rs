@@ -212,7 +212,7 @@ Cada comando dice dónde se corre: en el Mac o en Linux. No los mezcles.
 
    <ShouldSee>
 
-   ```sh title="Deberías ver"
+   ```sh title="Deberías ver" output
    info: downloading installer
    info: profile set to default
    info: default host tuple is aarch64-unknown-linux-gnu
@@ -299,7 +299,7 @@ sudo cargo --version
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2}
 $ sudo cargo --version
 sudo: 'cargo': command not found
 ```

@@ -1,6 +1,7 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
+import { terminalWindow } from "./src/lib/terminal-window.mjs";
 
 const syntaxColors = [
   { scopes: ["comment", "punctuation.definition.comment"], color: "var(--n-faint)" },
@@ -39,7 +40,7 @@ export default defineConfig({
         root: { label: "Español", lang: "es" },
       },
       plugins: [starlightLinksValidator()],
-      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css", "./src/styles/glossary.css", "./src/styles/page-props.css", "./src/styles/section-marks.css", "./src/styles/reading-bar.css", "./src/styles/diagram-grid.css", "./src/styles/exercises-card.css"],
+      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css", "./src/styles/glossary.css", "./src/styles/page-props.css", "./src/styles/section-marks.css", "./src/styles/reading-bar.css", "./src/styles/diagram-grid.css", "./src/styles/exercises-card.css", "./src/styles/terminal-window.css"],
       components: {
         Header: "./src/components/Header.astro",
         PageTitle: "./src/components/PageTitle.astro",
@@ -47,6 +48,7 @@ export default defineConfig({
       },
       expressiveCode: {
         defaultProps: { wrap: true },
+        plugins: [terminalWindow()],
         customizeTheme: useNotionSyntaxColors,
         minSyntaxHighlightingColorContrast: 0,
       },

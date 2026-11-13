@@ -198,42 +198,6 @@
   font-size: inherit;
 }
 
-.should-see {
-  position: relative;
-  margin-block: 0.625rem;
-  padding: 0.875rem 1rem 0.875rem 2.75rem;
-  border-radius: 6px;
-  background: var(--n-c-gray);
-}
-
-.should-see::before {
-  content: "👀";
-  position: absolute;
-  top: 0.875rem;
-  left: 0.75rem;
-  font-size: 1.25rem;
-  line-height: 1.3;
-}
-
-.should-see-label {
-  margin: 0;
-  font-weight: 600;
-}
-
-.should-see-body {
-  margin-top: 0.5rem;
-}
-
-.should-see .expressive-code {
-  --ec-codeBg: var(--n-bg);
-  --ec-frm-edBg: var(--n-bg);
-  --ec-frm-trmBg: var(--n-bg);
-}
-
-.should-see .expressive-code figcaption {
-  display: none;
-}
-
 .compare {
   display: flex;
   flex-direction: column;

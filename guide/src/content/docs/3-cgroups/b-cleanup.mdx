@@ -417,7 +417,7 @@ echo $?; ls -d /sys/fs/cgroup/mini-container-*
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={4}
 $ sudo ./target/debug/mini-container run /bin/sleep 3
 ^C$ echo $?; ls -d /sys/fs/cgroup/mini-container-*
 0
@@ -495,7 +495,7 @@ ls -d /sys/fs/cgroup/mini-container-*
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2}
 $ ls -d /sys/fs/cgroup/mini-container-*
 ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
 ```
@@ -687,7 +687,7 @@ Terminated
 
 El resultado esperado, con el mismo comando, es otro:
 
-```sh title="Resultado esperado"
+```sh title="Resultado esperado" stderr={3}
 $ sudo sh -c './target/debug/mini-container run /bin/sleep 3 & pid=$!; sleep 1; kill $pid; wait $pid; echo $?; ls -d /sys/fs/cgroup/mini-container-*'
 0
 ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory

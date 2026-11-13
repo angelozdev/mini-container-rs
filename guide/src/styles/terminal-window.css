@@ -1,0 +1,117 @@
+.expressive-code .frame.is-terminal {
+  --edge: var(--n-faint);
+  overflow: hidden;
+  border: 1px solid var(--n-line);
+  border-radius: 8px;
+  background: var(--n-code);
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .expressive-code .frame.is-terminal {
+  --edge: var(--n-shadow);
+}
+
+.expressive-code .frame.is-terminal .header::before,
+.expressive-code .frame.is-terminal .header::after {
+  display: none;
+}
+
+.expressive-code .frame.is-terminal figcaption.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 6px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--n-line);
+  border-radius: 0;
+  background: var(--n-side);
+  color: var(--n-text);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.expressive-code .frame.is-terminal .terminal-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.expressive-code .frame.is-terminal .terminal-dots i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--n-faint);
+}
+
+.expressive-code .frame.is-terminal .title {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--n-text);
+  font-size: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.expressive-code .frame.is-terminal .stderr-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: auto;
+  color: var(--n-note);
+  font: 12px/1.5 var(--sl-font-mono);
+}
+
+.expressive-code .frame.is-terminal .stderr-key::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--n-t-red);
+}
+
+.expressive-code .frame.is-terminal pre {
+  overflow-x: auto;
+  border-radius: 0;
+  background-color: var(--n-code);
+  background-image:
+    linear-gradient(to right, var(--n-code) 30%, transparent),
+    linear-gradient(to left, var(--n-code) 30%, transparent),
+    linear-gradient(to right, var(--edge), transparent),
+    linear-gradient(to left, var(--edge), transparent);
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+  background-size: 28px 100%, 28px 100%, 12px 100%, 12px 100%;
+  background-position: left center, right center, left center, right center;
+}
+
+.expressive-code .frame.is-terminal pre:focus-visible {
+  outline: 2px solid var(--n-t-blue);
+  outline-offset: -2px;
+}
+
+.expressive-code .frame.is-terminal pre > code {
+  color: var(--n-text);
+}
+
+.expressive-code .frame.is-terminal .ec-line.is-command .code {
+  font-weight: 700;
+}
+
+.expressive-code .frame.is-terminal .ec-line.is-command .code::before {
+  content: "$ ";
+  color: var(--n-note);
+  font-weight: 400;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.expressive-code .frame.is-terminal .ec-line.is-stderr {
+  --stderr-mark: var(--n-t-red);
+  background: var(--n-c-red);
+  box-shadow: inset 3px 0 0 var(--stderr-mark);
+}

@@ -679,7 +679,7 @@ Escribe cada línea que sigue a `/ # `, una por una:
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={5}
 $ sudo ./target/debug/mini-container run /bin/sh
 / # head -n 1 /etc/os-release
 NAME="Alpine Linux"
@@ -733,7 +733,7 @@ sudo ./target/debug/mini-container run bash; echo $?
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2-5}
 $ sudo ./target/debug/mini-container run bash; echo $?
 Error: could not run `bash`
 
@@ -752,7 +752,7 @@ Tu `bash` existe, pero en la raíz vieja, y esa ya no existe para el comando. Pa
 
 Si te olvidas de bajar Alpine, tu programa lo dice. Es lo que sale cuando la carpeta no existe:
 
-```sh title="Lo que ves si falta Alpine"
+```sh title="Lo que ves si falta Alpine" stderr={2-5}
 $ sudo ./target/debug/mini-container run /bin/sh
 Error: could not find the alpine root filesystem at /var/lib/mini-container/alpine
 
@@ -774,7 +774,7 @@ Creer que Alpine trae su propio `/dev`. Viene vacío: la carpeta `dev` no tiene 
 
 Esto es lo que sale con tu programa sin esa línea. La salida es la de tu programa con ese cambio, compilado y corrido:
 
-```sh title="Lo que ves"
+```sh title="Lo que ves" stderr={6}
 $ sudo ./target/debug/mini-container run /bin/sh -c 'ls -l /dev; echo hola > /dev/null; ls -l /dev; cat /dev/null; head -c 10 /dev/zero | wc -c'
 total 0
 total 4
@@ -855,7 +855,7 @@ fn mount_dev(dev: &Path) -> Result<()> {
 }
 ```
 
-```sh title="Lo que ves"
+```sh title="Lo que ves" stderr={4-7}
 $ sudo ./target/debug/mini-container run /bin/ls -l /dev
 total 0
 $ sudo ./target/debug/mini-container run /bin/ls -l /dev

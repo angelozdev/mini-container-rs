@@ -456,7 +456,7 @@ Antes de escribir, una predicción.
 
    Esto es lo que sale con tu programa sin el arreglo que sigue. La salida es la de tu programa sin él, compilado y corrido:
 
-   ```sh title="Lo que ves sin el arreglo"
+   ```sh title="Lo que ves sin el arreglo" stderr={3-7}
    $ sudo ./target/debug/mini-container run /bin/echo ok; echo $?
    ok
    could not remove the cgroup /sys/fs/cgroup/mini-container-68762: No such file or directory (os error 2)
@@ -615,7 +615,7 @@ sudo ./target/debug/mini-container run /bin/sh -c 'head -c 200m /dev/zero | tail
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2-3}
 $ sudo ./target/debug/mini-container run /bin/sh -c 'head -c 200m /dev/zero | tail'; echo $?
 Killed
 the kernel killed a process for running out of memory (oom_kill: 1)
@@ -682,7 +682,7 @@ ls -d /sys/fs/cgroup/mini-container-*
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2}
 $ ls -d /sys/fs/cgroup/mini-container-*
 ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
 ```
@@ -693,7 +693,7 @@ El error es la buena noticia: ninguna carpeta coincide. `Drop` borró las tres q
 
 Si escribes `50MB` en vez de `50M` en `MEMORY_MAX`, el kernel no entiende el valor. Tu programa lo dice. Es la otra salida de la escritura del paso 3:
 
-```sh title="Lo que ves con 50MB"
+```sh title="Lo que ves con 50MB" stderr={2-5}
 $ sudo ./target/debug/mini-container run /bin/echo ok; echo $?
 Error: could not write 50MB to /sys/fs/cgroup/mini-container-53983/memory.max
 
@@ -801,7 +801,7 @@ $ ls -d /sys/fs/cgroup/mini-container-*
 }
 ```
 
-```sh title="Lo que ves"
+```sh title="Lo que ves" stderr={4}
 $ sudo ./target/debug/mini-container run /bin/echo ok
 ok
 $ ls -d /sys/fs/cgroup/mini-container-*

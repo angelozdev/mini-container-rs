@@ -494,7 +494,7 @@ sudo ./target/debug/mini-container; echo $?
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2}
 $ sudo ./target/debug/mini-container; echo $?
 usage: mini-container run <program> [args...]
 2
@@ -540,7 +540,7 @@ OK 1a
 
 Si una comprobación falla, el script dice cuál y sale con un código distinto de 0. Este es el resultado de un programa que sale con 0 aunque el hijo falle:
 
-```sh title="Si falla"
+```sh title="Si falla" stderr={2}
 $ sudo guide/scripts/check-my-code.sh 1a; echo $?
 FAIL: the child exits with 3: expected [3] but got [0]
 1
@@ -591,7 +591,7 @@ sudo ./target/debug/mini-container run holaa; echo $?
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2-5}
 $ sudo ./target/debug/mini-container run holaa; echo $?
 Error: could not launch the program
 
@@ -650,7 +650,7 @@ Inténtalos solo, sin código. Dedica 5 minutos antes de abrir una pista. Las du
 
 **Objetivo:** cuando el programa no se puede lanzar, el error debe nombrar el programa que no existe.
 
-```sh title="Resultado esperado"
+```sh title="Resultado esperado" stderr={2-5}
 $ sudo ./target/debug/mini-container run holaa
 Error: could not launch `holaa`
 

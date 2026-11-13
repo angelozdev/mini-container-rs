@@ -405,10 +405,6 @@ mobile-starlight-toc a[aria-current="true"] {
   --ec-frm-edActTabIndTopCol: transparent;
   --ec-frm-edActTabIndBtmCol: transparent;
   --ec-frm-trmBg: var(--n-code);
-  --ec-frm-trmTtbBg: var(--n-code);
-  --ec-frm-trmTtbFg: var(--n-muted);
-  --ec-frm-trmTtbBrdBtmCol: transparent;
-  --ec-frm-trmTtbDotsOpa: 0;
   --ec-tm-insBg: var(--n-ins);
   --ec-tm-insBrdCol: var(--n-t-green);
   --ec-tm-insDiffIndCol: var(--n-t-green);
@@ -439,8 +435,6 @@ mobile-starlight-toc a[aria-current="true"] {
   letter-spacing: 0;
 }
 
-.expressive-code .frame.is-terminal .header::before,
-.expressive-code .frame.is-terminal .header::after,
 .expressive-code .frame:not(.is-terminal) .title::after,
 .expressive-code .frame:not(.is-terminal) .header::before {
   display: none;

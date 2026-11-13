@@ -457,7 +457,7 @@ Corre tu programa otra vez, ahora sin `sudo`:
 
 <ShouldSee>
 
-```sh title="Deberías ver"
+```sh title="Deberías ver" stderr={2-5}
 $ ./target/debug/mini-container run /bin/hostname; echo $?
 Error: could not create the namespaces: did you run it with sudo?
 
@@ -546,7 +546,7 @@ pub fn unshare_namespaces() -> Result<()> {
 }
 ```
 
-```sh title="Lo que ves"
+```sh title="Lo que ves" stderr={2-5}
 $ ./target/debug/mini-container run /bin/hostname; echo $?
 
 thread 'main' (13165) panicked at src/namespaces.rs:8:39:
@@ -567,7 +567,7 @@ pub fn unshare_namespaces() -> Result<()> {
 }
 ```
 
-```sh title="Lo que ves"
+```sh title="Lo que ves" stderr={2-5}
 $ ./target/debug/mini-container run /bin/hostname; echo $?
 Error: could not create the namespaces: did you run it with sudo?
 
