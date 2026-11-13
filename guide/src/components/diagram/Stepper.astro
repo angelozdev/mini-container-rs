@@ -25,6 +25,7 @@ if (chunks.length < minimumSteps || chunks.length > maximumSteps) {
 const total = chunks.length;
 const groupName = `stepper-${name}`;
 const radioId = (step: number) => `${groupName}-${step}`;
+const captionId = (step: number) => `${groupName}-caption-${step}`;
 const steps = chunks.map((chunk, index) => {
   const [scene, caption] = chunk.split(captionMarker);
   return { number: index + 1, scene, caption: caption ?? "" };
@@ -44,10 +45,11 @@ const steps = chunks.map((chunk, index) => {
           value={number}
           checked={number === 1}
           aria-label={`Paso ${number} de ${total}`}
+          aria-describedby={captionId(number)}
         />
         <div class="stepper-stage">
           <div class="stepper-scene" set:html={scene} />
-          <div class="stepper-caption" set:html={caption} />
+          <div class="stepper-caption" id={captionId(number)} set:html={caption} />
         </div>
         <div class="stepper-player">
           <div class="stepper-nav" aria-hidden="true">

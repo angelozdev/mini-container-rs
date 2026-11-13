@@ -118,6 +118,21 @@ for (const docsPath of listFiles(docsFolder).filter((path) => path.endsWith(".md
     }
   });
 
+  test(`${name}: every radio is described by the caption of its own step`, () => {
+    const page = builtPageOf(docsPath);
+    if (!existsSync(page)) return;
+    const ids = builtIds(page);
+    for (const [index, stepper] of expectBuilt(page, steppersWritten).entries()) {
+      for (const [position, tag] of stepper.radios.entries()) {
+        const where = `stepper ${index + 1}, step ${position + 1}`;
+        const captionId = stepper.stages[position].captionId;
+        assert.ok(captionId, `${where}: the caption needs an id`);
+        assert.equal(ids.filter((other) => other === captionId).length, 1, `${where}: the caption id ${captionId} is not unique in the page`);
+        assert.equal(attributeOf(tag, "aria-describedby"), captionId, `${where}: the radio must be described by its caption`);
+      }
+    }
+  });
+
   test(`${name}: every player shows its position as n/N`, () => {
     const page = builtPageOf(docsPath);
     if (!existsSync(page)) return;
