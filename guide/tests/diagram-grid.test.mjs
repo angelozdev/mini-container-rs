@@ -12,10 +12,22 @@ const nameOf = (docsPath) => relative(docsFolder, docsPath);
 
 const expectedOutcomes = [
   {
+    page: "1-process/a-launch-a-shell.mdx",
+    call: ".status()",
+    ok: { label: "Ok(ExitStatus)", note: "el programa corrió y terminó" },
+    error: { label: "Err(error)", note: "no se pudo lanzar: sale con 1" },
+  },
+  {
     page: "2-namespaces/a-hostname.mdx",
     call: "unshare(CloneFlags::CLONE_NEWUTS)",
     ok: { label: "Ok(())", note: "tu programa sigue con su copia" },
     error: { label: "Err(EPERM)", note: "falta sudo: sale con 1" },
+  },
+  {
+    page: "2-namespaces/b-processes.mdx",
+    call: ".exec()",
+    ok: { label: "No vuelve", note: "este proceso ya es otro programa" },
+    error: { label: "Vuelve con el error", note: "el programa no se pudo ejecutar" },
   },
 ];
 

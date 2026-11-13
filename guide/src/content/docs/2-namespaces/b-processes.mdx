@@ -6,6 +6,7 @@ icon: 🪪
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
+import CallOutcomes from "../../../components/diagram/CallOutcomes.astro";
 import KernelBox from "../../../components/diagram/KernelBox.astro";
 import KernelEntry from "../../../components/diagram/KernelEntry.astro";
 import Lane from "../../../components/diagram/Lane.astro";
@@ -433,6 +434,16 @@ Antes de escribir, una predicción.
    - `.with_context(|| format!(...))`: como `.context(...)`, pero recibe una función que arma el mensaje. Una función sin nombre, escrita así, `|| ...`, se llama <Term id="closure">closure</Term>. Solo se ejecuta si hubo un error, y así el mensaje no se arma cuando todo sale bien.
    - ``format!("could not run `{}`", command.program)``: arma un texto. `{}` es un <Term id="placeholder">hueco</Term> que Rust rellena con el nombre del programa. El mensaje dice «no pude ejecutar `programa`».
    - `.exec()` tampoco corre los <Term id="destructor">destructores</Term>, igual que `std::process::exit`. Un destructor es el código que Rust ejecuta para limpiar cuando algo deja de usarse. Aquí no importa: `init` no tiene nada que limpiar.
+
+   Con `.exec()` pasa una de dos cosas:
+
+   <CallOutcomes
+     call=".exec()"
+     ok="No vuelve"
+     okNote="este proceso ya es otro programa"
+     error="Vuelve con el error"
+     errorNote="el programa no se pudo ejecutar"
+   />
 
    Queda por explicar `Infallible`. Es un tipo sin ningún valor posible: no se puede crear ni uno. `Result<Infallible>` dice, entonces, que el `Ok` nunca existe: `init` solo puede devolver un error. Es verdad, porque si `.exec()` funciona, `init` no devuelve nada. Con `Result<()>` prometerías un `Ok(())` que nunca llega. La documentación de Rust lo usa en el lugar del error, para decir que «nunca falla». Aquí está en el lugar del `Ok`, por la misma razón al revés.
 

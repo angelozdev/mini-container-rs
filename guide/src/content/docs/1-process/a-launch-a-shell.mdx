@@ -7,6 +7,7 @@ icon: 🐚
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 import BeforeAfter from "../../../components/diagram/BeforeAfter.astro";
+import CallOutcomes from "../../../components/diagram/CallOutcomes.astro";
 import KernelBox from "../../../components/diagram/KernelBox.astro";
 import KernelEntry from "../../../components/diagram/KernelEntry.astro";
 import Process from "../../../components/diagram/Process.astro";
@@ -605,6 +606,16 @@ Caused by:
 - `Caused by:`: significa «causado por». Introduce la causa, el error original que dio el sistema.
 - `No such file or directory (os error 2)`: «no existe el archivo o directorio». El 2 es el código de error del sistema para eso.
 - El último `1` es el código de salida de tu programa.
+
+Con un programa que existe y con uno que no, viste las dos salidas de `.status()`:
+
+<CallOutcomes
+  call=".status()"
+  ok="Ok(ExitStatus)"
+  okNote="el programa corrió y terminó"
+  error="Err(error)"
+  errorNote="no se pudo lanzar: sale con 1"
+/>
 
 El mensaje no dice qué programa falló. Lo arreglas en el ejercicio.
 
