@@ -235,14 +235,19 @@
 }
 
 .compare {
-  display: grid;
-  grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   margin-block: 0.75rem;
 }
 
 .compare-side {
   min-width: 0;
+}
+
+.compare-side + .compare-side {
+  padding-top: 1rem;
+  border-top: 1px solid var(--n-line);
 }
 
 .compare-label {
@@ -260,17 +265,7 @@
 }
 
 .compare-side .expressive-code {
-  --ec-codeFontSize: 0.6875rem;
-  --ec-codePadInl: 0.25rem;
   margin-top: 0.5rem;
-}
-
-.compare-side .expressive-code :nth-child(1 of .ec-line) .code {
-  padding-inline-end: var(--ec-codePadInl);
-}
-
-.compare-side .expressive-code .copy {
-  display: none;
 }
 
 .compare-side[data-side="bad"] .compare-label::before {
@@ -387,11 +382,5 @@
 
   .diagram-arrow::before {
     content: "↓";
-  }
-}
-
-@media (max-width: 64rem) {
-  .compare {
-    grid-template-columns: 1fr;
   }
 }

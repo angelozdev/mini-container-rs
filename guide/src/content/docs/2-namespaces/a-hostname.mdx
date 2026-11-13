@@ -453,7 +453,7 @@ sudo hostname mini-container-dev
 
 Ese error dice primero qué intentaba tu programa y después la causa. No tenía por qué ser así. Un `Result` se puede abrir con `.unwrap()`: si hubo un error, el programa se cae con un *panic*. Un panic es una caída: Rust imprime dónde pasó y sale con el código 101.
 
-Mira la función `unshare_namespaces` escrita de las dos formas, y lo que ve quien corre el programa sin `sudo`. La izquierda es tu función con `.unwrap()` en vez de `.context(...)`. Como `.unwrap()` ya abre el `Result`, la función termina con `Ok(())`. No hace falta que lo pruebes: la salida de la izquierda es la de tu `src/namespaces.rs` con ese cambio, compilado y corrido sin `sudo`.
+Mira la función `unshare_namespaces` escrita de las dos formas, y lo que ve quien corre el programa sin `sudo`. «Así no» es tu función con `.unwrap()` en vez de `.context(...)`. Como `.unwrap()` ya abre el `Result`, la función termina con `Ok(())`. No hace falta que lo pruebes: la salida de «Así no» es la de tu `src/namespaces.rs` con ese cambio, compilado y corrido sin `sudo`.
 
 <Compare>
 <Fragment slot="bad">
