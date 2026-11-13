@@ -6,8 +6,18 @@ import { docsFolder, listFiles, readGlossaryEntries } from "./support.mjs";
 import { findMisplacedTerms, findTermUseProblems, formsOf } from "./term-source.mjs";
 
 const documentedExceptions = [
-  { page: "0-setup/b-rust-project.mdx", id: "target", reason: "the first use is the bold title of step 3" },
-  { page: "2-namespaces/b-processes.mdx", id: "signal", reason: "the first use is the quoted name of a section" },
+  {
+    page: "0-setup/b-rust-project.mdx",
+    id: "target",
+    excerpt: "Instala el target de Linux",
+    reason: "the use is in the bold title of step 3, before the Term that opens its text",
+  },
+  {
+    page: "2-namespaces/b-processes.mdx",
+    id: "signal",
+    excerpt: "«Por qué el PID 1 ignora señales»",
+    reason: "the use is the quoted title of a later section, not the concept",
+  },
 ];
 
 const mdx = (...lines) => lines.join("\n");
@@ -128,6 +138,54 @@ test("a word that is only part of a longer word is not a use", () => {
   assert.deepEqual(unmarked, []);
 });
 
+const excuseOf = (id, excerpt) => ({ id, excerpt });
+
+test("an excused first use does not hide a second early use of the same word", () => {
+  const source = mdx("The kernel is named in a title.", "", "The kernel again, too early.", "", `The ${kernelTerm}.`);
+  const { early, unusedExcuses } = findTermUseProblems(source, [kernel], [excuseOf("kernel", "The kernel is named")]);
+  assert.deepEqual(early.map(({ id, line }) => [id, line]), [["kernel", 3]]);
+  assert.deepEqual(unusedExcuses, []);
+});
+
+test("an excuse covers only the occurrence it quotes, not another one on the same line", () => {
+  const source = mdx("A kernel and a kernel.", "", `The ${kernelTerm}.`);
+  const { early } = findTermUseProblems(source, [kernel], [excuseOf("kernel", "A kernel and")]);
+  assert.deepEqual(early.map(({ id, line }) => [id, line]), [["kernel", 1]]);
+});
+
+test("an excuse for one word does not excuse another word on the same line", () => {
+  const source = mdx(`The ${kernelTerm}.`, "", "A señal and the kernel.");
+  const { unmarked } = findTermUseProblems(source, [kernel, signal], [excuseOf("kernel", "A señal and")]);
+  assert.deepEqual(unmarked.map(({ id, line }) => [id, line]), [["signal", 3]]);
+});
+
+test("a word used without its Term on a page that marks others can be excused for an ordinary sense", () => {
+  const source = mdx(`The ${kernelTerm}.`, "", "Sin ninguna señal de vida.");
+  const { unmarked, unusedExcuses } = findTermUseProblems(source, [kernel, signal], [excuseOf("signal", "ninguna señal de vida")]);
+  assert.deepEqual([unmarked, unusedExcuses], [[], []]);
+});
+
+test("every unmarked use is reported, not only the first", () => {
+  const source = mdx(`The ${kernelTerm}.`, "", "A señal arrives.", "", "Another señal arrives.");
+  const { unmarked } = findTermUseProblems(source, [kernel, signal], [excuseOf("signal", "A señal arrives")]);
+  assert.deepEqual(unmarked.map(({ id, line }) => [id, line]), [["signal", 5]]);
+});
+
+test("an excuse that quotes text that is no problem is reported as unused", () => {
+  const source = mdx(`The ${kernelTerm}.`, "", "The kernel again.");
+  const stale = excuseOf("kernel", "The kernel again");
+  const missing = excuseOf("kernel", "text that is not on the page");
+  const { unusedExcuses } = findTermUseProblems(source, [kernel], [stale, missing]);
+  assert.deepEqual(unusedExcuses, [stale, missing]);
+});
+
+test("an excuse that quotes only a use inside inline code is reported as unused", () => {
+  const source = mdx(`The ${kernelTerm}.`, "", "Use `kernel` here.");
+  const { early, unmarked, unusedExcuses } = findTermUseProblems(source, [kernel], [excuseOf("kernel", "Use `kernel` here")]);
+  assert.deepEqual([early, unmarked], [[], []]);
+  assert.equal(unusedExcuses.length, 1);
+});
+
 const entries = readGlossaryEntries();
 const pages = listFiles(docsFolder)
   .filter((path) => path.endsWith(".mdx"))
@@ -148,10 +206,10 @@ for (const page of pages) {
   });
 
   test(`${page.name}: every Term marks the first use of its word in the prose of the page`, () => {
-    const { early, unmarked, foreign } = findTermUseProblems(page.source, entries);
-    const excused = (problem) => documentedExceptions.some(({ page: name, id }) => name === page.name && id === problem.id);
+    const excuses = documentedExceptions.filter(({ page: name }) => name === page.name);
+    const { early, unmarked, foreign } = findTermUseProblems(page.source, entries, excuses);
     assert.deepEqual(
-      early.filter((problem) => !excused(problem)).map(({ id, line, termLine }) => `${id}: used at line ${line}, marked at line ${termLine}`),
+      early.map(({ id, line, termLine }) => `${id}: used at line ${line}, marked at line ${termLine}`),
       [],
       `${page.name}: a word is used before its Term`,
     );
@@ -169,10 +227,12 @@ for (const page of pages) {
 }
 
 test("every documented exception is still needed", () => {
-  for (const { page: name, id, reason } of documentedExceptions) {
+  for (const exception of documentedExceptions) {
+    const { page: name, id, reason } = exception;
     const page = pages.find((candidate) => candidate.name === name);
     assert.ok(page, `${name} does not exist`);
-    const { early } = findTermUseProblems(page.source, entries);
-    assert.ok(early.some((problem) => problem.id === id), `${name}: the exception for ${id} (${reason}) is no longer needed: remove it`);
+    const excuses = documentedExceptions.filter((candidate) => candidate.page === name);
+    const { unusedExcuses } = findTermUseProblems(page.source, entries, excuses);
+    assert.ok(!unusedExcuses.includes(exception), `${name}: the exception for ${id} (${reason}) excuses no use: remove it or fix its excerpt`);
   }
 });

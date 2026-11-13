@@ -806,7 +806,7 @@ En 1a, `run /bin/sh -c 'kill -9 $$'` daba `137`. Pruébalo ahora:
 sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 ```
 
-- `run /bin/sh -c 'kill -9 $$'`: lanza `sh` con la orden `kill -9 $$`. El shell se manda a sí mismo la señal 9, `SIGKILL`.
+- `run /bin/sh -c 'kill -9 $$'`: lanza `sh` con la orden `kill -9 $$`. El shell se manda a sí mismo la <Term id="signal">señal</Term> 9, `SIGKILL`.
 - `; echo $?`: imprime el código de salida del comando anterior.
 - Efecto: el shell intenta matarse.
 
@@ -821,7 +821,7 @@ $ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 
 Sale `0`, no `137`. El shell no murió: `kill` terminó bien y el shell salió con ese `0`.
 
-El PID 1 de una lista es especial. Solo recibe las <Term id="signal">señales</Term> para las que tiene un <Term id="signal-handler">manejador</Term>, que es el código con el que un programa decide qué hacer al recibirlas. Las demás se pierden, incluso `SIGKILL`, si las manda un proceso de su misma lista. Aquí el PID 1 es el shell, y se la mandó a sí mismo.
+El PID 1 de una lista es especial. Solo recibe las señales para las que tiene un <Term id="signal-handler">manejador</Term>, que es el código con el que un programa decide qué hacer al recibirlas. Las demás se pierden, incluso `SIGKILL`, si las manda un proceso de su misma lista. Aquí el PID 1 es el shell, y se la mandó a sí mismo.
 
 Hay una excepción: `SIGKILL`, que mata al proceso, y `SIGSTOP`, que lo pausa sin terminarlo, sí llegan si las manda un proceso de fuera de su lista.
 

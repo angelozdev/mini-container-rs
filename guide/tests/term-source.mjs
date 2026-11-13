@@ -103,17 +103,24 @@ function readProse(source) {
     .filter(({ zone }) => zone === "prose")
     .map(({ number, text }) => {
       const { clean, terms } = stripTerms(text);
-      return { number, text: mask(clean, maskedRanges(clean)), terms };
+      return { number, plain: clean, text: mask(clean, maskedRanges(clean)), terms };
     });
 }
 
 function formsPattern(entry) {
   const forms = [...formsOf(entry)].sort((left, right) => right.length - left.length);
   const alternatives = forms.map((form) => form.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  return new RegExp(`(?<!${wordEdge})(?:${alternatives})(?!${wordEdge})`, "iu");
+  return new RegExp(`(?<!${wordEdge})(?:${alternatives})(?!${wordEdge})`, "giu");
 }
 
-export function findTermUseProblems(source, entries) {
+function quotes(excuse, line, use) {
+  for (let from = line.plain.indexOf(excuse.excerpt); from !== -1; from = line.plain.indexOf(excuse.excerpt, from + 1)) {
+    if (use.index >= from && use.index + use[0].length <= from + excuse.excerpt.length) return true;
+  }
+  return false;
+}
+
+export function findTermUseProblems(source, entries, excuses = []) {
   const prose = readProse(source);
   const marked = new Map();
   for (const line of prose) {
@@ -122,19 +129,28 @@ export function findTermUseProblems(source, entries) {
   const early = [];
   const unmarked = [];
   const foreign = [];
+  const used = new Set();
+  const excused = (entry, line, use) => {
+    const covering = excuses.filter((excuse) => excuse.id === entry.id && quotes(excuse, line, use));
+    covering.forEach((excuse) => used.add(excuse));
+    return covering.length > 0;
+  };
   for (const entry of entries) {
     const pattern = formsPattern(entry);
     const mark = marked.get(entry.id);
-    if (mark && !pattern.test(mark.word)) foreign.push({ id: entry.id, word: mark.word, line: mark.line });
+    if (mark && mark.word.search(pattern) === -1) foreign.push({ id: entry.id, word: mark.word, line: mark.line });
     for (const line of prose) {
-      const use = line.text.match(pattern);
-      if (!use) continue;
-      if (!mark && marked.size > 0) unmarked.push({ id: entry.id, line: line.number });
-      else if (mark && (line.number !== mark.line || use.index !== mark.start)) {
-        early.push({ id: entry.id, line: line.number, termLine: mark.line });
+      for (const use of line.text.matchAll(pattern)) {
+        if (!mark) {
+          if (marked.size > 0 && !excused(entry, line, use)) unmarked.push({ id: entry.id, line: line.number });
+          continue;
+        }
+        const isBeforeMark = line.number < mark.line || (line.number === mark.line && use.index < mark.start);
+        if (isBeforeMark && !excused(entry, line, use)) {
+          early.push({ id: entry.id, line: line.number, termLine: mark.line });
+        }
       }
-      break;
     }
   }
-  return { early, unmarked, foreign };
+  return { early, unmarked, foreign, unusedExcuses: excuses.filter((excuse) => !used.has(excuse)) };
 }
