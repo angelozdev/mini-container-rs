@@ -12,6 +12,7 @@
   border: 1px solid var(--n-line);
   border-radius: 8px;
   font-size: 0.875rem;
+  line-height: 1.7;
 }
 
 .outcomes-call {

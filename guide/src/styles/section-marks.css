@@ -50,3 +50,7 @@ body:has(.page-props) mobile-starlight-toc a {
 body:has(.page-props) mobile-starlight-toc a[aria-current="true"]::after {
   margin-inline-start: auto;
 }
+
+body:has(.page-props) .sl-markdown-content .sl-heading-wrapper.level-h2 > h2 {
+  scroll-margin-top: 1.65rem;
+}
