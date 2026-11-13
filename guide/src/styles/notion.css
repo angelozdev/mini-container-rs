@@ -197,15 +197,33 @@ mobile-starlight-toc a[aria-current="true"] {
   margin-top: 1.25em;
 }
 
-.sl-markdown-content a:not(.sl-anchor-link) {
+.sl-markdown-content a:not(.sl-anchor-link, :where(.sl-link-card *)) {
   color: var(--n-text);
   text-decoration: underline;
   text-decoration-color: var(--n-faint);
   text-underline-offset: 0.2em;
 }
 
-.sl-markdown-content a:not(.sl-anchor-link):hover {
+.sl-markdown-content a:not(.sl-anchor-link, :where(.sl-link-card *)):hover {
   text-decoration-color: var(--n-text);
+}
+
+.sl-link-card {
+  border-color: var(--n-line);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.sl-link-card:hover {
+  background: var(--n-hover);
+  border-color: var(--n-line);
+}
+
+.sl-link-card .title a {
+  color: var(--n-text);
+  font-size: var(--sl-text-base);
+  font-weight: 600;
+  text-decoration: none;
 }
 
 :not(pre) > code {
