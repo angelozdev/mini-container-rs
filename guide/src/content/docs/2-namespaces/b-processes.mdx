@@ -16,10 +16,11 @@ import Hint from "../../../components/Hint.astro";
 import Quiz from "../../../components/Quiz.astro";
 import QuizOption from "../../../components/QuizOption.astro";
 import ShouldSee from "../../../components/ShouldSee.astro";
+import Term from "../../../components/Term.astro";
 
-**Al terminar:** el comando que lanza tu programa ve una lista de procesos propia, y en ella es el número 1. La lista de tu máquina no cambia.
+**Al terminar:** el comando que lanza tu programa ve una lista de <Term id="process">procesos</Term> propia, y en ella es el número 1. La lista de tu máquina no cambia.
 
-Un *proceso* es un programa en ejecución. Cada proceso tiene un número, su *PID*. El kernel guarda los procesos en una lista, y todos los de la máquina leen la misma. El primero de la lista es el número 1. En tu máquina es `systemd`, el programa que arranca todo lo demás.
+Un *proceso* es un programa en ejecución. Cada proceso tiene un número, su <Term id="pid">PID</Term>. El <Term id="kernel">kernel</Term> guarda los procesos en una lista, y todos los de la máquina leen la misma. El primero de la lista es el número 1. En tu máquina es `systemd`, el programa que arranca todo lo demás.
 
 Hoy tu programa le pide al kernel su propia copia de esa lista. La copia se numera desde 1.
 
@@ -83,7 +84,7 @@ Hoy tu programa le pide al kernel su propia copia de esa lista. La copia se nume
 
 Los números `4172` y `4173` son un ejemplo. En tu máquina serán otros.
 
-Ya conoces el *namespace*: una copia privada de una lista del kernel. El tipo de namespace que guarda la lista de procesos se llama *PID*.
+Ya conoces el <Term id="namespace">namespace</Term>: una copia privada de una lista del kernel. El tipo de namespace que guarda la lista de procesos se llama *PID*.
 
 <Aside type="note" title="Analogía">
 Una empresa lleva un libro con todos sus empleados, numerados desde el 1. Abre una sucursal con su propio libro, que empieza otra vez en el 1. El gerente que abre la sucursal sigue anotado en el libro de la casa matriz. Solo los empleados que contrate después entran en el libro de la sucursal. El primero que contrata es el empleado 1. Esa misma persona tiene dos números: uno en cada libro.
@@ -91,17 +92,17 @@ Una empresa lleva un libro con todos sus empleados, numerados desde el 1. Abre u
 
 Los libros son las listas de procesos. La sucursal es el namespace PID. El gerente es tu programa. El primer empleado que contrata es el proceso hijo que tu programa lanza.
 
-Hay una regla del kernel que necesitas desde ya: `unshare` con la bandera de PID **no mueve a quien lo llama**. Tu programa se queda en la lista de la máquina. Solo los hijos que lance después nacen en la lista nueva, y el primero recibe el número 1.
+Hay una regla del kernel que necesitas desde ya: `unshare` con la <Term id="flag">bandera</Term> de PID **no mueve a quien lo llama**. Tu programa se queda en la lista de la máquina. Solo los hijos que lance después nacen en la lista nueva, y el primero recibe el número 1.
 
 ## Qué vas a escribir
 
 Un archivo nuevo y cinco cambios:
 
-1. `src/namespaces.rs` pide dos copias más: la de procesos y la de montajes.
-2. `Cargo.toml` gana una feature de `nix`: `mount`.
+1. `src/namespaces.rs` pide dos copias más: la de procesos y la de <Term id="mount">montajes</Term>.
+2. `Cargo.toml` gana una <Term id="feature">feature</Term> de `nix`: `mount`.
 3. `src/filesystem.rs` es el archivo nuevo. Prepara los montajes y monta `/proc`. `src/main.rs` lo declara.
 4. `src/container.rs` gana `init`, lo que hace el hijo.
-5. `src/cli.rs` aprende un subcomando que solo usa tu programa: `child`. Un *subcomando* es la palabra que va después del nombre del programa, como `run`. `src/main.rs` lo conecta con `init`.
+5. `src/cli.rs` aprende un <Term id="subcommand">subcomando</Term> que solo usa tu programa: `child`. Un *subcomando* es la palabra que va después del nombre del programa, como `run`. `src/main.rs` lo conecta con `init`.
 6. `src/container.rs` cambia `run` para que lance al hijo.
 
 Hay un cambio de fondo. Hasta ahora `run` lanzaba el comando. Desde hoy lanza **otra copia de `mini-container`**, con la palabra `child` delante, y esa copia lanza el comando:
@@ -142,7 +143,7 @@ Antes de escribir, una predicción.
    }
    ```
 
-   - `CloneFlags::CLONE_NEWUTS`: la bandera de 2a, la del hostname. Se queda.
+   - `CloneFlags::CLONE_NEWUTS`: la bandera de 2a, la del <Term id="hostname">hostname</Term>. Se queda.
    - `|`: junta banderas. Así una sola llamada a `unshare` pide varias copias a la vez.
    - `CloneFlags::CLONE_NEWPID`: la copia de la lista de procesos. `NEWPID` significa «PID nuevo».
    - `CloneFlags::CLONE_NEWNS`: la copia de la lista de montajes. Un *montaje* conecta un conjunto de archivos a una carpeta, para que se vean ahí. El kernel guarda la lista de todos los montajes de la máquina. El nombre de la bandera solo dice «namespace nuevo», pero es la de los montajes. La necesitas más abajo: vas a montar algo, y no quieres cambiar los montajes de tu máquina.
@@ -166,7 +167,7 @@ Antes de escribir, una predicción.
 
    </ShouldSee>
 
-   Corre tu programa. El shell imprimirá su propio PID:
+   Corre tu programa. El <Term id="shell">shell</Term> imprimirá su propio PID:
 
    ```sh title="En Linux"
    sudo ./target/debug/mini-container run /bin/sh -c 'echo $$'
@@ -174,7 +175,7 @@ Antes de escribir, una predicción.
 
    - `sudo ./target/debug/mini-container`: tu programa, con permisos de administrador.
    - `run /bin/sh -c 'echo $$'`: lanza `sh` con la orden `echo $$`.
-   - Las comillas simples: evitan que *tu terminal* cambie `$$` por su propio PID antes de lanzar nada. Así llega tal cual al shell de dentro.
+   - Las comillas simples: evitan que *tu <Term id="terminal">terminal</Term>* cambie `$$` por su propio PID antes de lanzar nada. Así llega tal cual al shell de dentro.
    - Efecto: el shell imprime su PID.
 
    <ShouldSee>
@@ -235,7 +236,7 @@ Antes de escribir, una predicción.
    ```
 
    - `cargo add`: añade una dependencia o cambia una que ya tienes.
-   - `nix@0.31.3`: el mismo crate y la misma versión de 2a.
+   - `nix@0.31.3`: el mismo <Term id="crate">crate</Term> y la misma versión de 2a.
    - `--features mount`: la feature nueva. `sched` y `hostname` se quedan.
    - Efecto: reescribe la línea de `nix` en `Cargo.toml`.
 
@@ -429,9 +430,9 @@ Antes de escribir, una predicción.
    - `.exec()`: no lanza otro proceso. Reemplaza el programa de este proceso por el del comando. El proceso sigue siendo el mismo, con el mismo PID: solo cambia lo que corre dentro. Por eso el comando hereda el número 1.
    - `let error = ...`: si `.exec()` funciona, no vuelve: este proceso ya es otro programa. Solo vuelve si falla, y lo que devuelve es el error.
    - `Err(error)`: mete ese error dentro de un `Result`, para poder añadirle contexto.
-   - `.with_context(|| format!(...))`: como `.context(...)`, pero recibe una función que arma el mensaje. Una función sin nombre, escrita así, `|| ...`, se llama *closure*. Solo se ejecuta si hubo un error, y así el mensaje no se arma cuando todo sale bien.
-   - ``format!("could not run `{}`", command.program)``: arma un texto. `{}` es un hueco que Rust rellena con el nombre del programa. El mensaje dice «no pude ejecutar `programa`».
-   - `.exec()` tampoco corre los *destructores*, igual que `std::process::exit`. Un destructor es el código que Rust ejecuta para limpiar cuando algo deja de usarse. Aquí no importa: `init` no tiene nada que limpiar.
+   - `.with_context(|| format!(...))`: como `.context(...)`, pero recibe una función que arma el mensaje. Una función sin nombre, escrita así, `|| ...`, se llama <Term id="closure">closure</Term>. Solo se ejecuta si hubo un error, y así el mensaje no se arma cuando todo sale bien.
+   - ``format!("could not run `{}`", command.program)``: arma un texto. `{}` es un <Term id="placeholder">hueco</Term> que Rust rellena con el nombre del programa. El mensaje dice «no pude ejecutar `programa`».
+   - `.exec()` tampoco corre los <Term id="destructor">destructores</Term>, igual que `std::process::exit`. Un destructor es el código que Rust ejecuta para limpiar cuando algo deja de usarse. Aquí no importa: `init` no tiene nada que limpiar.
 
    Queda por explicar `Infallible`. Es un tipo sin ningún valor posible: no se puede crear ni uno. `Result<Infallible>` dice, entonces, que el `Ok` nunca existe: `init` solo puede devolver un error. Es verdad, porque si `.exec()` funciona, `init` no devuelve nada. Con `Result<()>` prometerías un `Ok(())` que nunca llega. La documentación de Rust lo usa en el lugar del error, para decir que «nunca falla». Aquí está en el lugar del `Ok`, por la misma razón al revés.
 
@@ -528,7 +529,7 @@ Antes de escribir, una predicción.
 
    **No lo corras a mano.** Si escribes `mini-container child ...` en tu terminal, `init` hace privados los montajes de tu máquina de verdad y le monta un `/proc` encima, porque nadie le dio antes las copias.
 
-   Conecta `child` con `init`. En `src/main.rs`, añade un brazo al `match` de `main`:
+   Conecta `child` con `init`. En `src/main.rs`, añade un <Term id="arm">brazo</Term> al `match` de `main`:
 
    ```rust title="src/main.rs" ins={3}
        match cli::parse(env::args().skip(1)) {
@@ -587,7 +588,7 @@ Antes de escribir, una predicción.
    - `.arg(&command.program)` y `.args(&command.args)`: después, el programa y los argumentos del usuario.
    - Juntos, el hijo recibe `child /bin/ps -o pid,comm`, que es justo lo que `parse` entiende.
    - Las dos líneas de `namespaces` no cambian: siguen pidiendo las copias y escribiendo el hostname en `run`, el padre. El hijo nace después. Queda en la copia del hostname y en la de montajes de su padre, y nace en la lista de procesos nueva. Por eso es el PID 1.
-   - `.status()` y lo demás no cambian. Como `.exec()` mantiene el proceso, el código de salida del hijo es el del comando.
+   - `.status()` y lo demás no cambian. Como `.exec()` mantiene el proceso, el <Term id="exit-code">código de salida</Term> del hijo es el del comando.
 
    La ruta se lee antes de pedir las copias, no después.
 
@@ -719,7 +720,7 @@ Montar `/proc` sin hacer privados los montajes antes. Quitas `make_mounts_privat
 **No lo pruebes**: taparía el `/proc` de tu máquina.
 </Aside>
 
-Esa unión entre copias se llama *propagación*. Cada montaje tiene un tipo: `shared`, que comparte lo que se monte debajo con las demás copias, o `private`, que no. `CLONE_NEWNS` copia la lista de montajes, pero la copia hereda el tipo de cada montaje. Si `/` es `shared`, la copia de tu programa sigue unida a la de tu máquina.
+Esa unión entre copias se llama <Term id="mount-propagation">propagación</Term>. Cada montaje tiene un tipo: `shared`, que comparte lo que se monte debajo con las demás copias, o `private`, que no. `CLONE_NEWNS` copia la lista de montajes, pero la copia hereda el tipo de cada montaje. Si `/` es `shared`, la copia de tu programa sigue unida a la de tu máquina.
 
 Comprueba cómo es la tuya:
 
@@ -820,7 +821,7 @@ $ sudo ./target/debug/mini-container run /bin/sh -c 'kill -9 $$'; echo $?
 
 Sale `0`, no `137`. El shell no murió: `kill` terminó bien y el shell salió con ese `0`.
 
-El PID 1 de una lista es especial. Solo recibe las señales para las que tiene un *manejador*, que es el código con el que un programa decide qué hacer al recibirlas. Las demás se pierden, incluso `SIGKILL`, si las manda un proceso de su misma lista. Aquí el PID 1 es el shell, y se la mandó a sí mismo.
+El PID 1 de una lista es especial. Solo recibe las <Term id="signal">señales</Term> para las que tiene un <Term id="signal-handler">manejador</Term>, que es el código con el que un programa decide qué hacer al recibirlas. Las demás se pierden, incluso `SIGKILL`, si las manda un proceso de su misma lista. Aquí el PID 1 es el shell, y se la mandó a sí mismo.
 
 Hay una excepción: `SIGKILL`, que mata al proceso, y `SIGSTOP`, que lo pausa sin terminarlo, sí llegan si las manda un proceso de fuera de su lista.
 
@@ -933,7 +934,7 @@ En este ejemplo, la respuesta es `19594`.
 - `grep 'sleep 300'`: se queda con las líneas que contienen ese texto.
 - Efecto: ninguno. Solo lee.
 
-Al terminar, para el contenedor con el número que encontraste. No uses Ctrl-C: mata a tu programa, pero `sleep` sigue vivo, huérfano. Un proceso *huérfano* es el que sigue corriendo sin el proceso que lo lanzó. El motivo está en [«Por qué el PID 1 ignora señales»](#por-qué-el-pid-1-ignora-señales). La parte 3 lo resuelve.
+Al terminar, para el contenedor con el número que encontraste. No uses Ctrl-C: mata a tu programa, pero `sleep` sigue vivo, huérfano. Un proceso <Term id="orphan-process">huérfano</Term> es el que sigue corriendo sin el proceso que lo lanzó. El motivo está en [«Por qué el PID 1 ignora señales»](#por-qué-el-pid-1-ignora-señales). La parte 3 lo resuelve.
 
 **Destructivo:** el comando mata el proceso que lleva ese número. Revísalo antes de ejecutarlo: si te equivocas, matas otro proceso de tu máquina.
 
