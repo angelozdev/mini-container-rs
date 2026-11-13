@@ -934,7 +934,7 @@ En este ejemplo, la respuesta es `19594`.
 - `grep 'sleep 300'`: se queda con las líneas que contienen ese texto.
 - Efecto: ninguno. Solo lee.
 
-Al terminar, para el contenedor con el número que encontraste. No uses Ctrl-C: mata a tu programa, pero `sleep` sigue vivo, huérfano. Un proceso <Term id="orphan-process">huérfano</Term> es el que sigue corriendo sin el proceso que lo lanzó. El motivo está en [«Por qué el PID 1 ignora señales»](#por-qué-el-pid-1-ignora-señales). La parte 3 lo resuelve.
+Al terminar, para el contenedor con el número que encontraste. No uses Ctrl-C: mata a tu programa, pero `sleep` sigue vivo, <Term id="orphan-process">huérfano</Term>. Un proceso *huérfano* es el que sigue corriendo sin el proceso que lo lanzó. El motivo está en [«Por qué el PID 1 ignora señales»](#por-qué-el-pid-1-ignora-señales). La parte 3 lo resuelve.
 
 **Destructivo:** el comando mata el proceso que lleva ese número. Revísalo antes de ejecutarlo: si te equivocas, matas otro proceso de tu máquina.
 

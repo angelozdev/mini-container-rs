@@ -194,7 +194,7 @@ Antes de escribir, una predicción.
 
    - `anyhow::{Context, Result}`: lo mismo que en `container.rs`. `Result` es el resultado de algo que puede fallar, y `Context` añade un mensaje al error.
    - `nix::sched`: el módulo de `nix` donde vive `unshare`.
-   - `CloneFlags`: un conjunto de banderas. Una <Term id="flag">bandera</Term> es una opción que se enciende o se apaga. Hay una por cada tipo de namespace.
+   - `CloneFlags`: un conjunto de <Term id="flag">banderas</Term>. Una *bandera* es una opción que se enciende o se apaga. Hay una por cada tipo de namespace.
    - `unshare`: la función que le pide al kernel la copia.
 
    Debajo de los `use`, deja una línea en blanco y escribe la función:
