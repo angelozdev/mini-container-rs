@@ -2,11 +2,11 @@
 set -euo pipefail
 
 scripts_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-checkpoint_id=${1:?"uso: verify-checkpoint.sh <id>"}
+checkpoint_id=${1:?"usage: verify-checkpoint.sh <id>"}
 checkpoint_dir="$scripts_dir/../checkpoints/$checkpoint_id"
 
-[ "$(uname -s)" = "Linux" ] || { echo "corre dentro de la máquina Linux" >&2; exit 1; }
-[ -d "$checkpoint_dir" ] || { echo "checkpoint $checkpoint_id no existe" >&2; exit 1; }
+[ "$(uname -s)" = "Linux" ] || { echo "run it inside the Linux machine" >&2; exit 1; }
+[ -d "$checkpoint_dir" ] || { echo "checkpoint $checkpoint_id does not exist" >&2; exit 1; }
 
 run_step() {
   printf '==> %s\n' "$*" >&2

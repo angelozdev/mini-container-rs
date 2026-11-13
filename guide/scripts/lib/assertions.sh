@@ -1,16 +1,16 @@
 fail() {
-  printf 'FALLA: %s\n' "$1" >&2
+  printf 'FAIL: %s\n' "$1" >&2
   exit 1
 }
 
 assert_equals() {
   local expected=$1 actual=$2 label=$3
-  [ "$expected" = "$actual" ] || fail "$label: se esperaba [$expected] y salió [$actual]"
+  [ "$expected" = "$actual" ] || fail "$label: expected [$expected] but got [$actual]"
 }
 
 assert_contains() {
   local needle=$1 haystack=$2 label=$3
-  [[ "$haystack" == *"$needle"* ]] || fail "$label: no contiene [$needle] y salió [$haystack]"
+  [[ "$haystack" == *"$needle"* ]] || fail "$label: does not contain [$needle], got [$haystack]"
 }
 
 assert_exit_code() {
@@ -37,5 +37,5 @@ assert_host_unchanged() {
   after=$(host_state)
   [ "$HOST_STATE_BEFORE" = "$after" ] && return 0
   diff <(printf '%s\n' "$HOST_STATE_BEFORE") <(printf '%s\n' "$after") >&2 || true
-  fail "el estado del host cambió"
+  fail "the host state changed"
 }

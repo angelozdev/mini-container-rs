@@ -31,36 +31,36 @@ function describeQuizzes(page) {
   }));
 }
 
-test("el sitio está construido antes de revisar los quizzes", () => {
-  assert.ok(existsSync(builtFolder), "falta guide/dist: corre astro build");
+test("the site is built before checking the quizzes", () => {
+  assert.ok(existsSync(builtFolder), "guide/dist is missing: run astro build");
 });
 
 for (const docsPath of listFiles(docsFolder).filter((path) => path.endsWith(".mdx"))) {
   const name = relative(docsFolder, docsPath);
   const quizzesWritten = (readFileSync(docsPath, "utf8").match(quizTag) ?? []).length;
 
-  test(`${name}: cada Quiz escrito aparece en la página construida`, () => {
+  test(`${name}: every written Quiz appears in the built page`, () => {
     const page = builtPageOf(docsPath);
-    assert.ok(existsSync(page), `falta ${relative(guideRoot, page)}: corre astro build`);
+    assert.ok(existsSync(page), `${relative(guideRoot, page)} is missing: run astro build`);
     assert.equal(describeQuizzes(page).length, quizzesWritten);
   });
 
-  test(`${name}: cada quiz tiene una sola opción correcta`, () => {
+  test(`${name}: every quiz has exactly one correct option`, () => {
     const page = builtPageOf(docsPath);
     if (!existsSync(page)) return;
     for (const [index, quiz] of describeQuizzes(page).entries()) {
       const correct = quiz.options.filter((option) => option.isCorrect).length;
-      assert.ok(quiz.options.length >= 2, `quiz ${index + 1}: necesita al menos dos opciones`);
-      assert.equal(correct, 1, `quiz ${index + 1}: tiene ${correct} opciones correctas`);
+      assert.ok(quiz.options.length >= 2, `quiz ${index + 1}: needs at least two options`);
+      assert.equal(correct, 1, `quiz ${index + 1}: has ${correct} correct options`);
     }
   });
 
-  test(`${name}: cada opción de quiz tiene retroalimentación`, () => {
+  test(`${name}: every quiz option has feedback`, () => {
     const page = builtPageOf(docsPath);
     if (!existsSync(page)) return;
     for (const [index, quiz] of describeQuizzes(page).entries()) {
       for (const [position, option] of quiz.options.entries()) {
-        assert.notEqual(option.feedback, "", `quiz ${index + 1}, opción ${position + 1}: retroalimentación vacía`);
+        assert.notEqual(option.feedback, "", `quiz ${index + 1}, option ${position + 1}: empty feedback`);
       }
     }
   });
