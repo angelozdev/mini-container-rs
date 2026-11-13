@@ -44,8 +44,28 @@ export function readTokens(css, selector) {
   return tokens;
 }
 
+function tokenUseIn(block, property) {
+  return block.match(new RegExp(`(?:^|[\\s;])${property}:\\s*var\\((--n-[a-z-]+)\\)`))?.[1];
+}
+
 export function readTokenUse(css, selector, property) {
-  const use = blockOf(css, selector).match(new RegExp(`(?:^|[\\s;])${property}:\\s*var\\((--n-[a-z-]+)\\)`));
+  const use = tokenUseIn(blockOf(css, selector), property);
   if (!use) throw new Error(`${selector} sets no ${property} from an --n token`);
-  return use[1];
+  return use;
+}
+
+export function readCascadedTokenUse(css, selectors, property) {
+  for (const selector of selectors) {
+    const use = tokenUseIn(blockOf(css, selector), property);
+    if (use) return use;
+  }
+  throw new Error(`${selectors.join(" and ")} set no ${property} from an --n token`);
+}
+
+export function readThemes(tokensCss) {
+  const darkTokens = readTokens(tokensCss, ":root");
+  return [
+    ["dark", darkTokens],
+    ["light", new Map([...darkTokens, ...readTokens(tokensCss, ':root[data-theme="light"]')])],
+  ];
 }

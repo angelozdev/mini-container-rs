@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { contrastRatio, parseColor, readTokenUse, readTokens } from "./contrast.mjs";
+import { contrastRatio, parseColor, readThemes, readTokenUse } from "./contrast.mjs";
 import { guideRoot } from "./support.mjs";
 
 const stylesFolder = join(guideRoot, "src/styles");
@@ -27,13 +27,7 @@ test("a rule that sets no color from a token is reported", () => {
   assert.throws(() => readTokenUse(".a {\n  color: red;\n}", ".a", "color"), /sets no color/);
 });
 
-const darkTokens = readTokens(tokensCss, ":root");
-const themes = [
-  ["dark", darkTokens],
-  ["light", new Map([...darkTokens, ...readTokens(tokensCss, ':root[data-theme="light"]')])],
-];
-
-for (const [theme, tokens] of themes) {
+for (const [theme, tokens] of readThemes(tokensCss)) {
   test(`the text of a table header reaches ${minimumRatio}:1 on its background in the ${theme} theme`, () => {
     const textToken = readTokenUse(notionCss, headerCell, "color");
     const backgroundToken = readTokenUse(notionCss, headerCell, "background");

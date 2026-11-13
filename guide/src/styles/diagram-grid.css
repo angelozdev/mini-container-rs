@@ -45,6 +45,7 @@
   border: 1px solid var(--n-line);
   border-radius: 6px;
   background: var(--n-bg);
+  color: var(--n-text);
   text-align: center;
   overflow-wrap: anywhere;
 }
@@ -52,17 +53,15 @@
 .outcome[data-outcome="ok"] {
   background: var(--n-c-green);
   border-color: var(--n-t-green);
-  color: var(--n-t-green);
 }
 
 .outcome[data-outcome="error"] {
   background: var(--n-c-red);
   border-color: var(--n-t-red);
-  color: var(--n-t-red);
 }
 
 .outcome-note {
   display: block;
-  color: var(--n-muted);
+  color: var(--n-note);
   font-size: 0.75rem;
 }
