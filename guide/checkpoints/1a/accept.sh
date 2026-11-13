@@ -29,6 +29,7 @@ assert_equals 2 "$status" "run without a program exits with 2"
 
 capture_stderr "$binary" run holaa
 assert_contains "could not launch the program" "$stderr" "a missing program says it could not be launched"
+assert_contains "No such file or directory (os error 2)" "$stderr" "a missing program shows the cause from the system"
 assert_equals 1 "$status" "a missing program exits with 1"
 
 assert_exit_code 137 "a child killed by SIGKILL exits with 137" "$binary" run /bin/sh -c 'kill -9 $$'
