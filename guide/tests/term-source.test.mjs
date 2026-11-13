@@ -186,6 +186,22 @@ test("an excuse that quotes only a use inside inline code is reported as unused"
   assert.equal(unusedExcuses.length, 1);
 });
 
+const rejectedExcerpts = [
+  ["an empty", ""],
+  ["a blank", "   "],
+  ["a missing", undefined],
+];
+
+for (const [kind, excerpt] of rejectedExcerpts) {
+  test(`an excuse with ${kind} excerpt is rejected, also when the page has an early use`, () => {
+    const source = mdx("The kernel first.", "", `The ${kernelTerm}.`);
+    assert.throws(
+      () => findTermUseProblems(source, [kernel], [excuseOf("kernel", excerpt)]),
+      /the excuse for "kernel" needs an excerpt of text/,
+    );
+  });
+}
+
 const entries = readGlossaryEntries();
 const pages = listFiles(docsFolder)
   .filter((path) => path.endsWith(".mdx"))

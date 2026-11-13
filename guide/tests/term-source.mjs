@@ -120,7 +120,16 @@ function quotes(excuse, line, use) {
   return false;
 }
 
+function rejectEmptyExcerpts(excuses) {
+  for (const { id, excerpt } of excuses) {
+    if (typeof excerpt !== "string" || excerpt.trim() === "") {
+      throw new Error(`the excuse for "${id}" needs an excerpt of text`);
+    }
+  }
+}
+
 export function findTermUseProblems(source, entries, excuses = []) {
+  rejectEmptyExcerpts(excuses);
   const prose = readProse(source);
   const marked = new Map();
   for (const line of prose) {
