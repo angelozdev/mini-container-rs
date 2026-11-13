@@ -5,10 +5,11 @@ interface Props {
   position: number;
   total: number;
   body: string;
+  title: string;
 }
 
-const { position, total, body } = Astro.props;
-const { words, codeLines, minutes, exercises } = measurePage(body);
+const { position, total, body, title } = Astro.props;
+const { words, codeLines, minutes, exercises } = measurePage(body, title);
 const segments = Array.from({ length: total }, (_, index) => index < position);
 ---
 

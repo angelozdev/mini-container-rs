@@ -8,7 +8,7 @@ const moduleLine = /^\s*(?:import|export)\s/;
 const inlineCodeOrTag = /(`+)(?!`)[\s\S]*?[^`]\1(?!`)|<\/?[A-Za-z][\w.:-]*(?:"[^"]*"|'[^']*'|\{[^}]*\}|[^>"'{}])*>/g;
 const leadingMarkers = /^\s*(?:>\s*)*(?:(?:[-*+]|\d+[.)])\s+)?/;
 const wordCharacter = /[\p{L}\p{N}]/u;
-const exerciseHeading = /^###\s+\d+[a-z]\.\d+\s/;
+const pageIdPattern = /^(\d+[a-z])\s/;
 
 interface SplitPage {
   proseLines: string[];
@@ -30,6 +30,13 @@ function splitCode(body: string): SplitPage {
     else proseLines.push(line);
   }
   return { proseLines, codeLines };
+}
+
+function ownExerciseHeading(title: string): (line: string) => boolean {
+  const id = title.match(pageIdPattern)?.[1];
+  if (!id) return () => false;
+  const heading = new RegExp(`^###\\s+${id}\\.\\d+\\s`);
+  return (line) => heading.test(line);
 }
 
 function countWords(proseLines: string[]): number {
@@ -57,13 +64,13 @@ export interface PageMetrics {
   exercises: number;
 }
 
-export function measurePage(body: string): PageMetrics {
+export function measurePage(body: string, title: string): PageMetrics {
   const { proseLines, codeLines } = splitCode(body);
   const words = countWords(proseLines);
   return {
     words,
     codeLines,
     minutes: readingMinutes(words, codeLines),
-    exercises: proseLines.filter((line) => exerciseHeading.test(line)).length,
+    exercises: proseLines.filter(ownExerciseHeading(title)).length,
   };
 }
