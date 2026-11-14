@@ -174,11 +174,45 @@ test("the interview answer is one aside of 3 or 4 sentences that names the kerne
   assert.equal(openings.length, 1, `found ${openings.length} asides titled "${interviewAnswerLabel}"`);
   const aside = readElement(html, openings[0].index, "aside");
   const content = aside.slice(aside.indexOf('<div class="starlight-aside__content">'));
-  const sentences = sentencesOf(content);
+  const sentences = sentencesOf(withoutTermCards(content));
   assert.ok(sentences.length >= 3 && sentences.length <= 4, `the answer has ${sentences.length} sentences`);
   const text = sentences.join(" ");
   assert.match(text, /kernel/);
   assert.match(text, /máquina virtual/i);
+});
+
+test("the closing page tells the reader of exercise 2c.1 that the container already has its own network, in the list and after the expected output", () => {
+  const html = readSection(readClosing(), missingHeadingWord);
+  const networkItem = textOf(withoutTermCards(readListItems(html)[1]));
+  assert.match(networkItem, /2c\.1/, "the network item does not mention exercise 2c.1");
+  const afterList = html.slice(html.indexOf("</ul>"));
+  const mentions = sentencesOf(withoutTermCards(afterList)).filter((sentence) => /2c\.1/.test(sentence) && /solo/.test(sentence));
+  assert.ok(mentions.length >= 1, "nothing after the list says what the reader of exercise 2c.1 sees");
+});
+
+test("every sentence of the closing page that names part 4 says that it is not written yet", () => {
+  const sentences = sentencesOf(withoutTermCards(readSection(readClosing(), missingHeadingWord))).filter((sentence) => /parte 4/i.test(sentence));
+  assert.ok(sentences.length >= 2, `found ${sentences.length} sentences that name part 4`);
+  for (const sentence of sentences) assert.match(sentence, /todavía no está escrita/, `part 4 is described as if it existed: ${sentence}`);
+});
+
+test("the section on what Docker adds says that runc applies the seccomp profile, the capabilities and the user namespace that Docker chooses", () => {
+  const text = sentencesOf(withoutTermCards(readSection(readClosing(), missingHeadingWord))).join(" ");
+  assert.match(text, /Docker decide[^.]*seccomp[^.]*capabilities[^.]*namespace de usuarios[^.]*runc[^.]*aplica/);
+});
+
+test("the sentence that introduces the interview answer does not say that the reader built every part", () => {
+  const html = readSection(readClosing(), "contenedor y en qué se diferencia");
+  const intro = sentencesOf(withoutTermCards(html.slice(0, html.indexOf("<aside"))));
+  assert.equal(
+    intro.some((sentence) => /cada parte la construiste/.test(sentence)),
+    false,
+    "the introduction still says that the reader built every part",
+  );
+  assert.ok(
+    intro.some((sentence) => /3a\.1/.test(sentence)),
+    "the introduction does not say that the CPU cap is only in the optional exercise 3a.1",
+  );
 });
 
 test("every source of the closing page has a date, and each one with a link says when it was consulted", () => {
