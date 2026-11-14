@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
 import { declares, readSiteCssRules } from "./css-rules.mjs";
-import { builtFolder, builtPageOf, docsFolder, hasClass, listSectionPaths } from "./support.mjs";
+import { builtFolder, builtPageOf, docsFolder, hasClass, listFiles, listSectionPaths } from "./support.mjs";
 
 const sectionPaths = listSectionPaths();
 const otherPages = [
@@ -49,4 +49,15 @@ test("the reading bar is off by default and only moves with motion allowed and s
       `${rule.selector}: the scroll animation must sit inside @supports ${scrollTimelineCondition}`,
     );
   }
+});
+
+test("the reading bar grows from an explicit first keyframe to an explicit last one, so every engine starts it at zero", () => {
+  const css = listFiles(join(builtFolder, "_astro"))
+    .filter((path) => path.endsWith(".css"))
+    .map((path) => readFileSync(path, "utf8"))
+    .join("\n");
+  const keyframes = css.match(/@keyframes reading-bar-grow\{(.*?\})\}/)?.[1];
+  assert.ok(keyframes, "the keyframes reading-bar-grow are missing from the built stylesheet");
+  assert.match(keyframes, /(?:^|\})(?:from|0%)\{[^}]*transform:scaleX\(0\)/, "the first keyframe is missing");
+  assert.match(keyframes, /(?:^|\})(?:to|100%)\{[^}]*transform:scaleX\(1\)/, "the last keyframe is missing");
 });

@@ -51,3 +51,17 @@ test("the section chips and both contents lists count with two digits", () => {
   expectNumbering(rules, "starlight-toc>nav");
   expectNumbering(rules, "mobile-starlight-toc");
 });
+
+test("the number of a contents entry does not shrink, so a title on two lines never splits it", () => {
+  const rules = readSiteCssRules();
+  for (const part of ["starlight-toc>nav", "mobile-starlight-toc"]) {
+    const number = rules.find(
+      (rule) => compact(rule.selector).includes(part) && /::?before/.test(rule.selector) && decimalCounter.test(rule.body),
+    );
+    assert.ok(number, `no rule shows the number on ${part}`);
+    assert.ok(
+      declares(number, "flex", "none") || declares(number, "flex-shrink", "0"),
+      `the number on ${part} can shrink: its rule must declare flex: none`,
+    );
+  }
+});
