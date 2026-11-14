@@ -1,6 +1,6 @@
 ---
 title: 3b · Limpiar aunque pulses Ctrl-C
-description: Ctrl-C ya no deja un cgroup ni un comando huérfano, y si matan a tu programa con SIGKILL, el comando muere con él.
+description: Ctrl-C ya no deja un cgroup ni un comando huérfano, y si matan a tu programa con SIGKILL, el comando muere con él, salvo en una carrera corta.
 checkpoint: 3b
 icon: 🧹
 ---
@@ -20,7 +20,7 @@ import QuizOption from "../../../components/QuizOption.astro";
 import ShouldSee from "../../../components/ShouldSee.astro";
 import Term from "../../../components/Term.astro";
 
-**Al terminar:** si pulsas Ctrl-C, tu programa espera a que el comando termine y borra el <Term id="cgroup">cgroup</Term>. Y si matan a tu programa con <Term id="sigkill">SIGKILL</Term>, el comando muere con él.
+**Al terminar:** si pulsas Ctrl-C, tu programa espera a que el comando termine y borra el <Term id="cgroup">cgroup</Term>. Y si matan a tu programa con <Term id="sigkill">SIGKILL</Term>, el comando muere con él, salvo en una carrera corta que se explica más abajo.
 
 Ctrl-C es el atajo con el que le pides a la <Term id="terminal">terminal</Term> que interrumpa lo que corre. La terminal lo hace con una <Term id="signal">señal</Term>: un aviso que el <Term id="kernel">kernel</Term> le manda a un <Term id="process">proceso</Term>. La que manda Ctrl-C es <Term id="sigint">SIGINT</Term>.
 
@@ -114,12 +114,12 @@ El diagrama sigue un Ctrl-C de principio a fin, con tu programa tal como queda h
 </Stepper>
 
 <Aside type="note" title="Analogía">
-Una jefa y su ayudante limpian una sala. Un altavoz avisa «¡evacuar!» a todos los que están en la sala. Si la jefa sale, nadie borra lo que hay en la pizarra. Para evitarlo, la jefa se pone tapones en los oídos: el aviso suena, pero ella no lo oye, y termina de limpiar. El ayudante recibe el aviso, pero tiene la orden de no hacer caso a los avisos de fuera de su sala.
+Una jefa y su ayudante limpian una sala. Un altavoz avisa «¡evacuar!» a todos los que están en la sala. Si la jefa sale, nadie borra lo que hay en la pizarra. Para evitarlo, la jefa se pone tapones en los oídos: el aviso suena, pero ella no lo oye, y termina de limpiar.
 
-Y le da otra orden: «si yo me voy sin avisar, vete tú también».
+El ayudante trabaja en una oficina con su propia lista de puestos, y él es el puesto 1. Tiene la orden de no hacer caso a los avisos que vienen de fuera de su oficina, y el altavoz viene de fuera. Y la jefa le da otra orden: «si yo me voy sin avisar, vete tú también».
 </Aside>
 
-La sala es el grupo de procesos y el altavoz es Ctrl-C. Los tapones son la máscara de señales. La orden de irse con la jefa es la pdeathsig. El ayudante es el <Term id="pid">PID</Term> 1 de su lista de procesos: el <Term id="namespace">namespace</Term> de PID que creaste en 2b.
+La sala es el grupo de procesos y el altavoz es Ctrl-C. Los tapones son la máscara de señales. La oficina es la lista de procesos nueva que creaste en 2b, el <Term id="namespace">namespace</Term> de <Term id="pid">PID</Term>, y el ayudante es su puesto 1: el PID 1. La orden de no hacer caso a lo de fuera es la regla del PID 1, la que viste en 2b. La orden de irse con la jefa es la pdeathsig.
 
 ## Qué vas a escribir
 
@@ -166,19 +166,18 @@ $ echo $?; ls -d /sys/fs/cgroup/mini-container-*; pgrep -a sleep
 - `/sys/fs/cgroup/mini-container-86610`: la carpeta del cgroup sigue ahí. Tu programa murió antes de que `Drop` la borrara. Rust no corre ningún <Term id="destructor">destructor</Term> si la señal mata al proceso.
 - `86611 /bin/sleep 3`: el comando sigue vivo. Es un <Term id="orphan-process">huérfano</Term>, como viste en 2b. Los números cambian en cada ejecución.
 
-Espera 3 segundos a que `sleep` termine. La carpeta se queda vacía, y la borras con el comando de más abajo.
+Espera 3 segundos a que `sleep` termine. La carpeta se queda vacía. Bórrala antes de seguir: las comprobaciones de más abajo suponen que no queda ninguna.
 
-Antes de escribir, una predicción.
+**Destructivo:** el comando borra todas las carpetas de cgroup cuyo nombre empieza por `mini-container-` y están vacías. Una que tenga un proceso dentro no se borra. Revisa lo que lista `ls -d /sys/fs/cgroup/mini-container-*` antes de ejecutarlo.
 
-<Quiz kind="prediction">
-<Fragment slot="question">Tu programa ya bloquea SIGINT. Corres `run /bin/sleep 3` y pulsas Ctrl-C. Sigue la señal: ¿llega a `sleep`? ¿Tiene `sleep` un manejador para ella? ¿Qué le pasa?</Fragment>
+```sh title="En Linux"
+sudo rmdir /sys/fs/cgroup/mini-container-*
+```
 
-<QuizOption>Muere en el acto: es la acción por defecto de SIGINT.<Fragment slot="feedback">Es lo que le pasaría a un proceso cualquiera. Pero `sleep` es el PID 1 de su lista de procesos, y un PID 1 sin manejador no recibe las señales que vienen de fuera de su lista. El kernel descarta SIGINT.</Fragment></QuizOption>
-
-<QuizOption correct>No muere: el kernel descarta SIGINT, porque `sleep` es el PID 1 y no tiene manejador.<Fragment slot="feedback">Es lo que viste en 2b. Por eso tu programa tiene que esperar: el comando no se va a ir solo antes de tiempo, y tu programa no debe irse antes que él.</Fragment></QuizOption>
-
-<QuizOption>No muere: tu programa bloqueó SIGINT también para su hijo.<Fragment slot="feedback">La máscara sí se copia al hijo, y más abajo ves el problema que trae. Pero `sleep` no se salva por eso: el hijo la desbloquea antes del `exec`, y `sleep` sobrevive porque es el PID 1 sin manejador.</Fragment></QuizOption>
-</Quiz>
+- `sudo`: pide permisos de administrador. Los cgroups son de `root`.
+- `rmdir`: borra carpetas vacías. En un cgroup es la forma de borrarlo: el kernel solo lo permite si no tiene procesos ni cgroups dentro.
+- `/sys/fs/cgroup/mini-container-*`: todas las carpetas que empiezan por ese nombre. `*` es cualquier texto.
+- Efecto: las que están vacías desaparecen. En una que todavía tiene un proceso, `rmdir` dice `Device or resource busy` y no la borra.
 
 ## Los trozos
 
@@ -349,13 +348,13 @@ Antes de escribir, una predicción.
    Otra predicción. Es de las que no se sacan de memoria: sigue la señal.
 
    <Quiz kind="prediction">
-   <Fragment slot="question">El hijo hereda la máscara de su padre y no la cambia: nace con SIGINT bloqueada. Corres `run /bin/sh -c 'trap "echo got" INT; sleep 4'` y pulsas Ctrl-C. `trap "echo got" INT` le dice al shell: «cuando llegue SIGINT, imprime got». Sigue la señal: ¿en qué proceso está bloqueada? ¿Qué se imprime?</Fragment>
+   <Fragment slot="question">El hijo hereda la máscara de su padre y no la cambia: nace con SIGINT bloqueada. Corres `run /bin/sh -c 'trap "echo got" INT; sleep 4'` y pulsas Ctrl-C. `trap "echo got" INT` le dice al shell: «cuando llegue SIGINT, imprime got». Sigue la señal: mira en qué proceso está bloqueada. ¿Qué se imprime?</Fragment>
 
    <QuizOption>`got`, en el acto: el shell tiene un manejador para SIGINT.<Fragment slot="feedback">Así sería con la máscara limpia. Pero con SIGINT bloqueada la señal no se entrega, y un manejador no corre nunca. Ni el shell ni `sleep` la reciben.</Fragment></QuizOption>
 
    <QuizOption correct>Nada: la señal queda pendiente, y el comando tarda sus 4 segundos.<Fragment slot="feedback">Los dos procesos la tienen bloqueada. SIGINT queda pendiente en cada uno, el manejador de `trap` no corre y `sleep` no se interrumpe. Es la trampa de esta sección: más abajo ves la salida.</Fragment></QuizOption>
 
-   <QuizOption>Tu programa muere.<Fragment slot="feedback">Tu programa también la tiene bloqueada, así que no muere. Y aunque muriera, el comando no se enteraría.</Fragment></QuizOption>
+   <QuizOption>Tu programa muere.<Fragment slot="feedback">Tu programa también la tiene bloqueada, así que no muere.</Fragment></QuizOption>
    </Quiz>
 
    Para evitarlo, el hijo quita SIGINT de su máscara justo antes de convertirse en el comando. Debajo de `mount_proc`, justo antes del `exec`:
@@ -393,6 +392,18 @@ Antes de escribir, una predicción.
    No hay avisos: todo lo que escribiste se usa.
 
 </Steps>
+
+Antes de correr el programa, una predicción.
+
+<Quiz kind="prediction">
+<Fragment slot="question">Tu programa bloquea SIGINT en el padre, y el hijo la desbloquea antes del `exec`. Corres `run /bin/sleep 3` y pulsas Ctrl-C. Sigue la señal: mira si llega a `sleep` y si `sleep` tiene un manejador para ella. ¿Qué le pasa a `sleep`?</Fragment>
+
+<QuizOption>Muere en el acto: es la acción por defecto de SIGINT.<Fragment slot="feedback">Es lo que le pasaría a un proceso cualquiera. Pero `sleep` es el PID 1 de su lista de procesos, y un PID 1 sin manejador no recibe las señales que vienen de fuera de su lista. El kernel descarta SIGINT.</Fragment></QuizOption>
+
+<QuizOption correct>No muere: el kernel descarta SIGINT, porque `sleep` es el PID 1 y no tiene manejador.<Fragment slot="feedback">Es lo que viste en 2b. Por eso tu programa tiene que esperar: el comando no se va a ir solo antes de tiempo, y tu programa no debe irse antes que él.</Fragment></QuizOption>
+
+<QuizOption>No muere: tu programa bloqueó SIGINT también para su hijo.<Fragment slot="feedback">La máscara sí se copia al hijo, pero el hijo la desbloquea antes del `exec`: `sleep` no la tiene bloqueada. Sobrevive porque es el PID 1 sin manejador.</Fragment></QuizOption>
+</Quiz>
 
 ## Corre tu programa
 
@@ -459,7 +470,7 @@ sleeps left: 0
 - `sleeps left: 0`: el comando murió con tu programa. Sin la pdeathsig, saldría `1`.
 - `/sys/fs/cgroup/mini-container-85632`: la carpeta del cgroup sigue ahí. El número cambia en cada ejecución.
 
-Esa carpeta es la limitación conocida. SIGKILL no se puede capturar, bloquear ni ignorar. Tu programa murió sin correr `Drop`, y ya no hay forma de evitarlo desde dentro. Lo que sí hace tu programa es que no queden procesos: el cgroup queda vacío, sin un comando dentro.
+Esa carpeta es la limitación conocida. SIGKILL no se puede capturar, bloquear ni ignorar. Tu programa murió sin correr `Drop`, y ya no hay forma de evitarlo desde dentro. Lo que sí hace tu programa es que, casi siempre, no queden procesos: el cgroup queda vacío, sin un comando dentro. La excepción es una carrera. Si matan a tu programa con SIGKILL antes de que el hijo corra `die_with_parent`, el padre ya está muerto cuando el hijo pide la pdeathsig, y el manual dice que entonces la señal no se manda. El comando sigue vivo, y la carpeta queda ocupada. Esa ventana es corta: va desde que tu programa lanza al hijo hasta la primera línea de `init`.
 
 Un cgroup vacío se borra con `rmdir`. Es lo que hace `Drop`: `fs::remove_dir` es la llamada de Rust a `rmdir`. Esa llamada tiene dos resultados. Mira:
 
@@ -473,16 +484,15 @@ Un cgroup vacío se borra con `rmdir`. Es lo que hace `Drop`: `fs::remove_dir` e
 
 `EBUSY` es el código de error del sistema para «recurso ocupado». Sale con el mensaje `Device or resource busy`. Es una red de seguridad: el comando de limpieza no puede borrar un contenedor que sigue corriendo.
 
-**Destructivo:** el comando borra todas las carpetas de cgroup cuyo nombre empieza por `mini-container-` y están vacías. Una que tenga un proceso dentro no se borra. Revisa lo que lista `ls -d /sys/fs/cgroup/mini-container-*` antes de ejecutarlo.
+Borra la carpeta que dejó el SIGKILL con el mismo comando de antes.
+
+**Destructivo:** borra todas las carpetas `mini-container-*` que estén vacías. Revisa lo que lista `ls -d /sys/fs/cgroup/mini-container-*` antes de ejecutarlo.
 
 ```sh title="En Linux"
 sudo rmdir /sys/fs/cgroup/mini-container-*
 ```
 
-- `sudo`: pide permisos de administrador. Los cgroups son de `root`.
-- `rmdir`: borra carpetas vacías. En un cgroup es la forma de borrarlo: el kernel solo lo permite si no tiene procesos ni cgroups dentro.
-- `/sys/fs/cgroup/mini-container-*`: todas las carpetas que empiezan por ese nombre. `*` es cualquier texto.
-- Efecto: las que están vacías desaparecen. En una que todavía tiene un proceso, `rmdir` dice `Device or resource busy` y no la borra.
+- Efecto: el mismo de antes. Las carpetas vacías desaparecen, y una con un proceso dentro se queda.
 
 Comprueba que se fue:
 
@@ -506,7 +516,7 @@ ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
 Bloquear SIGINT en el padre y olvidar desbloquearla en el hijo. Todo compila y Ctrl-C ya no mata a tu programa. Pero la máscara se hereda: el hijo nace con SIGINT bloqueada, y el comando también. Los programas del contenedor que quieren reaccionar a Ctrl-C nunca se enteran.
 
 - Así sí: ① `block_interrupts()` en `run`, ② `unblock_interrupts()` en `init`, justo antes del `exec`.
-- Así no: solo ①. El compilador te avisa: `function unblock_interrupts is never used`.
+- Así no: solo ①. El compilador te avisa: ``function `unblock_interrupts` is never used``.
 
 Es seguro probarlo: lo peor que pasa es esperar 4 segundos.
 </Aside>
@@ -605,7 +615,7 @@ $ sudo ./target/debug/mini-container run /bin/sleep 3
 0
 ```
 
-Funciona igual. Lo que cambia es el precio. `unsafe` marca el lugar donde respondes tú, y no el compilador, de que el código es correcto. El manejador corre en mitad de cualquier línea de tu programa, y solo puede llamar a funciones «seguras para señales». La documentación define una así: «An async-signal-safe function is one that can be safely called from within a signal handler». Muchas no lo son, y `printf`, la función de C que imprime, es una de ellas. Si alguien añade al manejador una llamada que no es segura, el compilador no avisa.
+Funciona igual. Lo que cambia es el precio. `unsafe` marca el lugar donde respondes tú, y no el compilador, de que el código es correcto. El manejador corre en mitad de cualquier línea de tu programa, y solo puede llamar a funciones «seguras para señales». Una función segura para señales es la que se puede llamar sin riesgo desde dentro de un manejador. La documentación lo dice así: «An async-signal-safe function is one that can be safely called from within a signal handler». Muchas no lo son, y `printf`, la función de C que imprime, es una de ellas. Si alguien añade al manejador una llamada que no es segura, el compilador no avisa.
 
 **No lo pruebes**: esta guía no usa `unsafe` en ningún trozo, y el «Así sí» hace lo mismo sin él.
 
@@ -626,7 +636,7 @@ $ sudo ./target/debug/mini-container run /bin/sleep 3
 0
 ```
 
-Sin `unsafe`: `thread_block` es una función normal. La señal no se descarta: queda pendiente, y no corre ningún manejador, así que no hay código que pueda salir mal. El precio es el de la trampa: la máscara se hereda y hay que desbloquearla en el hijo. Un manejador no tiene ese problema: el `exec` lo reinicia. Es un precio que se paga con una línea, y el compilador te avisa si la olvidas.
+Sin `unsafe`: `thread_block` es una función normal. La señal no se descarta: queda pendiente, y no corre ningún manejador, así que no hay código que pueda salir mal. El precio es el de la trampa: la máscara se hereda y hay que desbloquearla en el hijo. Un manejador no tiene ese problema: el `exec` lo reinicia. Es un precio que se paga con una línea. Si la olvidas, el compilador te avisa, pero solo porque `unblock_interrupts` existe y ningún otro código del programa la usa.
 
 </Fragment>
 </Compare>
@@ -642,13 +652,13 @@ Sin `unsafe`: `thread_block` es una función normal. La señal no se descarta: q
 | Tras un SIGKILL a tu programa quedó un cgroup vacío | **Destructivo:** `sudo rmdir /sys/fs/cgroup/mini-container-*` |
 
 <Quiz kind="closing">
-<Fragment slot="question">Matan a tu programa con SIGKILL y queda una carpeta de cgroup, pero el comando ya no vive. ¿Por qué quedó la carpeta, y por qué murió el comando?</Fragment>
+<Fragment slot="question">Matan a tu programa con SIGKILL. Queda una carpeta de cgroup, pero el comando ya no vive. ¿Quién mató al comando: tu programa, Ctrl-C o el kernel?</Fragment>
 
-<QuizOption>La carpeta quedó porque tu programa no bloqueó SIGKILL. El comando murió porque tu programa le mandó SIGKILL antes de morir.<Fragment slot="feedback">SIGKILL no se puede bloquear: ningún programa puede. Y tu programa no alcanza a mandar nada: muere en el acto, sin correr ni una línea más.</Fragment></QuizOption>
+<QuizOption>Tu programa, que le mandó SIGKILL antes de morir.<Fragment slot="feedback">SIGKILL no se puede capturar ni bloquear: tu programa murió en el acto, sin correr ni una línea más. No alcanzó a mandarle nada al comando.</Fragment></QuizOption>
 
-<QuizOption correct>La carpeta quedó porque SIGKILL mata a tu programa sin correr `Drop`. El comando murió porque el kernel le mandó la pdeathsig.<Fragment slot="feedback">Las dos mitades son del kernel. Tu programa solo pidió la pdeathsig al arrancar el hijo, y por eso el kernel mata al comando cuando el padre muere. Y por eso se queda la carpeta: nadie quedó vivo para borrarla.</Fragment></QuizOption>
+<QuizOption correct>El kernel, con la pdeathsig que el hijo pidió al arrancar.<Fragment slot="feedback">Tu programa solo pidió la pdeathsig al arrancar el hijo. Cuando el padre murió, el kernel mató al comando. Y por eso queda la carpeta: SIGKILL mató a tu programa sin correr `Drop`, y nadie quedó vivo para borrarla.</Fragment></QuizOption>
 
-<QuizOption>La carpeta quedó porque el comando seguía dentro cuando el cgroup se borró. El comando murió por Ctrl-C.<Fragment slot="feedback">Un cgroup con un proceso dentro no se puede borrar: `rmdir` falla con `EBUSY`. Y aquí no hubo Ctrl-C: el comando murió porque murió su padre.</Fragment></QuizOption>
+<QuizOption>Ctrl-C, que la terminal mandó a todo el grupo de procesos.<Fragment slot="feedback">Aquí no hubo Ctrl-C: a tu programa lo mataron con SIGKILL, desde otro proceso.</Fragment></QuizOption>
 </Quiz>
 
 ## Ejercicios
@@ -715,14 +725,16 @@ Tu cambio queda en `src/signals.rs`. La prueba de 3b sigue dando `OK`.
 - `pid_namespaces(7)`: «Only signals for which the "init" process has established a signal handler can be sent to the "init" process by other members of the PID namespace.» Y desde un namespace ancestro: «SIGKILL or SIGSTOP are treated exceptionally: these signals are forcibly delivered when sent from an ancestor PID namespace.» [man7.org/linux/man-pages/man7/pid_namespaces.7.html](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html), Linux man-pages 6.19, 2026-05-13. Consultada el 2026-11-13.
 - `PR_SET_PDEATHSIG(2const)`: «This is the signal that the calling process will get when its parent dies.» Sobre `fork` y `exec`: «The parent-death signal setting is cleared for the child of a fork(2).» y «otherwise, this value is preserved across execve(2)». Sobre quién es «el padre»: «The "parent" in this case is considered to be the thread that created this process.» Y sobre una carrera: «If the parent thread and all ancestor subreapers have already terminated by the time of the PR_SET_PDEATHSIG operation, then no parent-death signal is sent to the caller.» [man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html), Linux man-pages 6.19, 2026-02-08. Consultada el 2026-11-13.
 - `signal-safety(7)`: «An async-signal-safe function is one that can be safely called from within a signal handler.» Sobre la biblioteca `stdio` de C, donde está `printf`: «all of whose functions are not async-signal-safe». Para usar un manejador, hay que «Ensure that (1) the signal handler calls only async-signal-safe functions, and (2) the signal handler itself is reentrant with respect to global variables in the main program.» [man7.org/linux/man-pages/man7/signal-safety.7.html](https://man7.org/linux/man-pages/man7/signal-safety.7.html), Linux man-pages 6.19, 2026-06-05. Consultada el 2026-11-13.
-- `kill(1)`, de util-linux: «If no signal is specified, the TERM signal is sent. The default action for this signal is to terminate the process.» Y: «If a process does not terminate after a TERM signal has been sent, then the KILL signal may be used; be aware that the latter signal cannot be caught». [man7.org/linux/man-pages/man1/kill.1.html](https://man7.org/linux/man-pages/man1/kill.1.html), util-linux 2.43, 2026-05-24. Consultada el 2026-11-13. El `kill` del ejercicio es el del shell `sh`, que también manda SIGTERM: el código de salida 143 lo comprobó en la máquina de pruebas.
-- Documentación de cgroup v2 del kernel: «A cgroup which doesn't have any children or live processes can be destroyed by removing the directory.» [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-13.
+- `kill(1)`, de util-linux: «If no signal is specified, the TERM signal is sent. The default action for this signal is to terminate the process.» Y: «If a process does not terminate after a TERM signal has been sent, then the KILL signal may be used; be aware that the latter signal cannot be caught». [man7.org/linux/man-pages/man1/kill.1.html](https://man7.org/linux/man-pages/man1/kill.1.html), util-linux 2.43.devel-739-eee2e, 2026-05-24. Consultada el 2026-11-13. El `kill` del ejercicio es el del shell `sh`, que también manda SIGTERM: el código de salida 143 lo comprobó en la máquina de pruebas.
+- Documentación de cgroup v2 del kernel: «A cgroup which doesn’t have any children or live processes can be destroyed by removing the directory.» [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-13.
 - `nix` 0.31.3: `SigSet::thread_block` es una función normal, «Adds the set of signals to the signal mask for the calling thread.», y `SigSet` está «Available on crate feature `signal` only.» [docs.rs/nix/0.31.3/nix/sys/signal/struct.SigSet.html](https://docs.rs/nix/0.31.3/nix/sys/signal/struct.SigSet.html). `prctl::set_pdeathsig`: «Set the parent-death signal of the calling process.», «Available on crate feature `process` only.» [docs.rs/nix/0.31.3/nix/sys/prctl/fn.set_pdeathsig.html](https://docs.rs/nix/0.31.3/nix/sys/prctl/fn.set_pdeathsig.html). `signal::signal` se declara `pub unsafe fn signal(signal: Signal, handler: SigHandler) -> Result<SigHandler>`. [docs.rs/nix/0.31.3/nix/sys/signal/fn.signal.html](https://docs.rs/nix/0.31.3/nix/sys/signal/fn.signal.html). Consultadas el 2026-11-13. Que `signal` activa `process` lo mostró `cargo add`, con `+ process` y `+ signal`.
-- La máscara llega al comando: comprobado en la máquina de pruebas con Rust 1.99.1. Una prueba pequeña bloqueó SIGINT y lanzó `/bin/grep Sig /proc/self/status` con `Command::status()` y con `CommandExt::exec()`: en las dos, `SigBlk` valía `0000000000000002`. La documentación de `std::process::Command` no dice nada sobre la máscara. Con el programa de 3b y sin `unblock_interrupts()`, `SigBlk` valía `2` en el padre y en el comando. Con la línea, valía `2` en el padre y `0` en el comando.
+- La máscara llega al comando: comprobado en la máquina de pruebas con Rust 1.99.1. Una prueba pequeña bloqueó SIGINT y lanzó `/bin/grep Sig /proc/self/status` con `Command::status()` y con `CommandExt::exec()`: en las dos, `SigBlk` valía `0000000000000002`. La documentación de `std::process::Command` no dice nada sobre la máscara. El código fuente de la biblioteca estándar sí lo dice, en un comentario: «Inherit the signal mask from the parent rather than resetting it (i.e. do not call pthread_sigmask).» Está en `library/std/src/sys/process/unix/unix.rs` de Rust 1.99.1 ([github.com/rust-lang/rust](https://github.com/rust-lang/rust/blob/1.99.1/library/std/src/sys/process/unix/unix.rs)), y el mismo comentario está en `library/std/src/sys/pal/unix/process/process_unix.rs` de Rust 1.80.0, así que la herencia es a propósito, al menos desde 1.80. Es un detalle de la implementación, no una garantía documentada. Consultados el 2026-11-13. Con el programa de 3b y sin `unblock_interrupts()`, `SigBlk` valía `2` en el padre y en el comando. Con la línea, valía `2` en el padre y `0` en el comando.
 - Con `sudo`, el comando no corre en tu terminal, sino en una propia: `ps` mostró `sudo` en `pts/1` y, dentro, su copia en `pts/2`, con tu programa y `sleep` en el mismo grupo de procesos y en primer plano (`S+`). Tu Ctrl-C llega a `sudo`, y `sudo` lo pasa a esa terminal, que se lo manda a ese grupo. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Ctrl-C con el programa de 3a, en una terminal simulada con un pseudoterminal: `echo $?` imprimió `130`, quedó la carpeta del cgroup y `pgrep -a sleep` listó `/bin/sleep 3`. Con el programa de 3b: el prompt volvió a los 3 segundos, `echo $?` imprimió `0` y no quedó ninguna carpeta ni ningún `sleep`. Con `sleep` como PID 1 y SIGINT mandada al grupo con `kill -INT -- -<PGID>`, `/proc/<PID>/status` mostró en el padre `SigBlk: 2` y `ShdPnd: 2`: la señal quedó pendiente. En `sleep`, `SigBlk: 0`, `SigCgt: 0` y nada pendiente: el kernel descartó la señal. El shell de Alpine, en cambio, tiene `SigCgt: 10002`: instaló un manejador para SIGINT, y por eso `trap "echo got" INT` recibe la señal aunque sea el PID 1. Comprobado en la máquina de pruebas, el 2026-11-13.
 - El `trap`: con `sh -c 'trap "echo got" INT; sleep 4'` y Ctrl-C a 1 segundo, sin `unblock_interrupts()` el programa terminó a los 4 segundos con código 0 y sin `got`. Con la línea, imprimió `got` y salió con 130 en el acto. Con el manejador de `signal()` en lugar de la máscara, las dos salidas fueron iguales a las de la máscara con el desbloqueo. Comprobado en la máquina de pruebas, el 2026-11-13.
 - SIGKILL al padre: con `run /bin/sleep 30` y `kill -KILL` a tu programa, `sleep` murió en menos de 0,5 segundos y quedó una carpeta vacía, que `rmdir` borró. Con el programa de 3a, `sleep` siguió vivo, con la carpeta ocupada por él. `fs::remove_dir` sobre un cgroup con un contenedor vivo devolvió `Device or resource busy (os error 16)`, y sobre uno vacío devolvió `Ok(())`. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Carrera de la pdeathsig: con una copia del programa en la que el hijo espera 2 segundos con `std::thread::sleep` antes de pedir la pdeathsig, `kill -KILL` al padre a los 0,5 segundos dejó el `sleep 30` vivo y su carpeta ocupada: `sleeps left: 1`. Con el programa de 3b, sin la espera, daba 0. Sin la espera, la ventana es demasiado corta para provocarla a mano. Comprobado en la máquina de pruebas, el 2026-11-13.
+- El aviso del compilador: sin la línea de `unblock_interrupts()` en `init`, `cargo build` imprimió ``warning: function `unblock_interrupts` is never used``, con la nota `#[warn(dead_code)]`. Comprobado en la máquina de pruebas, el 2026-11-13.
 - La prueba de aceptación no puede lanzar el programa con un simple `&`: un trabajo en segundo plano de un shell sin control de trabajos hereda SIGINT ignorada. Con el programa de 3a y esa forma, el programa ni murió, y la prueba habría dado verde. Por eso la prueba lo lanza con `setsid env --default-signal=INT`. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Ejercicio 3b.1: con SIGTERM en el conjunto de `interrupts()`, `kill` a tu programa lo dejó esperando a `sleep 3`, salió con 0 y no dejó ninguna carpeta. Sin el cambio, salió con 143 y dejó la carpeta. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. Los PID de los ejemplos cambian en cada ejecución. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.
