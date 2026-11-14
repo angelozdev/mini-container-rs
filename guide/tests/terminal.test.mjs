@@ -76,7 +76,7 @@ for (const docsPath of allPaths) {
     }
   });
 
-  test(`${name}: the prompt is drawn by CSS, so no row and no copied line carries it`, () => {
+  test(`${name}: the prompt is drawn by CSS, so no row carries it, and the copy button gives only the command lines`, () => {
     const windows = readTerminalWindows(readPage());
     terminalFences.forEach((fence, index) => {
       const expected = readExpectedRows(fence);
@@ -87,8 +87,9 @@ for (const docsPath of allPaths) {
         assert.equal(rows[line].classes.includes("is-command"), row.isCommand, `"${windows[index].title}", line ${line + 1}: command mark`);
         assert.ok(!rows[line].text.startsWith(prompt));
       });
-      assert.ok(windows[index].copiedLines.length > 0, `"${windows[index].title}" copies nothing`);
-      for (const line of windows[index].copiedLines) assert.ok(!line.startsWith(prompt), `"${windows[index].title}" copies a prompt`);
+      const commands = expected.filter((row) => row.isCommand).map((row) => row.text);
+      assert.equal(windows[index].hasCopyButton, commands.length > 0, `"${windows[index].title}": copy button`);
+      if (commands.length > 0) assert.deepEqual(windows[index].copiedLines, commands, `"${windows[index].title}" copies something other than its commands`);
     });
   });
 

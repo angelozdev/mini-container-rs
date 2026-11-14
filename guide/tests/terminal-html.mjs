@@ -45,6 +45,7 @@ function readWindow(html) {
     language: attributeOf(preHtml.match(preOpening)?.[0] ?? "", "data-language"),
     preHtml,
     rows: readRows(preHtml),
+    hasCopyButton: copy !== undefined,
     copiedLines: copy ? decodeEntities(attributeOf(copy, "data-code")).split(lineBreakInCopy) : [],
   };
 }

@@ -5,6 +5,7 @@ const promptPrefix = "$ ";
 const stderrKeyText = "stderr";
 const scrollRegionLabel = "Salida del terminal";
 const dotCount = 3;
+const lineBreakInCopy = "\x7f";
 
 const commandLines = new WeakSet();
 const stderrLines = new WeakSet();
@@ -71,11 +72,23 @@ function makeScrollable(pre) {
   pre.properties.ariaLabel = scrollRegionLabel;
 }
 
+function copyOnlyCommands(codeBlock, window) {
+  const copy = select("div.copy", window);
+  if (!copy) return;
+  const commands = codeBlock.getLines().filter((line) => commandLines.has(line)).map((line) => line.text);
+  if (commands.length === 0) {
+    window.children = window.children.filter((child) => child !== copy);
+    return;
+  }
+  select("button", copy).properties.dataCode = commands.join(lineBreakInCopy);
+}
+
 function dressWindow(codeBlock, window) {
   const header = select("figcaption.header", window);
   header.children.unshift(makeDots());
   if (codeBlock.getLines().some((line) => stderrLines.has(line))) header.children.push(makeStderrKey());
   makeScrollable(select("pre", window));
+  copyOnlyCommands(codeBlock, window);
 }
 
 export function terminalWindow() {

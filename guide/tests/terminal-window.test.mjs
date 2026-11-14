@@ -21,9 +21,29 @@ test("a line that starts with the prompt is a command, and the prompt is not in 
   assert.deepEqual(marks(window, "is-command"), [true, false]);
 });
 
-test("the copy button gives the text without the prompt", async () => {
+test("the copy button gives only the command lines, without the prompt and without the output", async () => {
   const window = await renderWindow("$ pwd\n/home\n$ uname -m\naarch64", "sh");
-  assert.deepEqual(window.copiedLines, ["pwd", "/home", "uname -m", "aarch64"]);
+  assert.deepEqual(window.copiedLines, ["pwd", "uname -m"]);
+});
+
+test("the copy button of a block with no prompt gives its lines and skips the blank ones", async () => {
+  const window = await renderWindow("cd repo\n\nls", "sh");
+  assert.deepEqual(window.copiedLines, ["cd repo", "ls"]);
+});
+
+test("a block marked as output with no prompted line has no copy button", async () => {
+  const window = await renderWindow("info: downloading\ninfo: done", "sh", "output");
+  assert.equal(window.hasCopyButton, false);
+});
+
+test("a block marked as output copies only the prompted lines", async () => {
+  const window = await renderWindow("$ ls\nfile", "sh", "output");
+  assert.deepEqual(window.copiedLines, ["ls"]);
+});
+
+test("a block that is not a terminal copies all of its code", async () => {
+  const window = await renderWindow("fn main() {}\n\nfn other() {}", "rust");
+  assert.deepEqual(window.copiedLines, ["fn main() {}", "", "fn other() {}"]);
 });
 
 test("a block with no prompt at all is made of commands, and a blank line is not one", async () => {
