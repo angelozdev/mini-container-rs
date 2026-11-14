@@ -852,7 +852,7 @@ Mira `init` escrito de las dos formas, y lo que `ps` imprime dentro del contened
 <Compare>
 <Fragment slot="bad">
 
-```rust title="Con .status()"
+```rust title="Con .status()" context
 pub fn init(command: &CommandLine) -> Result<ExitCode> {
     filesystem::make_mounts_private()?;
     filesystem::mount_proc()?;
@@ -876,7 +876,7 @@ El PID 1 es `mini-container`, el hijo `child`, que se queda esperando. El comand
 </Fragment>
 <Fragment slot="good">
 
-```rust title="Con .exec()"
+```rust title="Con .exec()" context
 pub fn init(command: &CommandLine) -> Result<Infallible> {
     filesystem::make_mounts_private()?;
     filesystem::mount_proc()?;

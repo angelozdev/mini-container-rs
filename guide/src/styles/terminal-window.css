@@ -1,3 +1,4 @@
+.expressive-code .frame.is-file,
 .expressive-code .frame.is-terminal {
   --edge: var(--n-faint);
   overflow: hidden;
@@ -7,15 +8,20 @@
   box-shadow: none;
 }
 
+:root[data-theme="light"] .expressive-code .frame.is-file,
 :root[data-theme="light"] .expressive-code .frame.is-terminal {
   --edge: var(--n-shadow);
 }
 
+.expressive-code .frame.is-file .header::before,
+.expressive-code .frame.is-file .header::after,
+.expressive-code .frame.is-file .title::after,
 .expressive-code .frame.is-terminal .header::before,
 .expressive-code .frame.is-terminal .header::after {
   display: none;
 }
 
+.expressive-code .frame.is-file figcaption.header,
 .expressive-code .frame.is-terminal figcaption.header {
   display: flex;
   align-items: center;
@@ -33,11 +39,13 @@
   line-height: 1.5;
 }
 
+.expressive-code .frame.is-file .window-dots,
 .expressive-code .frame.is-terminal .terminal-dots {
   display: inline-flex;
   gap: 5px;
 }
 
+.expressive-code .frame.is-file .window-dots i,
 .expressive-code .frame.is-terminal .terminal-dots i {
   display: block;
   width: 9px;
@@ -46,6 +54,7 @@
   background: var(--n-faint);
 }
 
+.expressive-code .frame.is-file .title,
 .expressive-code .frame.is-terminal .title {
   margin: 0;
   padding: 0;
@@ -74,6 +83,7 @@
   background: var(--n-t-red);
 }
 
+.expressive-code .frame.is-file pre,
 .expressive-code .frame.is-terminal pre {
   overflow-x: auto;
   border-radius: 0;
@@ -89,11 +99,13 @@
   background-position: left center, right center, left center, right center;
 }
 
+.expressive-code .frame.is-file pre:focus-visible,
 .expressive-code .frame.is-terminal pre:focus-visible {
   outline: 2px solid var(--n-t-blue);
   outline-offset: -2px;
 }
 
+.expressive-code .frame.is-file pre > code,
 .expressive-code .frame.is-terminal pre > code {
   color: var(--n-text);
 }

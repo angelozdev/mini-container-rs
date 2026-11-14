@@ -4,11 +4,13 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join, relative } from "node:path";
 import { after, before, test } from "node:test";
+import { LanguageGroups } from "@astrojs/starlight/expressive-code";
 import { readExercisesCards } from "./card-html.mjs";
+import { readFileWindows } from "./file-html.mjs";
 import { readHeaderBlocks, readSectionLinks } from "./header-html.mjs";
 import { readSectionHeadings } from "./outline-html.mjs";
 import { expectedCardLine, expectedProperties } from "./page-metrics.mjs";
-import { docsFolder, guideRoot, listSectionPaths, pageUrlOf } from "./support.mjs";
+import { docsFolder, guideRoot, listSectionPaths, pageUrlOf, readBlockLanguage, readCodeBlocks } from "./support.mjs";
 import { readSteppers } from "./stepper-html.mjs";
 
 const astroCli = join(guideRoot, "node_modules/astro/bin/astro.mjs");
@@ -122,6 +124,20 @@ for (const docsPath of sectionPaths) {
     assert.equal(cards[0].href, `#${heading.id}`);
     assert.equal(cards[0].title, "Ir a los ejercicios");
     assert.equal(cards[0].summary, expectedCardLine(readFileSync(docsPath, "utf8")));
+  });
+}
+
+for (const docsPath of sectionPaths) {
+  test(`${relative(docsFolder, docsPath)}: the file windows render under astro dev, with their tabs and the Contexto marks the page asked for`, async () => {
+    const response = await fetch(baseUrl + pageUrlOf(docsPath));
+    const html = await response.text();
+    assert.equal(response.status, 200, `${pageUrlOf(docsPath)} answered ${response.status}`);
+    const fences = readCodeBlocks(readFileSync(docsPath, "utf8")).filter((block) => !LanguageGroups.terminal.includes(readBlockLanguage(block.meta)));
+    const windows = readFileWindows(html);
+    assert.equal(windows.length, fences.length, `${pageUrlOf(docsPath)}: found ${windows.length} file windows, wrote ${fences.length} blocks`);
+    assert.ok(windows.every((window) => window.hasTab && window.hasIcon), "a file window served by astro dev has no tab or no icon");
+    const asked = fences.filter((block) => /(^|\s)context(\s|$)/.test(block.meta)).length;
+    assert.equal(windows.filter((window) => window.note === "Contexto").length, asked, `${pageUrlOf(docsPath)}: the Contexto marks differ from the ones the page asked for`);
   });
 }
 

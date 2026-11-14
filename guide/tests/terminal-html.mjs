@@ -37,6 +37,7 @@ function readWindow(html) {
   const preHtml = html.match(preElement)?.[0] ?? "";
   const copy = html.match(copyButton)?.[0];
   return {
+    html,
     classes: attributeOf(opening, "class").split(/\s+/),
     title: textOf(html.match(titleElement)?.[1] ?? ""),
     key: html.match(keyElement) ? textOf(html.match(keyElement)[1]) : undefined,

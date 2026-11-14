@@ -319,7 +319,7 @@ sudo rmdir /sys/fs/cgroup/mini-container-*
 
    Ahora `run`. Añade una línea al principio:
 
-   ```rust title="src/container.rs" ins={2}
+   ```rust title="src/container.rs" ins={2} context
    pub fn run(command: &CommandLine) -> Result<ExitCode> {
        signals::block_interrupts()?;
        let executable = std::env::current_exe()?;
@@ -359,7 +359,7 @@ sudo rmdir /sys/fs/cgroup/mini-container-*
 
    Para evitarlo, el hijo quita SIGINT de su máscara justo antes de convertirse en el comando. Debajo de `mount_proc`, justo antes del `exec`:
 
-   ```rust title="src/container.rs" ins={2}
+   ```rust title="src/container.rs" ins={2} context
        filesystem::mount_proc()?;
        signals::unblock_interrupts()?;
        let error = Command::new(&command.program).args(&command.args).exec();
@@ -599,7 +599,7 @@ Hay otra forma de que Ctrl-C no mate a tu programa: instalar un manejador con `s
 <Compare>
 <Fragment slot="bad">
 
-```rust title="Con signal()"
+```rust title="Con signal()" context
 extern "C" fn ignore_interrupt(_signal: i32) {}
 
 pub fn ignore_interrupts() -> Result<()> {
@@ -622,7 +622,7 @@ Funciona igual. Lo que cambia es el precio. `unsafe` marca el lugar donde respon
 </Fragment>
 <Fragment slot="good">
 
-```rust title="Bloqueando"
+```rust title="Bloqueando" context
 pub fn block_interrupts() -> Result<()> {
     interrupts()
         .thread_block()

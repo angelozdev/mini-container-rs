@@ -15,6 +15,10 @@ function blend(foreground, background) {
   return { r: mix(foreground.r, background.r), g: mix(foreground.g, background.g), b: mix(foreground.b, background.b), a: 1 };
 }
 
+export function layerColors(top, bottom) {
+  return blend(top, blend(bottom, { r: 255, g: 255, b: 255, a: 1 }));
+}
+
 function luminance({ r, g, b }) {
   const linear = (channel) => {
     const share = channel / 255;
@@ -50,6 +54,19 @@ function tokenUseIn(block, property) {
 
 export function readTokenUse(css, selector, property) {
   const use = tokenUseIn(blockOf(css, selector), property);
+  if (!use) throw new Error(`${selector} sets no ${property} from an --n token`);
+  return use;
+}
+
+function listedBlockOf(css, selector) {
+  for (const [, prelude, body] of css.matchAll(/(?:^|\n)([^{}]+)\{([^}]*)\}/g)) {
+    if (prelude.split(",").some((part) => part.trim() === selector)) return body;
+  }
+  throw new Error(`no rule lists ${selector}`);
+}
+
+export function readListedTokenUse(css, selector, property) {
+  const use = tokenUseIn(listedBlockOf(css, selector), property);
   if (!use) throw new Error(`${selector} sets no ${property} from an --n token`);
   return use;
 }

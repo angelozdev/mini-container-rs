@@ -796,7 +796,7 @@ La última línea de `run` también tiene un «así no». Mira las dos, y lo que
 <Compare>
 <Fragment slot="bad">
 
-```rust title="Con std::process::exit"
+```rust title="Con std::process::exit" context
     let oom_kills = cgroup.oom_kills()?;
     if oom_kills > 0 {
         eprintln!("the kernel killed a process for running out of memory (oom_kill: {oom_kills})");
@@ -819,7 +819,7 @@ $ ls -d /sys/fs/cgroup/mini-container-*
 </Fragment>
 <Fragment slot="good">
 
-```rust title="Devolviendo ExitCode"
+```rust title="Devolviendo ExitCode" context
     let oom_kills = cgroup.oom_kills()?;
     if oom_kills > 0 {
         eprintln!("the kernel killed a process for running out of memory (oom_kill: {oom_kills})");

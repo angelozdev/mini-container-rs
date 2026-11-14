@@ -200,7 +200,7 @@ Antes de escribir, una predicción.
 
    Debajo de los `use`, deja una línea en blanco y escribe la función:
 
-   ```rust title="src/namespaces.rs"
+   ```rust title="src/namespaces.rs" context
    pub fn unshare_namespaces() -> Result<()> {
        unshare(CloneFlags::CLONE_NEWUTS)
            .context("could not create the namespaces: did you run it with sudo?")
@@ -233,7 +233,7 @@ Antes de escribir, una predicción.
 
    Y llama a la función. Va como primera línea de `run`, antes de `Command::new`. El resto de `run` no cambia:
 
-   ```rust title="src/container.rs" ins={2}
+   ```rust title="src/container.rs" ins={2} context
    pub fn run(command: &CommandLine) -> Result<ExitCode> {
        namespaces::unshare_namespaces()?;
    ```
@@ -539,7 +539,7 @@ Mira la función `unshare_namespaces` escrita de las dos formas, y lo que ve qui
 <Compare>
 <Fragment slot="bad">
 
-```rust title="Con .unwrap()"
+```rust title="Con .unwrap()" context
 pub fn unshare_namespaces() -> Result<()> {
     unshare(CloneFlags::CLONE_NEWUTS).unwrap();
     Ok(())
@@ -560,7 +560,7 @@ Dice que algo falló y dónde: `src/namespaces.rs:8:39` es archivo, línea y col
 </Fragment>
 <Fragment slot="good">
 
-```rust title="Con .context()"
+```rust title="Con .context()" context
 pub fn unshare_namespaces() -> Result<()> {
     unshare(CloneFlags::CLONE_NEWUTS)
         .context("could not create the namespaces: did you run it with sudo?")

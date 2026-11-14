@@ -10,7 +10,7 @@ const lineBreakInCopy = "\x7f";
 const commandLines = new WeakSet();
 const stderrLines = new WeakSet();
 
-function isTerminalBlock({ props, language }) {
+export function isTerminalBlock({ props, language }) {
   const frame = props.frame ?? "auto";
   return frame === "terminal" || (frame === "auto" && LanguageGroups.terminal.includes(language));
 }

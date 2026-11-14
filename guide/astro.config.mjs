@@ -1,22 +1,23 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
+import { fileWindow } from "./src/lib/file-window.mjs";
 import { terminalWindow } from "./src/lib/terminal-window.mjs";
 
 const syntaxColors = [
-  { scopes: ["comment", "punctuation.definition.comment"], color: "var(--n-faint)" },
+  { scopes: ["comment", "punctuation.definition.comment"], color: "var(--n-s-comment)" },
   {
     scopes: ["keyword", "storage", "storage.type", "storage.modifier", "keyword.control", "keyword.operator.new"],
-    color: "var(--n-t-purple)",
+    color: "var(--n-s-keyword)",
   },
   {
     scopes: ["entity.name.function", "support.function", "meta.function-call", "entity.name.function.macro"],
-    color: "var(--n-t-blue)",
+    color: "var(--n-s-function)",
   },
-  { scopes: ["string", "string.quoted", "punctuation.definition.string"], color: "var(--n-t-green)" },
+  { scopes: ["string", "string.quoted", "punctuation.definition.string"], color: "var(--n-s-string)" },
   {
     scopes: ["entity.name.type", "entity.name.class", "support.type", "support.class", "constant.numeric", "constant.language"],
-    color: "var(--n-t-orange)",
+    color: "var(--n-s-type)",
   },
 ];
 
@@ -40,15 +41,14 @@ export default defineConfig({
         root: { label: "Español", lang: "es" },
       },
       plugins: [starlightLinksValidator()],
-      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css", "./src/styles/glossary.css", "./src/styles/page-props.css", "./src/styles/section-marks.css", "./src/styles/reading-bar.css", "./src/styles/diagram-grid.css", "./src/styles/exercises-card.css", "./src/styles/terminal-window.css"],
+      customCss: ["./src/styles/tokens.css", "./src/styles/notion.css", "./src/styles/guide.css", "./src/styles/stepper.css", "./src/styles/glossary.css", "./src/styles/page-props.css", "./src/styles/section-marks.css", "./src/styles/reading-bar.css", "./src/styles/diagram-grid.css", "./src/styles/exercises-card.css", "./src/styles/terminal-window.css", "./src/styles/file-window.css"],
       components: {
         Header: "./src/components/Header.astro",
         PageTitle: "./src/components/PageTitle.astro",
         TableOfContents: "./src/components/TableOfContents.astro",
       },
       expressiveCode: {
-        defaultProps: { wrap: true },
-        plugins: [terminalWindow()],
+        plugins: [terminalWindow(), fileWindow()],
         customizeTheme: useNotionSyntaxColors,
         minSyntaxHighlightingColorContrast: 0,
       },

@@ -1,0 +1,84 @@
+.expressive-code .frame.is-file figcaption.header {
+  padding: 5px 12px 0;
+}
+
+.expressive-code .frame.is-file .window-dots {
+  flex: none;
+}
+
+.expressive-code .frame.is-file .file-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: -1px;
+  padding: 3px 12px 4px;
+  border: 1px solid var(--n-line);
+  border-bottom-color: var(--n-code);
+  border-radius: 6px 6px 0 0;
+  background: var(--n-code);
+}
+
+.expressive-code .frame.is-file .file-tab .title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.expressive-code .frame.is-file .file-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: var(--n-note);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.expressive-code .frame.is-file .file-note {
+  flex: none;
+  align-self: center;
+  margin-inline-start: auto;
+  color: var(--n-note);
+  font: 12px/1.5 var(--sl-font-mono);
+}
+
+.expressive-code .frame.is-file pre.has-marks .ec-line .code {
+  padding-inline-start: 0;
+  border-inline-start: 0;
+}
+
+.expressive-code .frame.is-file pre.has-marks .ec-line .code::before {
+  content: "";
+  display: inline-block;
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  width: 36px;
+  height: 1lh;
+  padding-inline: 0 8px;
+  vertical-align: top;
+  background: var(--n-code);
+  color: var(--n-text);
+  font-weight: 700;
+  text-align: center;
+  white-space: pre;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.expressive-code .frame.is-file pre.has-marks .ec-line.ins .code::before {
+  --mark-bar: var(--n-t-green);
+  content: "+";
+  content: "+" / "Añadida: ";
+  border-left: 3px solid var(--mark-bar);
+  background: linear-gradient(var(--n-ins), var(--n-ins)), var(--n-code);
+}
+
+.expressive-code .frame.is-file pre.has-marks .ec-line.del .code::before {
+  --mark-bar: var(--n-t-red);
+  content: "−";
+  content: "−" / "Quitada: ";
+  border-left: 3px solid var(--mark-bar);
+  background: linear-gradient(var(--n-del), var(--n-del)), var(--n-code);
+}

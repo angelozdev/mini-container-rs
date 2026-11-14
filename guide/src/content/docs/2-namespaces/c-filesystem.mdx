@@ -836,7 +836,7 @@ El tmpfs va primero, y los dispositivos después. Mira `mount_dev` escrita de la
 <Compare>
 <Fragment slot="bad">
 
-```rust title="Con mknod antes del tmpfs"
+```rust title="Con mknod antes del tmpfs" context
 fn mount_dev(dev: &Path) -> Result<()> {
     const MEMORY_MAJOR: u64 = 1;
     const NULL_MINOR: u64 = 3;
@@ -870,7 +870,7 @@ Caused by:
 </Fragment>
 <Fragment slot="good">
 
-```rust title="Con el tmpfs primero"
+```rust title="Con el tmpfs primero" context
 fn mount_dev(dev: &Path) -> Result<()> {
     const MEMORY_MAJOR: u64 = 1;
     const NULL_MINOR: u64 = 3;
