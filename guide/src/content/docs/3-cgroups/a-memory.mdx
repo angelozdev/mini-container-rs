@@ -94,7 +94,7 @@ Un cgroup tiene una vida corta dentro de tu programa. Se crea, se le ponen los t
 <KernelEntry change="edited" note="0">memory.swap.max</KernelEntry>
 <KernelEntry note="oom_kill 0">memory.events</KernelEntry>
 </KernelBox>
-<Fragment slot="caption">Escribes `50M` en `memory.max`, y el kernel lo guarda en bytes: 52428800. Escribes `0` en `memory.swap.max`, para que el comando no pueda mandar su memoria al swap.</Fragment>
+<Fragment slot="caption">Escribes `50M` en `memory.max`, y el kernel lo guarda en bytes: 52428800. Escribes `0` en `memory.swap.max`, para que el comando no pueda mandar su memoria al disco ni a una zona comprimida de la memoria.</Fragment>
 </Step>
 <Step call="cgroup::join(cgroup)">
 <Lane title="Tu programa">

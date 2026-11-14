@@ -360,7 +360,7 @@
     "match": [
       "swap"
     ],
-    "definition": "Espacio fuera de la RAM, en disco o en una zona comprimida de la memoria, donde el kernel guarda datos de la RAM cuando se llena."
+    "definition": "Espacio donde el kernel guarda datos de la RAM cuando se llena. Puede ser un disco, o una zona de la propia RAM donde los datos se guardan comprimidos."
   },
   {
     "id": "system-call",
