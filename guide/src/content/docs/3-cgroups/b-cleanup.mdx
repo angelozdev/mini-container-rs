@@ -240,7 +240,7 @@ sudo rmdir /sys/fs/cgroup/mini-container-*
 
    En `src/main.rs`, añade una línea al final de los `mod`:
 
-   ```rust title="src/main.rs" ins={6}
+   ```rust title="src/main.rs" ins={6} context
    mod cgroup;
    mod cli;
    mod container;
@@ -284,7 +284,7 @@ sudo rmdir /sys/fs/cgroup/mini-container-*
 
    Debajo de `unblock_interrupts`, con una línea en blanco:
 
-   ```rust title="src/signals.rs" ins={1-9}
+   ```rust title="src/signals.rs" ins={1-9} context
    pub fn die_with_parent() -> Result<()> {
        set_pdeathsig(Signal::SIGKILL).context("could not ask to die with the parent")
    }
@@ -308,7 +308,7 @@ sudo rmdir /sys/fs/cgroup/mini-container-*
 
    En `src/container.rs`, cambia la línea de `use` que trae los módulos:
 
-   ```rust title="src/container.rs" del={3} ins={4}
+   ```rust title="src/container.rs" del={3} ins={4} context
    use crate::cgroup::{self, Cgroup, MEMORY_MAX};
    use crate::cli::CommandLine;
    use crate::{filesystem, namespaces};
@@ -333,7 +333,7 @@ sudo rmdir /sys/fs/cgroup/mini-container-*
 
    Añade una línea al principio de `init`:
 
-   ```rust title="src/container.rs" ins={2}
+   ```rust title="src/container.rs" ins={2} context
    pub fn init(cgroup: &Path, command: &CommandLine) -> Result<Infallible> {
        signals::die_with_parent()?;
        cgroup::join(cgroup)?;

@@ -43,6 +43,10 @@
   font: 12px/1.5 var(--sl-font-mono);
 }
 
+.expressive-code .frame.is-file pre .ec-line .code {
+  padding-inline-end: 0;
+}
+
 .expressive-code .frame.is-file pre.has-marks .ec-line .code {
   padding-inline-start: 0;
   border-inline-start: 0;

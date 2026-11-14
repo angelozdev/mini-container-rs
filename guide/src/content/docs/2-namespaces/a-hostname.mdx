@@ -218,7 +218,7 @@ Antes de escribir, una predicción.
 
    Declara el módulo. En `src/main.rs`, añade debajo de `mod container;`:
 
-   ```rust title="src/main.rs" ins={3}
+   ```rust title="src/main.rs" ins={3} context
    mod cli;
    mod container;
    mod namespaces;
@@ -226,7 +226,7 @@ Antes de escribir, una predicción.
 
    En `src/container.rs`, trae el módulo debajo del `use` de `cli`:
 
-   ```rust title="src/container.rs" ins={2}
+   ```rust title="src/container.rs" ins={2} context
    use crate::cli::CommandLine;
    use crate::namespaces;
    ```
@@ -301,7 +301,7 @@ Antes de escribir, una predicción.
 
    Vuelve a `src/namespaces.rs`. Arriba hacen falta dos líneas nuevas: la función que escribe el hostname y el nombre que va a escribir.
 
-   ```rust title="src/namespaces.rs" ins={3,5}
+   ```rust title="src/namespaces.rs" ins={3,5} context
    use anyhow::{Context, Result};
    use nix::sched::{CloneFlags, unshare};
    use nix::unistd::sethostname;
@@ -314,7 +314,7 @@ Antes de escribir, una predicción.
 
    Ahora la función. Va debajo de `unshare_namespaces`, con una línea en blanco entre las dos:
 
-   ```rust title="src/namespaces.rs" ins={5-8}
+   ```rust title="src/namespaces.rs" ins={5-8} context
    pub fn unshare_namespaces() -> Result<()> {
        unshare(CloneFlags::CLONE_NEWUTS)
            .context("could not create the namespaces: did you run it with sudo?")
@@ -369,7 +369,7 @@ Antes de escribir, una predicción.
 
    En `src/container.rs`, añade una línea en `run`, debajo de la que ya escribiste:
 
-   ```rust title="src/container.rs" ins={3}
+   ```rust title="src/container.rs" ins={3} context
    pub fn run(command: &CommandLine) -> Result<ExitCode> {
        namespaces::unshare_namespaces()?;
        namespaces::set_hostname(namespaces::HOSTNAME)?;

@@ -194,7 +194,7 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
 
    Rust solo compila los archivos que `main.rs` declara. Abre `src/main.rs`. Añade esta línea al principio, encima de `fn main`, y deja una línea en blanco debajo:
 
-   ```rust title="src/main.rs" ins={1}
+   ```rust title="src/main.rs" ins={1} context
    mod cli;
    ```
 
@@ -337,7 +337,7 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
 
    Declara el módulo. En `src/main.rs`, añade debajo de `mod cli;`:
 
-   ```rust title="src/main.rs" ins={2}
+   ```rust title="src/main.rs" ins={2} context
    mod cli;
    mod container;
    ```
@@ -371,7 +371,7 @@ Una última cosa antes de la predicción. Cuando un programa termina, deja un n�
 
    Tu `main.rs` tiene ahora los dos `mod` y el «hola mundo» que escribió `cargo init`. Añade, debajo de los `mod`, lo que `main` necesita traer:
 
-   ```rust title="src/main.rs" ins={4-5}
+   ```rust title="src/main.rs" ins={4-5} context
    mod cli;
    mod container;
 

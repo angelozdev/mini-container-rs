@@ -321,7 +321,7 @@ Antes de escribir, una predicción.
 
    Empieza por el principio, lo que `init` necesita. En `src/container.rs`, añade una línea de `use`:
 
-   ```rust title="src/container.rs" ins={3}
+   ```rust title="src/container.rs" ins={3} context
    use std::convert::Infallible;
    use std::os::unix::process::{CommandExt, ExitStatusExt};
    use std::path::Path;
@@ -332,7 +332,7 @@ Antes de escribir, una predicción.
 
    Y en `init`, añade una línea:
 
-   ```rust title="src/container.rs" ins={3}
+   ```rust title="src/container.rs" ins={3} context
    pub fn init(command: &CommandLine) -> Result<Infallible> {
        filesystem::make_mounts_private()?;
        filesystem::enter_rootfs(Path::new(filesystem::ROOTFS))?;
@@ -355,7 +355,7 @@ Antes de escribir, una predicción.
 
    En Zed, abre `src/filesystem.rs`. Cambia lo que trae arriba y añade la ruta de Alpine:
 
-   ```rust title="src/filesystem.rs" del={6} ins={1-4,7-11}
+   ```rust title="src/filesystem.rs" del={6} ins={1-4,7-11} context
    use std::fs::{self, Permissions};
    use std::os::unix::fs::PermissionsExt;
    use std::path::Path;
@@ -379,7 +379,7 @@ Antes de escribir, una predicción.
 
    Ahora el plan. Debajo de `mount_proc`, con una línea en blanco, escribe la función que hace los pasos del diagrama:
 
-   ```rust title="src/filesystem.rs" ins={1-5}
+   ```rust title="src/filesystem.rs" ins={1-5} context
    pub fn enter_rootfs(rootfs: &Path) -> Result<()> {
        bind_mount_onto_itself(rootfs)?;
        mount_dev(&rootfs.join("dev"))?;
@@ -397,7 +397,7 @@ Antes de escribir, una predicción.
 
    Debajo de `enter_rootfs`, con una línea en blanco:
 
-   ```rust title="src/filesystem.rs" ins={1-15}
+   ```rust title="src/filesystem.rs" ins={1-15} context
    fn bind_mount_onto_itself(rootfs: &Path) -> Result<()> {
        mount(
            Some(rootfs),
@@ -454,7 +454,7 @@ Antes de escribir, una predicción.
 
    Debajo de `bind_mount_onto_itself`, con una línea en blanco:
 
-   ```rust title="src/filesystem.rs" ins={1-16}
+   ```rust title="src/filesystem.rs" ins={1-16} context
    fn mount_dev(dev: &Path) -> Result<()> {
        const MEMORY_MAJOR: u64 = 1;
        const NULL_MINOR: u64 = 3;
@@ -486,7 +486,7 @@ Antes de escribir, una predicción.
 
    Ahora la función que crea cada dispositivo. Debajo de `mount_dev`, con una línea en blanco:
 
-   ```rust title="src/filesystem.rs" ins={1-13}
+   ```rust title="src/filesystem.rs" ins={1-13} context
    fn create_device(path: &Path, major: u64, minor: u64) -> Result<()> {
        const OPEN_TO_EVERYONE: u32 = 0o666;
 
@@ -514,7 +514,7 @@ Antes de escribir, una predicción.
 
    Debajo de `create_device`, con una línea en blanco, la última función:
 
-   ```rust title="src/filesystem.rs" ins={1-6}
+   ```rust title="src/filesystem.rs" ins={1-6} context
    fn switch_root(rootfs: &Path) -> Result<()> {
        chdir(rootfs).context("could not enter the root filesystem")?;
        pivot_root(".", ".").context("could not pivot into the root filesystem")?;

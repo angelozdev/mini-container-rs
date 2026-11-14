@@ -181,6 +181,16 @@ test("the sign column is not selectable, so a selection never takes a sign with 
   assert.ok(declares(gutter, "user-select", "none"), "the sign column can be selected");
 });
 
+test("the lines of a file window keep no padding after their text, so the window scrolls only when some text is hidden", () => {
+  const rule = readSiteCssRules().find(
+    (candidate) =>
+      compact(candidate.selector).includes(".is-file") &&
+      compact(candidate.selector).endsWith(".ec-line.code") &&
+      declares(candidate, "padding-inline-end", "0"),
+  );
+  assert.ok(rule, "no rule takes the end padding off the lines of a file window");
+});
+
 test("no rule of the built stylesheet writes a language label in a title bar", () => {
   const labels = readSiteCssRules().filter(
     (rule) => /\.header(::?after|::?before)/.test(compact(rule.selector)) && /content:"(Rust|TOML|JSON|Text)"/.test(rule.body),
