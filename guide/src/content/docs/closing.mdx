@@ -131,7 +131,7 @@ Por eso `runc` no basta para usar contenedores. Su propia documentación dice qu
 Hay cinco cosas que Docker tiene y tu programa no. Cada una dice qué es y qué hace Docker, según su documentación.
 
 - **Las <Term id="layer">capas</Term>.** Una <Term id="image">imagen de contenedor</Term> es una plantilla de solo lectura con los archivos para crear un contenedor. Está hecha de capas: carpetas que se apilan unas sobre otras. Docker le da a cada contenedor una capa de escritura encima. Tu programa usa la carpeta de Alpine directamente, sin capas. Las capas serán la parte 4 de la guía, que todavía no está escrita.
-- **Una red con IP.** Por defecto, Docker conecta cada contenedor a una red y le asigna una <Term id="ip-address">dirección IP</Term>. Tu contenedor no tiene una red con IP. Si no hiciste el ejercicio 2c.1, usa la red de tu máquina. Si lo hiciste, tiene una red propia, pero vacía.
+- **Una red con IP.** Por defecto, Docker conecta cada contenedor a una red y le asigna una <Term id="ip-address">dirección IP</Term>. Tu programa no le da una IP propia al contenedor. Si no hiciste el ejercicio 2c.1, el comando usa la red de tu máquina. Si lo hiciste, tiene una red propia, pero vacía.
 - **El <Term id="user-namespace">namespace de usuarios</Term>.** Le da al contenedor su propia lista de usuarios. Así, el `root` de dentro puede ser, fuera, un usuario sin poderes. En Docker es opcional: se activa con la opción `--userns-remap` del daemon. En tu contenedor, el `root` es el `root` de verdad de la máquina.
 - **<Term id="seccomp">seccomp</Term>.** Es una función del kernel que limita qué <Term id="system-call">llamadas al sistema</Term> puede hacer un proceso. Docker aplica un perfil por defecto que, según su documentación, desactiva unas 44 llamadas de más de 300. Tu programa no aplica ninguno.
 - **Las <Term id="capability">capabilities</Term>.** Linux divide los poderes de `root` en piezas, como montar sistemas de archivos o abrir puertos bajos. Esas piezas se llaman *capabilities*. Docker arranca los contenedores con unas pocas. Tu comando las tiene todas.
@@ -150,7 +150,7 @@ sudo ./target/debug/mini-container run /bin/sh -c 'id -u; cat /proc/self/uid_map
 - `cat /proc/self/uid_map`: imprime el mapa de UIDs del propio proceso. `/proc/self` es el proceso que lo lee.
 - `grep -E "^(CapEff|Seccomp):" /proc/self/status`: busca en el estado del proceso las líneas que empiezan por `CapEff:` o por `Seccomp:`. `-E` activa las expresiones regulares extendidas, `^` marca el principio de la línea y `(A|B)` significa «A o B».
 - `tr "\t" " "`: cambia cada tabulador por un espacio. El tabulador es el espacio ancho que separa el nombre del valor en esas líneas.
-- `ip link`: lista las interfaces de red de la máquina. Una *interfaz de red* es la conexión de una máquina a una red.
+- `ip link`: lista las interfaces de red que ve el comando. Una *interfaz de red* es la conexión de una máquina a una red.
 - Efecto: solo lee. No cambia nada.
 
 <ShouldSee>
