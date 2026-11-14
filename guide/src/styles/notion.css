@@ -70,7 +70,7 @@ starlight-theme-select select {
 }
 
 .sidebar-content summary .large {
-  color: var(--n-faint);
+  color: var(--n-note);
   font-size: var(--sl-text-2xs);
   font-weight: 600;
 }
@@ -131,7 +131,7 @@ starlight-theme-select select {
 starlight-toc h2,
 mobile-starlight-toc .toggle {
   margin-bottom: 0.25rem;
-  color: var(--n-faint);
+  color: var(--n-note);
   font-size: var(--sl-text-2xs);
   font-weight: 600;
 }

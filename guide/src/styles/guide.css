@@ -288,7 +288,7 @@
 
 .diagram-note {
   margin: 0.125rem 0 0.375rem;
-  color: var(--n-faint);
+  color: var(--n-note);
   font-size: var(--sl-text-2xs);
   text-align: center;
 }
@@ -319,7 +319,7 @@
 }
 
 .process-launch {
-  color: var(--n-faint);
+  color: var(--n-note);
   font-size: var(--sl-text-2xs);
   text-align: center;
 }
@@ -357,7 +357,7 @@
 }
 
 .kernel-empty {
-  color: var(--n-faint);
+  color: var(--n-note);
   font-size: var(--sl-text-2xs);
 }
 
@@ -366,7 +366,7 @@
 }
 
 .kernel-label {
-  color: var(--n-faint);
+  color: var(--n-note);
   font-size: 0.6875rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;

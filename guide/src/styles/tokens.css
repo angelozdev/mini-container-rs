@@ -18,7 +18,7 @@
   --n-c-blue: #1e2a33;
   --n-c-purple: #2b2433;
   --n-t-green: #52a77b;
-  --n-t-red: #e06b64;
+  --n-t-red: #e36f68;
   --n-t-blue: #4f9fd1;
   --n-t-purple: #b48ad3;
   --n-t-orange: #c47a2c;
@@ -37,7 +37,7 @@
 :root[data-theme="light"] {
   --n-bg: #ffffff;
   --n-text: #37352f;
-  --n-muted: #787774;
+  --n-muted: #777673;
   --n-faint: #9b9a97;
   --n-note: #6e6d6a;
   --n-side: #f7f7f5;
@@ -54,7 +54,7 @@
   --n-c-blue: #e7f3f8;
   --n-c-purple: #f6f3f9;
   --n-t-green: #448361;
-  --n-t-red: #d44c47;
+  --n-t-red: #c13f3a;
   --n-t-blue: #337ea9;
   --n-t-purple: #9065b0;
   --n-t-orange: #c47a2c;

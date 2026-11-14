@@ -39,7 +39,7 @@ body:has(.page-props) :is(starlight-toc > nav, mobile-starlight-toc .dropdown) >
 body:has(.page-props) :is(starlight-toc > nav, mobile-starlight-toc .dropdown) > ul > li:not(:has(> a[href="#_top"])) > a::before {
   content: counter(contents-number, decimal-leading-zero);
   flex: none;
-  color: var(--n-faint);
+  color: var(--n-note);
   font-family: var(--sl-font-mono);
   font-size: 0.75rem;
 }
