@@ -32,7 +32,7 @@ skip_die_with_parent_edit='s/signals::die_with_parent()?;/let _ = signals::die_w
 dev_zero_check="the container has /dev/zero"
 dev_modes_check="the devices are open to everyone"
 oom_check="a command over the memory limit gets the out-of-memory warning"
-leftover_cgroup_check="a missing program leaves no cgroup"
+leftover_cgroup_check="a child that exits with 3 leaves no cgroup"
 ctrl_c_check="Ctrl-C does not stop the program: it waits for the command and exits with 0"
 handler_check="a command that handles SIGINT receives Ctrl-C"
 parent_kill_check="a parent killed with SIGKILL takes its command with it"

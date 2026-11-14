@@ -94,7 +94,7 @@ Un cgroup tiene una vida corta dentro de tu programa. Se crea, se le ponen los t
 <KernelEntry change="edited" note="0">memory.swap.max</KernelEntry>
 <KernelEntry note="oom_kill 0">memory.events</KernelEntry>
 </KernelBox>
-<Fragment slot="caption">Escribes `50M` en `memory.max`, y el kernel lo guarda en bytes: 52428800. Escribes `0` en `memory.swap.max`, para que el comando no pueda mandar su memoria al disco.</Fragment>
+<Fragment slot="caption">Escribes `50M` en `memory.max`, y el kernel lo guarda en bytes: 52428800. Escribes `0` en `memory.swap.max`, para que el comando no pueda mandar su memoria al swap.</Fragment>
 </Step>
 <Step call="cgroup::join(cgroup)">
 <Lane title="Tu programa">
@@ -155,14 +155,14 @@ Un archivo nuevo y cuatro cambios:
 
 Teclea cada trozo, como en 2c. El código y los textos que imprime van en inglés. La página te explica en español qué dice cada texto la primera vez que aparece.
 
-Antes de escribir, una predicción.
+Antes de escribir, una predicción. Un dato para responderla: el cgroup tendrá dos topes. `memory.max` limita la RAM. `memory.swap.max` limita el <Term id="swap">swap</Term>. El *swap* es espacio en disco, o en una zona comprimida de la memoria, donde el kernel guarda datos de la RAM cuando se llena. Con `0`, el cgroup no puede usarlo.
 
 <Quiz kind="prediction">
-<Fragment slot="question">Un cgroup tiene `memory.max` en `50M`. El comando que corre dentro pide 200 MB, y la máquina tiene RAM de sobra. ¿Qué hace el kernel cuando el comando pasa de 50 MB?</Fragment>
+<Fragment slot="question">Un cgroup tiene `memory.max` en `50M` y `memory.swap.max` en `0`. El comando que corre dentro pide 200 MB, y la máquina tiene RAM de sobra. ¿Qué hace el kernel cuando el comando pasa de 50 MB?</Fragment>
 
-<QuizOption>Le da la memoria que pide: 200 MB caben en la RAM libre de la máquina.<Fragment slot="feedback">El tope no mira cuánta RAM libre hay. Mira lo que gasta el cgroup. Si pasa de `memory.max`, no se la da, aunque sobre.</Fragment></QuizOption>
+<QuizOption>Le da la memoria que pide: 200 MB caben en la RAM libre de la máquina.<Fragment slot="feedback">El tope no mira cuánta RAM libre hay. Mira lo que gasta el cgroup. Si pasa de `memory.max`, el kernel no le da más, aunque sobre. Y con el swap en `0`, tampoco hay otro sitio donde ponerlo.</Fragment></QuizOption>
 
-<QuizOption correct>Mata a un proceso del cgroup, y a ninguno de fuera.<Fragment slot="feedback">Es lo que hace el kernel cuando un cgroup pasa de `memory.max` y no puede recuperar memoria. Solo elige entre los procesos de ese cgroup.</Fragment></QuizOption>
+<QuizOption correct>Mata a un proceso del cgroup, y a ninguno de fuera.<Fragment slot="feedback">Es lo que hace el kernel cuando un cgroup pasa de `memory.max`, no puede recuperar memoria y no tiene adónde mandarla. Solo elige entre los procesos de ese cgroup. Si el swap no estuviera en `0`, el kernel mandaría allí lo que pasa de `memory.max` y nadie moriría. Lo ves en la trampa del swap, más abajo.</Fragment></QuizOption>
 
 <QuizOption>Detiene el comando, sin matarlo, hasta que otro proceso libere memoria.<Fragment slot="feedback">Con la memoria no hace eso. Si no puede recuperar memoria del cgroup, mata a un proceso. Con la CPU pasa otra cosa, y la mides en el ejercicio 3a.1.</Fragment></QuizOption>
 </Quiz>
@@ -238,9 +238,9 @@ Antes de escribir, una predicción.
 
    Poner un tope es escribir un número en un archivo de la carpeta. Hoy escribes en dos archivos.
 
-   El primero es `memory.max`, el tope de RAM. Si el cgroup lo alcanza y el kernel no puede recuperar memoria, entra el <Term id="oom-killer">OOM killer</Term>. El *OOM killer* es la parte del kernel que mata un proceso cuando la memoria se acaba. «OOM» viene de «out of memory», sin memoria. Mata solo a un proceso del cgroup.
+   El primero es `memory.max`, el tope de RAM. Si el cgroup lo alcanza y el kernel no puede recuperar memoria, entra el <Term id="oom-killer">OOM killer</Term>. El *OOM killer* es la parte del kernel que mata un proceso cuando la memoria se acaba. «OOM» viene de «out of memory», sin memoria. Mata a un proceso del cgroup, y a ninguno de fuera.
 
-   El segundo es `memory.swap.max`, el tope de <Term id="swap">swap</Term>. El *swap* es espacio fuera de la RAM, en disco o en memoria comprimida, donde el kernel guarda datos de la RAM cuando se llena. Con `0`, el cgroup no puede usarlo. Sin él, el comando se salvaría mandando datos allí, y el kernel no mataría a nadie. Lo ves más abajo, en la trampa.
+   El segundo es `memory.swap.max`, el tope de swap que ya conoces. Con `0`, el cgroup no puede usarlo. Sin él, el comando se salvaría mandando datos allí, y el kernel no mataría a nadie. Lo ves más abajo, en la trampa.
 
    Debajo de `path`, con una línea en blanco:
 
@@ -332,7 +332,7 @@ Antes de escribir, una predicción.
 
    - `impl Drop for Cgroup`: «`Cgroup` sabe limpiarse».
    - `fn drop(&mut self)`: la función que Rust llama. `&mut self` es «este cgroup, prestado para cambiarlo». No devuelve nada: un `drop` no puede devolver un error.
-   - `fs::remove_dir(&self.path)`: borra la carpeta. Es `remove_dir`, no `remove_dir_all`: los archivos del cgroup los pone y los quita el kernel. Un cgroup solo se borra si está vacío, sin procesos dentro. Cuando `run` termina, el comando ya terminó, y lo está.
+   - `fs::remove_dir(&self.path)`: borra la carpeta. Es `remove_dir`, no `remove_dir_all`: los archivos del cgroup los pone y los quita el kernel. Un cgroup solo se borra si está vacío, sin procesos dentro. Cuando `run` termina, el comando ya terminó, y el cgroup está vacío.
    - `if let Err(error) = ...`: «si el borrado falló, haz esto». Si salió bien, no hace nada.
    - `eprintln!(...)`: avisa por <Term id="stderr">stderr</Term> y dice qué carpeta no se pudo borrar. Como `drop` no puede devolver un error, avisar es lo único que puede hacer.
 
@@ -440,7 +440,7 @@ Antes de escribir, una predicción.
 
    Un *montaje* conecta un conjunto de archivos a una carpeta. El kernel guarda la lista de todos los montajes, y cada <Term id="namespace">namespace</Term> de montajes tiene su copia. Tu programa, el padre, pidió la suya con `unshare_namespaces`, y el hijo, que nace después, la hereda: **comparten la misma**.
 
-   Eso trae un problema. Más adelante el hijo cambia de raíz con `pivot_root`, y el manual dice lo que hace: «changes the root directory and the current working directory of each process or thread in the same mount namespace to new_root». Cada proceso de esa copia, el padre incluido.
+   Eso trae un problema. Más adelante el hijo cambia de raíz con `pivot_root`. El manual dice lo que hace: «pivot_root() changes the root directory and the current working directory of each process or thread in the same mount namespace to new_root if they point to the old root directory». `new_root` es la carpeta que será la raíz nueva: aquí, la de <Term id="alpine">Alpine</Term>. La raíz vieja es la de tu máquina. Dicho en español: cambia la raíz de cada proceso de esa copia de montajes que apunte a la raíz vieja.
 
    Otra predicción.
 
@@ -483,7 +483,7 @@ Antes de escribir, una predicción.
 
    - `unshare(CloneFlags::CLONE_NEWNS)`: pide una copia de montajes para quien la llama. El manual de `unshare` dice que quien la pide tiene «a private copy of its namespace which is not shared with any other process». La llama el hijo, así que la copia es del hijo. Su `pivot_root` ya no toca al padre.
    - `.context("...")`: «no pude crear la copia de montajes del hijo».
-   - No toques `unshare_namespaces`. El padre sigue pidiendo su copia, y quitarla no arregla nada. Si hiciste el ejercicio 2c.1, tu línea de `unshare` lleva una <Term id="flag">bandera</Term> más. Déjala como la tienes.
+   - No toques `unshare_namespaces`: déjala como está. El padre sigue pidiendo su copia. El hijo pide otra, la suya, y es en ella donde `pivot_root` cambia la raíz. Si hiciste el ejercicio 2c.1, tu línea de `unshare` lleva una <Term id="flag">bandera</Term> más. Déjala como la tienes.
 
 9. **El padre crea el cgroup, el hijo entra: `container.rs`.**
 
@@ -624,7 +624,7 @@ the kernel killed a process for running out of memory (oom_kill: 1)
 
 </ShouldSee>
 
-- `Killed`: lo imprime el `sh` de <Term id="alpine">Alpine</Term>, por stderr. Dice que el kernel mató a `tail` con la <Term id="signal">señal</Term> 9, `SIGKILL`.
+- `Killed`: lo imprime el `sh` de Alpine, por stderr. Dice que el kernel mató a `tail` con la <Term id="signal">señal</Term> 9, `SIGKILL`.
 - `the kernel killed a process for running out of memory (oom_kill: 1)`: el aviso de tu programa. Dice «el kernel mató un proceso por quedarse sin memoria». `oom_kill: 1` es lo que leyó en `memory.events`.
 - `137`: el código de salida. `tail` murió con la señal 9, y `sh` sale con 128 más 9, como en 1a. Tu programa devuelve ese código tal cual.
 
@@ -691,6 +691,8 @@ ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory
 
 El error es la buena noticia: ninguna carpeta coincide. `Drop` borró las tres que crearon los comandos de arriba.
 
+Ese mensaje es el del <Term id="shell">shell</Term> `bash`, que es el de la máquina Linux. Si el tuyo es `zsh`, ves `zsh: no matches found: /sys/fs/cgroup/mini-container-*`. Dice lo mismo: ninguna carpeta coincide.
+
 Si escribes `50MB` en vez de `50M` en `MEMORY_MAX`, el kernel no entiende el valor. Tu programa lo dice. Es la otra salida de la escritura del paso 3:
 
 ```sh title="Lo que ves con 50MB" stderr={2-5}
@@ -707,13 +709,36 @@ Caused by:
 - `1`: el código de salida. El comando nunca llegó a correr, y `Drop` borró la carpeta.
 
 <Aside type="caution" title="Trampa típica">
-Poner el tope de RAM y olvidar el de swap. Escribes `memory.max` y no `memory.swap.max`. Todo compila, el cgroup existe y el tope está. Pero tu máquina tiene swap: en la de pruebas, `swapon --show` lista dos, una de memoria comprimida y una de disco. El kernel manda allí lo que no cabe en la RAM, y el comando nunca llega a pasarse del tope. No hay OOM, no hay aviso y no hay error.
+Poner el tope de RAM y olvidar el de swap. Escribes `memory.max` y no `memory.swap.max`. Todo compila, el cgroup existe y el tope está. Pero si tu máquina tiene swap, el kernel manda allí lo que pasa de `memory.max`. El comando nunca llega a quedarse sin memoria. No hay OOM, no hay aviso y no hay error.
 
 - Así sí: ① `memory.max` en `50M`, ② `memory.swap.max` en `0`.
 - Así no: solo ①.
 
-Es seguro probarlo: lo peor que pasa es que el comando usa un poco de swap.
+Es seguro probarlo: en la máquina de pruebas, el comando usó unos 150 MB de swap mientras corría, y el kernel los liberó al terminar.
 </Aside>
+
+Primero mira si tu máquina tiene swap:
+
+```sh title="En Linux"
+swapon --show
+```
+
+- `swapon --show`: lista los espacios de swap que la máquina tiene activos. `swapon` es el comando que activa un swap, y `--show` solo los muestra.
+- Efecto: ninguno. Solo lee.
+
+<ShouldSee>
+
+```sh title="Deberías ver"
+$ swapon --show
+NAME       TYPE       SIZE USED  PRIO
+/dev/zram0 partition 15.7G   0B 32767
+/dev/vdc   partition 1024M   0B     1
+```
+
+</ShouldSee>
+
+- Una fila por cada swap. `/dev/zram0` es memoria comprimida y `/dev/vdc` es un disco. `SIZE` es su tamaño y `USED`, lo que gastan ahora. Los tamaños de tu máquina pueden ser otros.
+- Si no imprime nada, tu máquina no tiene swap y la salida de abajo puede ser distinta.
 
 Esto es lo que sale con tu programa sin la línea de `memory.swap.max`. La salida es la de tu programa con ese cambio, compilado y corrido. Se manda lo que imprime `tail` a `/dev/null`, porque sin el tope `tail` imprime sus 200 MB de bytes nulos:
 
@@ -723,7 +748,7 @@ $ sudo ./target/debug/mini-container run /bin/sh -c 'head -c 200m /dev/zero | ta
 ```
 
 - `> /dev/null`: tira lo que imprime `tail`.
-- `0`: el comando terminó bien. Sin `Killed`, sin aviso. El kernel guardó los 200 MB en el swap, y el tope de 50M no sirvió de nada.
+- `0`: el comando terminó bien. Sin `Killed`, sin aviso. `tail` guardó 200 MB: unos 50 MB se quedaron en la RAM, dentro de `memory.max`, y el resto, unos 150 MB, fue al swap. El kernel no mató a nadie, y el comando gastó 200 MB de memoria con un tope de 50M.
 
 ## Comprueba tu código
 
@@ -758,9 +783,11 @@ Los casos nuevos de 3a son estos:
 - El comando de la memoria sale con 137, y su stderr contiene el aviso con `oom_kill: 1`.
 - `cat /proc/self/cgroup` imprime una línea como `0::/mini-container-52960`.
 - Un comando que cabe en el tope imprime su salida, sin aviso, y sale con 0.
-- Después de las ejecuciones que fallan, de la que mata al hijo desde fuera y de las tres de arriba, no queda ninguna carpeta `mini-container-*` en `/sys/fs/cgroup`.
+- Después de cada ejecución, no queda ninguna carpeta `mini-container-*` en `/sys/fs/cgroup`.
 
 Hagas o no los ejercicios 1a.1, 2a.1, 2c.1 y 3a.1, la prueba da `OK`. El 2b.1 no escribe código.
+
+Si una ejecución anterior dejó una carpeta `mini-container-*`, la prueba falla en la primera comprobación de carpetas, con `FAIL: a child that exits with 3 leaves no cgroup`. Borra las carpetas viejas con el comando de [Salir sin dejar nada](#salir-sin-dejar-nada), más abajo, y corre la prueba otra vez.
 
 ## Salir sin dejar nada
 
@@ -916,7 +943,7 @@ burst_usec 0
 - `nr_throttled 50`: las veces que el kernel frenó al comando. Es el número que importa: tiene que ser mayor que 0, y cerca de 50. Un comando frenado no puede seguir hasta el periodo siguiente.
 - `throttled_usec 2500906`: el tiempo que pasó frenado, unos 2,5 segundos.
 
-Con eso respondes la pregunta de la lección: con la CPU, el kernel no mata. Frena. En cada periodo de 100 milisegundos deja gastar 50 y deja parado al comando el resto. El comando sigue vivo y termina lo suyo, más despacio.
+Con eso respondes la pregunta de la lección: con la CPU, el kernel no mata. Frena. En cada periodo de 100 milisegundos deja gastar 50 milisegundos y deja parado al comando el resto. El comando sigue vivo y termina lo suyo, más despacio. Docker hace lo mismo con `--cpus`: escribe `cpu.max` en el cgroup del contenedor.
 
 Tu cambio queda en `src/cgroup.rs` y `src/container.rs`. La prueba de 3a sigue dando `OK`.
 
@@ -931,6 +958,7 @@ Tu cambio queda en `src/cgroup.rs` y `src/container.rs`. La prueba de 3a sigue d
 - Documentación de cgroup v2 del kernel. `memory.max`: «Memory usage hard limit. This is the main mechanism to limit memory usage of a cgroup. If a cgroup's memory usage reaches this limit and can't be reduced, the OOM killer is invoked in the cgroup.» `memory.swap.max`: «Swap usage hard limit. If a cgroup's swap usage reaches this limit, anonymous memory of the cgroup will not be swapped out.» `memory.events`: «oom_kill: The number of processes belonging to this cgroup killed by any kind of OOM killer.» `memory.oom.group`: «If the OOM killer is invoked in a cgroup, it's not going to kill any tasks outside of this cgroup». `cgroup.procs`: «A PID can be written to migrate the process associated with the PID to the cgroup». Un cgroup se crea con `mkdir`, y «A cgroup which doesn't have any children or live processes can be destroyed by removing the directory». `cpu.max`: formato `$MAX $PERIOD`, «which indicates that the group may consume up to $MAX in each $PERIOD duration», con «max 100000» por defecto. `/proc/$PID/cgroup`: la entrada de cgroup v2 «is always in the format "0::$PATH"». [docs.kernel.org/admin-guide/cgroup-v2.html](https://docs.kernel.org/admin-guide/cgroup-v2.html). Consultada el 2026-11-13.
 - Documentación de CFS Bandwidth Control del kernel: «Within each given "period" (microseconds), a task group is allocated up to "quota" microseconds of CPU time», y «Throttled threads will not be able to run again until the next period when the quota is replenished». Estadísticas de `cpu.stat`: `nr_periods` es «Number of enforcement intervals that have elapsed», `nr_throttled` es «Number of times the group has been throttled/limited». [docs.kernel.org/scheduler/sched-bwc.html](https://docs.kernel.org/scheduler/sched-bwc.html). Consultada el 2026-11-13.
 - Documentación de Docker, «Resource constraints». `--cpus`: «This is the equivalent of setting --cpu-period="100000" and --cpu-quota="150000"» para `--cpus="1.5"`. Su ejemplo de `--cpus=".5"` equivale a `--cpu-period=100000 --cpu-quota=50000`. Sobre cómo se aplican: «When you use these settings, Docker modifies the settings for the container's cgroup on the host machine». Sobre la memoria: «By default, if an out-of-memory (OOM) error occurs, the kernel kills processes in a container». [docs.docker.com/engine/containers/resource_constraints](https://docs.docker.com/engine/containers/resource_constraints/). Consultada el 2026-11-13. No se probó con un contenedor de Docker, por la regla de no tocarlos: de Docker solo está la documentación.
+- Quién escribe `cpu.max` cuando Docker limita la CPU. Documentación de Docker, «Alternative container runtimes»: «Docker Engine uses containerd for managing the container lifecycle, which includes creating, starting, and stopping containers. By default, containerd uses runc as its container runtime.» [docs.docker.com/engine/daemon/alternative-runtimes](https://docs.docker.com/engine/daemon/alternative-runtimes/). Código de `runc` para cgroup v2, archivo `fs2/cpu.go`: escribe `cpu.max` con `WriteFile`. [github.com/opencontainers/cgroups](https://github.com/opencontainers/cgroups/blob/main/fs2/cpu.go). Consultadas el 2026-11-13. De ahí sale la frase de que Docker escribe `cpu.max`: se leyó en el código, no se probó con un contenedor.
 - `pivot_root(2)`: «pivot_root() changes the root directory and the current working directory of each process or thread in the same mount namespace to new_root if they point to the old root directory». [man7.org/linux/man-pages/man2/pivot_root.2.html](https://man7.org/linux/man-pages/man2/pivot_root.2.html), Linux man-pages 6.19. Consultada el 2026-11-13.
 - `unshare(2)`: `CLONE_NEWNS` hace «Unshare the mount namespace, so that the calling process has a private copy of its namespace which is not shared with any other process». [man7.org/linux/man-pages/man2/unshare.2.html](https://man7.org/linux/man-pages/man2/unshare.2.html), Linux man-pages 6.19. Consultada el 2026-11-13.
 - Biblioteca estándar de Rust, `std::process::exit`: «no destructors on the current stack or any other thread's stack will be run», y «preferably, simply return a type implementing Termination (such as ExitCode or Result) from the main function and avoid this function altogether». [doc.rust-lang.org/std/process/fn.exit.html](https://doc.rust-lang.org/std/process/fn.exit.html). `Drop`: «When a value is no longer needed, Rust will run a "destructor" on that value.» [doc.rust-lang.org/std/ops/trait.Drop.html](https://doc.rust-lang.org/std/ops/trait.Drop.html). `fs::remove_dir`: «Removes an empty directory.» [doc.rust-lang.org/std/fs/fn.remove_dir.html](https://doc.rust-lang.org/std/fs/fn.remove_dir.html). `Iterator::find_map`: «Applies function to the elements of iterator and returns the first non-none result.» [doc.rust-lang.org/std/iter/trait.Iterator.html](https://doc.rust-lang.org/std/iter/trait.Iterator.html). `str::strip_prefix`: «If the string starts with the pattern prefix, returns the substring after the prefix, wrapped in Some», y «If the string does not start with prefix, returns None». [doc.rust-lang.org/std/primitive.str.html](https://doc.rust-lang.org/std/primitive.str.html). Las páginas de `std` consultadas son las de Rust 1.100.0, y el código se compiló con Rust 1.99.1. Consultadas el 2026-11-13.
@@ -939,6 +967,6 @@ Tu cambio queda en `src/cgroup.rs` y `src/container.rs`. La prueba de 3a sigue d
 - Salida del comando de la memoria: `Killed` y el aviso salen por stderr (con `>/dev/null` se ven los dos, con `2>/dev/null` no sale ninguno), y el código de salida es 137. Con 20 MB, `wc -c` imprimió 20971520 sin aviso, y con 60 MB `tail` murió igual. `head -c 200m /dev/zero | wc -c` imprimió 209715200 sin matar a nadie, porque `wc` no guarda lo que recibe. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Mientras corría `/bin/sleep 3`, `cat /sys/fs/cgroup/mini-container-*/cgroup.procs` imprimió el PID que el hijo tiene en la máquina, y `ps` lo mostró como `sleep`. El hijo escribe su PID, que en su lista es 1. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Sin `unshare_mounts`, el padre no ve `/sys/fs/cgroup` después de que el hijo cambia de raíz: una variante que leía `/etc/os-release` en el padre imprimió `NAME="Alpine Linux"`, mientras que fuera de él la máquina decía `Ubuntu 26.04.1 LTS`. La salida de la página es la de esa variante sin la línea, con la carpeta del cgroup dejada atrás. Con el cgroup creado antes de `unshare_namespaces` y sin `sudo`, el error fue `could not create the cgroup` y `Permission denied (os error 13)`. Comprobado en la máquina de pruebas, el 2026-11-13.
-- Con `std::process::exit` al final de `run`, `run /bin/echo ok` dejó una carpeta `mini-container-*` vacía, y `sudo rmdir /sys/fs/cgroup/mini-container-*` la borró. Con un contenedor vivo, `rmdir` dijo `Device or resource busy` en su carpeta y no la borró. Sin la línea de `memory.swap.max`, el comando de 200 MB salió con 0, sin `Killed` ni aviso. `swapon --show` listó `/dev/zram0` y `/dev/vdc`. Comprobado en la máquina de pruebas, el 2026-11-13.
-- Ejercicio 3a.1: con `cpu.max` en `50000 100000`, el bucle de 5 segundos dio `nr_throttled 50` y `nr_periods 53` en tres ejecuciones. Sin límite, `cpu.max` valía `max 100000` y `nr_throttled` valía 0. La máquina tiene 15 núcleos y `yes` usa uno. Comprobado en la máquina de pruebas, el 2026-11-13.
+- Con `std::process::exit` al final de `run`, `run /bin/echo ok` dejó una carpeta `mini-container-*` vacía, y `sudo rmdir /sys/fs/cgroup/mini-container-*` la borró. Con un contenedor vivo, `rmdir` dijo `Device or resource busy` en su carpeta y no la borró. Sin la línea de `memory.swap.max`, el comando de 200 MB salió con 0, sin `Killed` ni aviso. `swapon --show` listó `/dev/zram0` y `/dev/vdc`. Mientras el comando corría, `memory.swap.peak` del cgroup llegó a 157630464, 160292864 y 156282880 bytes en tres ejecuciones, unos 150 MB, y `memory.peak` se quedó en 52428800. Al terminar, `swapon --show` marcaba `0B` usados. El archivo `memory.swap.peak` es de la documentación de cgroup v2: «The max swap usage recorded for the cgroup and its descendants since the creation of the cgroup or the most recent reset for that FD». Con `bash` como shell de la máquina, `ls -d` sin coincidencias imprimió `ls: cannot access '/sys/fs/cgroup/mini-container-*': No such file or directory`. Con `zsh` en una terminal interactiva, el mismo comando imprimió `zsh: no matches found: /sys/fs/cgroup/mini-container-*` (probado en macOS, porque la máquina de pruebas no tiene `zsh`). Comprobado en la máquina de pruebas, el 2026-11-13.
+- Ejercicio 3a.1: con `cpu.max` en `50000 100000`, el bucle de 5 segundos dio `nr_throttled 50` y `nr_periods 53` en cuatro ejecuciones. Sin límite, `cpu.max` valía `max 100000` y `nr_throttled` valía 0. La máquina tiene 15 núcleos y `yes` usa uno. Comprobado en la máquina de pruebas, el 2026-11-13.
 - Salidas de los comandos de esta página: máquina Ubuntu 26.04.1 `aarch64`, Rust 1.99.1, el 2026-11-13. La máquina de pruebas se llama `mini-container-test`. La tuya se llama `mini-container-dev`. Los PID de los ejemplos cambian en cada ejecución. La ruta del proyecto se muestra como `/Users/tu-usuario/mini-container-rs`.
