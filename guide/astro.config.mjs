@@ -70,6 +70,7 @@ export default defineConfig({
           label: "3 · cgroups",
           items: [{ autogenerate: { directory: "3-cgroups" } }],
         },
+        { slug: "closing" },
         { label: "Glosario", slug: "glossary" },
       ],
     }),

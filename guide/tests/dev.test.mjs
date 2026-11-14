@@ -22,6 +22,7 @@ const sequencePages = [
   { path: "/2-namespaces/c-filesystem/", source: "2-namespaces/c-filesystem.mdx" },
   { path: "/3-cgroups/a-memory/", source: "3-cgroups/a-memory.mdx" },
   { path: "/3-cgroups/b-cleanup/", source: "3-cgroups/b-cleanup.mdx" },
+  { path: "/closing/", source: "closing.mdx" },
 ];
 const stepTag = /<Step[\s>]/g;
 const sectionPaths = listSectionPaths();
@@ -141,15 +142,15 @@ for (const docsPath of sectionPaths) {
   });
 }
 
-test("the cover and the glossary have no exercises card under astro dev", async () => {
-  for (const path of ["/", "/glossary/"]) {
+test("the cover, the closing page and the glossary have no exercises card under astro dev", async () => {
+  for (const path of ["/", "/closing/", "/glossary/"]) {
     const html = await (await fetch(baseUrl + path)).text();
     assert.equal(readExercisesCards(html).length, 0, `${path} has an exercises card`);
   }
 });
 
-test("the cover and the glossary have no properties block under astro dev", async () => {
-  for (const path of ["/", "/glossary/"]) {
+test("the cover, the closing page and the glossary have no properties block under astro dev", async () => {
+  for (const path of ["/", "/closing/", "/glossary/"]) {
     const html = await (await fetch(baseUrl + path)).text();
     assert.equal(readHeaderBlocks(html).length, 0, `${path} has a properties block`);
   }

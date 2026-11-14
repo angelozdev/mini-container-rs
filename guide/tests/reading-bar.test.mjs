@@ -7,7 +7,7 @@ import { builtFolder, builtPageOf, docsFolder, hasClass, listFiles, listSectionP
 
 const sectionPaths = listSectionPaths();
 const otherPages = [
-  ...["index.mdx", "glossary.mdx"].map((name) => ({ name, builtPath: builtPageOf(join(docsFolder, name)) })),
+  ...["index.mdx", "glossary.mdx", "closing.mdx"].map((name) => ({ name, builtPath: builtPageOf(join(docsFolder, name)) })),
   { name: "404", builtPath: join(builtFolder, "404.html") },
 ];
 const barClass = "reading-bar";
@@ -24,7 +24,7 @@ for (const docsPath of sectionPaths) {
 }
 
 for (const page of otherPages) {
-  test(`${page.name}: the cover, the glossary and the 404 have no reading bar`, () => {
+  test(`${page.name}: the cover, the closing page, the glossary and the 404 have no reading bar`, () => {
     assert.equal(readFileSync(page.builtPath, "utf8").includes(barClass), false);
   });
 }

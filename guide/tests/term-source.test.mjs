@@ -42,6 +42,36 @@ const documentedExceptions = [
     excerpt: "limita lo que un grupo de procesos puede gastar",
     reason: "the sentence defines a cgroup with the everyday sense of a group of processes, not the group the terminal uses for Ctrl-C",
   },
+  {
+    page: "3-cgroups/a-memory.mdx",
+    id: "containerd",
+    excerpt: "Docker Engine uses containerd for managing the container lifecycle, which includes creating, starting, and stopping containers. By default, containerd uses runc as its container runtime.",
+    reason: "the uses are inside a quotation of the Docker documentation in the sources, and the page does not teach the piece",
+  },
+  {
+    page: "3-cgroups/a-memory.mdx",
+    id: "runc",
+    excerpt: "By default, containerd uses runc as its container runtime.",
+    reason: "the use is inside a quotation of the Docker documentation in the sources, and the page does not teach the piece",
+  },
+  {
+    page: "closing.mdx",
+    id: "feature",
+    excerpt: "uses various kernel features like namespaces",
+    reason: "the use is inside a quotation of the OCI runtime specification in the sources, not the concept",
+  },
+  {
+    page: "closing.mdx",
+    id: "feature",
+    excerpt: "is a Linux kernel feature",
+    reason: "the use is inside a quotation of the Docker seccomp page in the sources, not the concept",
+  },
+  {
+    page: "closing.mdx",
+    id: "pid",
+    excerpt: "IO, pids, network and RDMA resources",
+    reason: "the use is inside a quotation of the OCI runtime specification in the sources, where pids is a cgroup controller, not the PID concept",
+  },
 ];
 
 const mdx = (...lines) => lines.join("\n");

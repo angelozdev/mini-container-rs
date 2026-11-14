@@ -6,7 +6,7 @@ import { declares, readSiteCssRules } from "./css-rules.mjs";
 import { readDiagrams, readOutcomeBlocks } from "./outcomes-html.mjs";
 import { builtPageOf, docsFolder, listSectionPaths, textOf } from "./support.mjs";
 
-const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx"].map((name) => join(docsFolder, name))];
+const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx", "closing.mdx"].map((name) => join(docsFolder, name))];
 const readPage = (docsPath) => readFileSync(builtPageOf(docsPath), "utf8");
 const nameOf = (docsPath) => relative(docsFolder, docsPath);
 

@@ -21,7 +21,7 @@ import {
 const contextMark = "Contexto";
 const languageLabels = ["Rust", "TOML", "JSON", "Text"];
 const compareSideOpening = /<div\b[^>]*\bclass="compare-side"[^>]*>/g;
-const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx"].map((name) => join(docsFolder, name))];
+const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx", "closing.mdx"].map((name) => join(docsFolder, name))];
 
 const isTerminalFence = (block) => LanguageGroups.terminal.includes(readBlockLanguage(block.meta));
 const hasContextFlag = (meta) => /(^|\s)context(\s|$)/.test(meta);

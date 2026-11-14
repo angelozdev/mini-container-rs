@@ -184,7 +184,7 @@ for (const docsPath of sectionPaths) {
   });
 }
 
-test("the cover, the glossary and the 404 page have no properties block", () => {
+test("the cover, the closing page, the glossary and the 404 page have no properties block", () => {
   const pages = listFiles(builtFolder).filter((path) => path.endsWith(".html"));
   const outside = pages.filter((path) => !sectionPaths.some((docsPath) => builtPageOf(docsPath) === path));
   assert.ok(outside.length >= 2, "expected at least the cover and the glossary outside the sections");

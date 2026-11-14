@@ -16,7 +16,7 @@ const minimumMarkRatio = 3;
 const syntaxTokenNames = ["--n-s-keyword", "--n-s-function", "--n-s-string", "--n-s-type", "--n-s-comment"];
 const allowedSyntaxColors = new Set(["--n-text", ...syntaxTokenNames]);
 const syntaxColorUse = /--0:var\((--n-[a-z-]+)\)/g;
-const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx"].map((name) => join(docsFolder, name))];
+const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx", "closing.mdx"].map((name) => join(docsFolder, name))];
 
 const windowSelector = ".expressive-code .frame.is-file";
 const barSelector = `${windowSelector} figcaption.header`;

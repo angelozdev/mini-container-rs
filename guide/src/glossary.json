@@ -32,6 +32,24 @@
     "definition": "Un montaje que muestra una carpeta que ya existe en un segundo sitio, sin copiar nada."
   },
   {
+    "id": "bundle",
+    "term": "bundle",
+    "match": [
+      "bundle",
+      "bundles"
+    ],
+    "definition": "Una carpeta con dos cosas: los archivos del contenedor y un `config.json` que dice cómo crearlo. Es lo que lee `runc`."
+  },
+  {
+    "id": "capability",
+    "term": "capability",
+    "match": [
+      "capability",
+      "capabilities"
+    ],
+    "definition": "Cada uno de los poderes en que Linux divide a `root`, como montar sistemas de archivos o abrir puertos bajos. Un proceso puede tener unos y otros no."
+  },
+  {
     "id": "cgroup",
     "term": "cgroup",
     "match": [
@@ -48,6 +66,14 @@
       "closures"
     ],
     "definition": "Una función sin nombre, escrita así: `|| ...`."
+  },
+  {
+    "id": "containerd",
+    "term": "containerd",
+    "match": [
+      "containerd"
+    ],
+    "definition": "El programa que gestiona el ciclo de vida de los contenedores de una máquina: baja y guarda imágenes, y ejecuta y supervisa contenedores. Para crearlos, usa `runc` por defecto."
   },
   {
     "id": "controller",
@@ -68,6 +94,15 @@
     "definition": "Un paquete de Rust, el tuyo o uno ajeno."
   },
   {
+    "id": "daemon",
+    "term": "daemon",
+    "match": [
+      "daemon",
+      "daemons"
+    ],
+    "definition": "Un programa que corre en segundo plano y espera pedidos de otros programas."
+  },
+  {
     "id": "destructor",
     "term": "destructor",
     "match": [
@@ -84,6 +119,23 @@
       "dispositivos"
     ],
     "definition": "Un archivo especial que no guarda datos: leer o escribir en él le habla al kernel."
+  },
+  {
+    "id": "docker-client",
+    "term": "cliente de Docker",
+    "match": [
+      "cliente de Docker",
+      "clientes de Docker"
+    ],
+    "definition": "El comando `docker`, el que tecleas. No crea contenedores: manda tus pedidos a `dockerd`."
+  },
+  {
+    "id": "dockerd",
+    "term": "dockerd",
+    "match": [
+      "dockerd"
+    ],
+    "definition": "El daemon de Docker. Recibe los pedidos del comando `docker` y gestiona imágenes, contenedores, redes y volúmenes."
   },
   {
     "id": "environment-variable",
@@ -131,6 +183,24 @@
     "definition": "El nombre de la máquina. El comando `hostname` lo imprime."
   },
   {
+    "id": "image",
+    "term": "imagen de contenedor",
+    "match": [
+      "imagen de contenedor",
+      "imágenes de contenedor"
+    ],
+    "definition": "Una plantilla de solo lectura con los archivos y las instrucciones para crear un contenedor."
+  },
+  {
+    "id": "ip-address",
+    "term": "dirección IP",
+    "match": [
+      "dirección IP",
+      "direcciones IP"
+    ],
+    "definition": "El número que identifica a una máquina en una red."
+  },
+  {
     "id": "kernel",
     "term": "kernel",
     "definition": "El núcleo de Linux: el programa que reparte la máquina entre todos los procesos."
@@ -143,6 +213,15 @@
       "language servers"
     ],
     "definition": "Un programa que lee tu código y le dice al editor qué marcar."
+  },
+  {
+    "id": "layer",
+    "term": "capa",
+    "match": [
+      "capa",
+      "capas"
+    ],
+    "definition": "Una carpeta de archivos que se apila sobre otras. Una imagen es una pila de capas de solo lectura, y cada contenedor escribe en una capa propia encima."
   },
   {
     "id": "macro",
@@ -175,6 +254,14 @@
       "namespaces"
     ],
     "definition": "Una copia privada de una lista del kernel."
+  },
+  {
+    "id": "oci",
+    "term": "OCI",
+    "match": [
+      "OCI"
+    ],
+    "definition": "Open Container Initiative: el grupo que escribe los estándares abiertos de los contenedores. Tiene tres: cómo es una imagen, cómo se reparte y cómo se ejecuta un contenedor."
   },
   {
     "id": "oom-killer",
@@ -261,14 +348,39 @@
     "definition": "La memoria rápida de la máquina. Los procesos guardan ahí sus datos mientras corren."
   },
   {
+    "id": "registry",
+    "term": "registry",
+    "match": [
+      "registry",
+      "registries"
+    ],
+    "definition": "Un servidor que guarda imágenes de contenedores para bajarlas o subirlas. Docker Hub y Amazon ECR son dos."
+  },
+  {
     "id": "rootfs",
     "term": "rootfs",
     "definition": "La carpeta con todos los archivos de un Linux: `bin`, `etc`, `usr` y los demás. El nombre viene de «root filesystem»."
   },
   {
+    "id": "runc",
+    "term": "runc",
+    "match": [
+      "runc"
+    ],
+    "definition": "El programa que crea y arranca un contenedor en Linux, pidiéndole al kernel lo que haga falta. Docker lo usa por debajo."
+  },
+  {
     "id": "rust-analyzer",
     "term": "rust-analyzer",
     "definition": "Un programa que lee tu código mientras escribes y marca los errores."
+  },
+  {
+    "id": "seccomp",
+    "term": "seccomp",
+    "match": [
+      "seccomp"
+    ],
+    "definition": "Una función del kernel que limita qué llamadas al sistema puede hacer un proceso."
   },
   {
     "id": "sha256",
@@ -413,8 +525,37 @@
     "definition": "Una capacidad que un tipo puede tener."
   },
   {
+    "id": "uid",
+    "term": "UID",
+    "match": [
+      "UID",
+      "UIDs"
+    ],
+    "definition": "El número de un usuario, como el PID es el de un proceso. El de `root` es el 0."
+  },
+  {
+    "id": "user-namespace",
+    "term": "namespace de usuarios",
+    "match": [
+      "namespace de usuarios",
+      "namespaces de usuarios"
+    ],
+    "definition": "Un namespace que le da a los procesos su propia lista de usuarios. El `root` de dentro puede ser, fuera, un usuario sin poderes."
+  },
+  {
     "id": "uts",
     "term": "UTS",
     "definition": "El tipo de namespace que guarda el hostname. Es solo un nombre técnico."
+  },
+  {
+    "id": "vm",
+    "term": "máquina virtual",
+    "match": [
+      "máquina virtual",
+      "máquinas virtuales",
+      "VM",
+      "VMs"
+    ],
+    "definition": "Un sistema operativo completo, con su propio kernel, que corre dentro de otra máquina."
   }
 ]

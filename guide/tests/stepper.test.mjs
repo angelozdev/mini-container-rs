@@ -12,6 +12,7 @@ const sequencePages = [
   "2-namespaces/c-filesystem.mdx",
   "3-cgroups/a-memory.mdx",
   "3-cgroups/b-cleanup.mdx",
+  "closing.mdx",
 ];
 
 const inputTag = /<input\b[^>]*>/g;

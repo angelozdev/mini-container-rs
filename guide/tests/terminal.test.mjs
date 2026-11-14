@@ -22,7 +22,7 @@ const shouldSeeTitle = "Deberías ver";
 const stderrKey = "stderr";
 const prompt = "$ ";
 
-const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx"].map((name) => join(docsFolder, name))];
+const allPaths = [...listSectionPaths(), ...["index.mdx", "glossary.mdx", "closing.mdx"].map((name) => join(docsFolder, name))];
 
 const readFences = (source, languages) => readCodeBlocks(source).filter((block) => languages.has(readBlockLanguage(block.meta)));
 
