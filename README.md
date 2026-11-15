@@ -1,23 +1,75 @@
 # mini-container-rs
 
-Una guía paso a paso para escribir en Rust un contenedor mínimo: un programa `mini-container run <comando>` que lanza un comando aislado con namespaces y limitado con cgroups.
+Una guía paso a paso para escribir, tú mismo y en Rust, un contenedor mínimo. Sin Docker: con las mismas piezas del kernel de Linux que Docker usa por dentro, los *namespaces* y los *cgroups*.
 
-La guía vive en la carpeta `guide/`, es un sitio hecho con Starlight y está escrita en español.
+Al terminar tienes un programa que lanza un comando con su propio nombre de máquina, su propia lista de procesos, sus propios archivos y un tope de memoria. Y puedes explicar, con lo que construiste, qué es un contenedor y en qué se diferencia de una máquina virtual.
 
-## Abrir la guía
+La guía está en español. Vive en [`guide/`](guide/), como un sitio hecho con [Astro Starlight](https://starlight.astro.build/).
 
-Hace falta Node 22.23.4 o más reciente (lo piden Astro 7.4.4 y `@astrojs/mdx` 8.1.5, según `guide/pnpm-lock.yaml`) y pnpm. El campo `packageManager` de `guide/package.json` fija pnpm 11.28.7. Desde la raíz del repo:
+## Qué vas a construir
+
+Un programa llamado `mini-container`, que se usa así:
 
 ```sh
+sudo ./target/debug/mini-container run /bin/sh
+```
+
+El comando corre como un proceso normal, pero el kernel le muestra un mundo recortado. Lo construyes por partes, y cada parte termina en algo que corres y ves en la terminal:
+
+| Parte | Qué logras |
+| --- | --- |
+| 0 · Preparación | Una máquina Linux de OrbStack, el proyecto de Rust creado y el editor configurado |
+| 1 · Lanzar un proceso | `mini-container run /bin/sh` abre un shell y devuelve su código de salida, todavía sin aislamiento |
+| 2 · Namespaces | Un hostname propio, ser el PID 1 de una lista de procesos propia y ver solo los archivos de Alpine |
+| 3 · cgroups | Un límite de 50 MB de RAM, y limpieza completa aunque pulses Ctrl-C |
+| Cierre | Comparar tu programa con Docker: el tuyo hace el papel de `runc` |
+
+La parte 4, OverlayFS, llegará más adelante.
+
+## Cómo se aprende con esta guía
+
+- **Tú tecleas todo el código.** La guía lo da en trozos pequeños y explica cada línea. Teclea, no copies: el que teclea lee cada línea.
+- **Cada sección termina en algo que corres.** Primero ves el resultado, después entiendes por qué.
+- **Las dudas se las preguntas a un agente**, como Claude Code. Pídele pistas antes que respuestas.
+- **Cada sección de código trae una prueba** para tu programa. Te dice si hace lo que la sección pide.
+
+## Requisitos
+
+La guía está escrita y probada con:
+
+- Un Mac con Apple silicon.
+- [OrbStack](https://orbstack.dev/), con una máquina Ubuntu 26.04 `aarch64`. Ahí se compila y se corre el programa, porque los namespaces y los cgroups solo existen en Linux. La sección 0a crea la máquina e instala Rust dentro.
+- `rustup` en el Mac, para que el editor revise tu código como código de Linux.
+- [Zed](https://zed.dev/) como editor. La sección 0b lo configura. Otro editor sirve, pero tendrás que configurarlo tú.
+- Para abrir la guía: Node 22.23.4 o más reciente y pnpm. Node lo piden Astro 7.4.4 y `@astrojs/mdx` 8.1.5, según `guide/pnpm-lock.yaml`, y el campo `packageManager` de `guide/package.json` fija pnpm 11.28.7.
+
+## Empezar
+
+```sh
+git clone https://github.com/angelozdev/mini-container-rs.git
+cd mini-container-rs
 pnpm --dir guide install
 pnpm --dir guide dev
 ```
 
-Abre la dirección que imprime `pnpm`, normalmente `http://localhost:4321`.
+Abre la dirección que imprime `pnpm`, normalmente `http://localhost:4321`, y empieza por la sección 0a.
 
-## Tu código
+La guía escribe la carpeta del repo como `/Users/tu-usuario/mini-container-rs`. Cada vez que la veas, lee la tuya.
 
-Tu código Rust vive en la raíz de este repo, en `Cargo.toml` y `src/`. Los creas tú en la parte 0 de la guía: la guía no los trae hechos. Cuando los guardes con `git commit`, pasan a ser parte del repo.
+## Qué hay en el repo
+
+```text
+mini-container-rs/
+├── guide/
+│   ├── src/content/docs/   las secciones de la guía, en MDX
+│   ├── checkpoints/        el código de referencia de cada sección
+│   ├── scripts/            la prueba de tu código, check-my-code.sh
+│   └── tests/              las pruebas de la propia guía
+├── Cargo.toml              ┐ tu código: no viene en el repo,
+└── src/                    ┘ lo creas tú en la sección 0b
+```
+
+`guide/checkpoints/` tiene la solución de cada sección: la guía se comprueba contra ella. Si estás aprendiendo, no la abras. Para saber si tu código está bien, usa la prueba de la sección.
 
 ## Comprobar tu código
 
@@ -43,3 +95,7 @@ pnpm --dir guide check
 - `pnpm --dir guide`: corre `pnpm` dentro de la carpeta `guide/`.
 - `check`: construye el sitio y corre todas las pruebas de `guide/tests/`.
 - Efecto: termina sin errores si el sitio compila y las pruebas pasan. No toca tu código: solo genera las carpetas `guide/dist/` y `guide/.astro/`, que git ignora.
+
+## Licencia
+
+[MIT](LICENSE).
