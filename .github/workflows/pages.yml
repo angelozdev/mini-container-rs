@@ -1,0 +1,54 @@
+name: Guide on GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: guide/package.json
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.23.4
+          cache: pnpm
+          cache-dependency-path: guide/pnpm-lock.yaml
+
+      - name: Install the guide's dependencies
+        run: pnpm --dir guide install --frozen-lockfile
+
+      - name: Build the guide and run its tests
+        run: pnpm --dir guide check
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: guide/dist
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
