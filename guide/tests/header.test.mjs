@@ -4,7 +4,7 @@ import { join, relative } from "node:path";
 import { test } from "node:test";
 import { readHeaderBlocks, readPageLandmarks, readSectionLinks } from "./header-html.mjs";
 import { countCodeLines, countWords, exerciseNumbers, pageId, readingMinutes, usesTildeFence } from "./page-metrics.mjs";
-import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, listSectionPaths } from "./support.mjs";
+import { builtFolder, builtPageOf, docsFolder, guideRoot, listFiles, listSectionPaths, withoutBase } from "./support.mjs";
 
 const expectedLabels = ["Sección", "Lectura", "Ejercicios"];
 const fence = "`".repeat(3);
@@ -100,7 +100,7 @@ function readBuilt(docsPath) {
 function menuOrder() {
   assert.ok(existsSync(builtFolder), "guide/dist is missing: run astro build");
   const hrefs = readSectionLinks(readFileSync(join(builtFolder, "index.html"), "utf8"));
-  return hrefs.map((href) => join(docsFolder, `${href.replace(/^\/|\/$/g, "")}.mdx`));
+  return hrefs.map((href) => join(docsFolder, `${withoutBase(href).replace(/^\/|\/$/g, "")}.mdx`));
 }
 
 function readOnlyBlock(docsPath) {

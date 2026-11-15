@@ -1,10 +1,22 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { base, withBase } from "../src/lib/site.mjs";
+
+export { base, withBase };
 
 export const guideRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const docsFolder = join(guideRoot, "src/content/docs");
 export const builtFolder = join(guideRoot, "dist");
+
+export function withoutBase(href) {
+  return href.startsWith(`${base}/`) ? href.slice(base.length) : href;
+}
+
+export function builtFileOf(href) {
+  const path = withoutBase(href).split(/[?#]/)[0];
+  return path.endsWith("/") ? join(builtFolder, path, "index.html") : join(builtFolder, path);
+}
 
 export function builtPageOf(docsPath) {
   const slug = relative(docsFolder, docsPath).replace(/\.mdx$/, "");
@@ -94,7 +106,7 @@ export function listSectionPaths() {
 }
 
 export function pageUrlOf(docsPath) {
-  return `/${relative(docsFolder, docsPath).replace(/\.mdx$/, "")}/`;
+  return withBase(`/${relative(docsFolder, docsPath).replace(/\.mdx$/, "")}/`);
 }
 
 export function hasClass(tag, name) {

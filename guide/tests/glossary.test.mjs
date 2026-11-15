@@ -14,11 +14,12 @@ import {
   readElement,
   readGlossaryEntries,
   textOf,
+  withBase,
 } from "./support.mjs";
 
 const glossaryDocs = join(docsFolder, "glossary.mdx");
 const glossaryBuilt = join(builtFolder, "glossary", "index.html");
-const glossaryHref = "/glossary/";
+const glossaryHref = withBase("/glossary/");
 const cardLinkText = "Ver en el glosario →";
 const closeButtonText = "Cerrar";
 
@@ -54,7 +55,7 @@ function plainText(definition) {
 
 function hrefOf(page) {
   const slug = relative(docsFolder, page.path).replace(/\.mdx$/, "");
-  return slug === "index" ? "/" : `/${slug}/`;
+  return withBase(slug === "index" ? "/" : `/${slug}/`);
 }
 
 function readReadingOrder() {

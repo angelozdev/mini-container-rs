@@ -3,6 +3,7 @@ import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 import { fileWindow } from "./src/lib/file-window.mjs";
 import { terminalWindow } from "./src/lib/terminal-window.mjs";
+import { base, site } from "./src/lib/site.mjs";
 
 const syntaxColors = [
   { scopes: ["comment", "punctuation.definition.comment"], color: "var(--n-s-comment)" },
@@ -33,6 +34,8 @@ function useNotionSyntaxColors(theme) {
 }
 
 export default defineConfig({
+  site,
+  base,
   integrations: [
     starlight({
       title: "mini-container",

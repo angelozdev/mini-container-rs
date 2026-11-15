@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
-import { attributeOf, builtFolder, guideRoot, listFiles } from "./support.mjs";
+import { attributeOf, builtFileOf, builtFolder, guideRoot, listFiles } from "./support.mjs";
 
 const iconLink = /<link\b[^>]*\brel="(?:shortcut )?icon"[^>]*>/g;
 const schemeSeparator = `:${"/".repeat(2)}`;
@@ -19,7 +19,7 @@ for (const page of pages) {
     assert.ok(links.length > 0, `${relative(guideRoot, page)} links no favicon`);
     for (const href of links) {
       if (href.includes(schemeSeparator)) continue;
-      assert.ok(existsSync(join(builtFolder, href.split(/[?#]/)[0])), `${href} is linked but missing from dist`);
+      assert.ok(existsSync(builtFileOf(href)), `${href} is linked but missing from dist`);
     }
   });
 }
