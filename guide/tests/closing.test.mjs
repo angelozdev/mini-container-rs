@@ -5,13 +5,13 @@ import { test } from "node:test";
 import { readExercisesCards } from "./card-html.mjs";
 import { readHeaderBlocks, readSectionLinks } from "./header-html.mjs";
 import { readSectionHeadings } from "./outline-html.mjs";
-import { attributeOf, builtFolder, decodeEntities, docsFolder, readElement, textOf } from "./support.mjs";
+import { attributeOf, builtFolder, decodeEntities, docsFolder, readElement, textOf, withBase } from "./support.mjs";
 
 const closingSource = join(docsFolder, "closing.mdx");
 const closingBuilt = join(builtFolder, "closing", "index.html");
 const coverSource = join(docsFolder, "index.mdx");
-const closingHref = "/closing/";
-const glossaryHref = "/glossary/";
+const closingHref = withBase("/closing/");
+const glossaryHref = withBase("/glossary/");
 const topLevelList = /<ul\b[^>]*\bclass="top-level[^"]*"[^>]*>/;
 const sectionOpening = /<div\b[^>]*\bclass="sl-heading-wrapper level-h2"[^>]*>/g;
 const asideOpening = /<aside\b[^>]*\baria-label="([^"]*)"[^>]*>/g;
@@ -228,5 +228,5 @@ test("every source of the closing page has a date, and each one with a link says
 });
 
 test("the cover links to the closing page from its map", () => {
-  assert.match(readFileSync(coverSource, "utf8"), /\]\(\/closing\/\)/);
+  assert.ok(readFileSync(coverSource, "utf8").includes(`](${closingHref})`), `the cover map must link to ${closingHref}`);
 });

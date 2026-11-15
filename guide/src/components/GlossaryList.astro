@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import entries from "../glossary.json";
+import { withBase } from "../lib/site.mjs";
 import DefinitionText from "./DefinitionText.astro";
 
 const glossaryId = "glossary";
@@ -11,7 +12,7 @@ const pages = (await getCollection("docs"))
   .filter((page) => page.id !== glossaryId)
   .sort((left, right) => readingRank(left).localeCompare(readingRank(right), "en", { numeric: true }));
 
-const hrefOf = (page) => (page.id === "index" ? "/" : `/${page.id}/`);
+const hrefOf = (page) => withBase(page.id === "index" ? "/" : `/${page.id}/`);
 const sectionOf = (page) => page.data.title.split(sectionSeparator)[0];
 const firstPageUsing = (id) => pages.find((page) => page.body?.includes(`<Term id="${id}">`));
 

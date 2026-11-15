@@ -184,7 +184,7 @@ Es una pregunta típica de entrevista. Esta es una respuesta corta. Tú construi
 Un contenedor es un proceso de Linux aislado: el kernel le muestra solo sus propios procesos, su propio hostname y sus propios archivos, y le pone un tope de memoria y de CPU. Los namespaces hacen el aislamiento y los cgroups ponen los topes. Una <Term id="vm">máquina virtual</Term> es distinta: arranca un sistema operativo entero, con su propio kernel. Los contenedores de una máquina comparten su kernel, y por eso arrancan más rápido y pesan menos, pero buena parte de su seguridad depende de ese kernel compartido.
 </Aside>
 
-Si te piden más detalle, cada parte tiene su sección. Los namespaces son [2a](/2-namespaces/a-hostname/), [2b](/2-namespaces/b-processes/) y [2c](/2-namespaces/c-filesystem/). Los cgroups son [3a](/3-cgroups/a-memory/) y [3b](/3-cgroups/b-cleanup/).
+Si te piden más detalle, cada parte tiene su sección. Los namespaces son [2a](/mini-container-rs/2-namespaces/a-hostname/), [2b](/mini-container-rs/2-namespaces/b-processes/) y [2c](/mini-container-rs/2-namespaces/c-filesystem/). Los cgroups son [3a](/mini-container-rs/3-cgroups/a-memory/) y [3b](/mini-container-rs/3-cgroups/b-cleanup/).
 
 Y si te preguntan qué pasa con `docker run`, ya tienes el camino: el cliente manda el pedido a `dockerd`, que le encarga el contenedor a `containerd`, que le pide a `runc` que lo cree con el kernel.
 

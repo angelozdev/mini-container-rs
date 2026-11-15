@@ -10,19 +10,19 @@ import { readFileWindows } from "./file-html.mjs";
 import { readHeaderBlocks, readSectionLinks } from "./header-html.mjs";
 import { readSectionHeadings } from "./outline-html.mjs";
 import { expectedCardLine, expectedProperties } from "./page-metrics.mjs";
-import { docsFolder, guideRoot, listSectionPaths, pageUrlOf, readBlockLanguage, readCodeBlocks } from "./support.mjs";
+import { docsFolder, guideRoot, listSectionPaths, pageUrlOf, readBlockLanguage, readCodeBlocks, withBase } from "./support.mjs";
 import { readSteppers } from "./stepper-html.mjs";
 
 const astroCli = join(guideRoot, "node_modules/astro/bin/astro.mjs");
 const host = "127.0.0.1";
 const startupTimeout = 90000;
 const sequencePages = [
-  { path: "/2-namespaces/a-hostname/", source: "2-namespaces/a-hostname.mdx" },
-  { path: "/2-namespaces/b-processes/", source: "2-namespaces/b-processes.mdx" },
-  { path: "/2-namespaces/c-filesystem/", source: "2-namespaces/c-filesystem.mdx" },
-  { path: "/3-cgroups/a-memory/", source: "3-cgroups/a-memory.mdx" },
-  { path: "/3-cgroups/b-cleanup/", source: "3-cgroups/b-cleanup.mdx" },
-  { path: "/closing/", source: "closing.mdx" },
+  { path: withBase("/2-namespaces/a-hostname/"), source: "2-namespaces/a-hostname.mdx" },
+  { path: withBase("/2-namespaces/b-processes/"), source: "2-namespaces/b-processes.mdx" },
+  { path: withBase("/2-namespaces/c-filesystem/"), source: "2-namespaces/c-filesystem.mdx" },
+  { path: withBase("/3-cgroups/a-memory/"), source: "3-cgroups/a-memory.mdx" },
+  { path: withBase("/3-cgroups/b-cleanup/"), source: "3-cgroups/b-cleanup.mdx" },
+  { path: withBase("/closing/"), source: "closing.mdx" },
 ];
 const stepTag = /<Step[\s>]/g;
 const sectionPaths = listSectionPaths();
@@ -143,15 +143,19 @@ for (const docsPath of sectionPaths) {
 }
 
 test("the cover, the closing page and the glossary have no exercises card under astro dev", async () => {
-  for (const path of ["/", "/closing/", "/glossary/"]) {
-    const html = await (await fetch(baseUrl + path)).text();
+  for (const path of ["/", "/closing/", "/glossary/"].map(withBase)) {
+    const response = await fetch(baseUrl + path);
+    assert.equal(response.status, 200, `${path} answered ${response.status}`);
+    const html = await response.text();
     assert.equal(readExercisesCards(html).length, 0, `${path} has an exercises card`);
   }
 });
 
 test("the cover, the closing page and the glossary have no properties block under astro dev", async () => {
-  for (const path of ["/", "/closing/", "/glossary/"]) {
-    const html = await (await fetch(baseUrl + path)).text();
+  for (const path of ["/", "/closing/", "/glossary/"].map(withBase)) {
+    const response = await fetch(baseUrl + path);
+    assert.equal(response.status, 200, `${path} answered ${response.status}`);
+    const html = await response.text();
     assert.equal(readHeaderBlocks(html).length, 0, `${path} has a properties block`);
   }
 });
