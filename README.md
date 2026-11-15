@@ -1,49 +1,49 @@
 # mini-container-rs
 
-Una guía paso a paso para escribir, tú mismo y en Rust, un contenedor mínimo. Sin Docker: con las mismas piezas del kernel de Linux que Docker usa por dentro, los *namespaces* y los *cgroups*.
+A step-by-step guide to writing a minimal container yourself, in Rust. No Docker: just the same Linux kernel features that Docker uses under the hood, *namespaces* and *cgroups*.
 
-Al terminar tienes un programa que lanza un comando con su propio nombre de máquina, su propia lista de procesos, sus propios archivos y un tope de memoria. Y puedes explicar, con lo que construiste, qué es un contenedor y en qué se diferencia de una máquina virtual.
+By the end you have a program that runs a command with its own hostname, its own process list, its own files and a memory limit. And you can explain, with what you built, what a container is and how it differs from a virtual machine.
 
-La guía está en español. Vive en [`guide/`](guide/), como un sitio hecho con [Astro Starlight](https://starlight.astro.build/).
+**The guide is written in Spanish.** It lives in [`guide/`](guide/), as a site built with [Astro Starlight](https://starlight.astro.build/).
 
-## Qué vas a construir
+## What you build
 
-Un programa llamado `mini-container`, que se usa así:
+A program called `mini-container`, used like this:
 
 ```sh
 sudo ./target/debug/mini-container run /bin/sh
 ```
 
-El comando corre como un proceso normal, pero el kernel le muestra un mundo recortado. Lo construyes por partes, y cada parte termina en algo que corres y ves en la terminal:
+The command runs as a normal process, but the kernel shows it a trimmed-down world. You build it part by part, and every part ends with something you run and see in the terminal:
 
-| Parte | Qué logras |
+| Part | What you get |
 | --- | --- |
-| 0 · Preparación | Una máquina Linux de OrbStack, el proyecto de Rust creado y el editor configurado |
-| 1 · Lanzar un proceso | `mini-container run /bin/sh` abre un shell y devuelve su código de salida, todavía sin aislamiento |
-| 2 · Namespaces | Un hostname propio, ser el PID 1 de una lista de procesos propia y ver solo los archivos de Alpine |
-| 3 · cgroups | Un límite de 50 MB de RAM, y limpieza completa aunque pulses Ctrl-C |
-| Cierre | Comparar tu programa con Docker: el tuyo hace el papel de `runc` |
+| 0 · Setup | An OrbStack Linux machine, the Rust project created and the editor configured |
+| 1 · Launch a process | `mini-container run /bin/sh` opens a shell and returns its exit code, still without isolation |
+| 2 · Namespaces | Its own hostname, being PID 1 of its own process list, and seeing only Alpine's files |
+| 3 · cgroups | A 50 MB RAM limit, and a full cleanup even when you press Ctrl-C |
+| Closing | Comparing your program with Docker: yours plays the role of `runc` |
 
-La parte 4, OverlayFS, llegará más adelante.
+Part 4, OverlayFS, is coming later.
 
-## Cómo se aprende con esta guía
+## How the guide teaches
 
-- **Tú tecleas todo el código.** La guía lo da en trozos pequeños y explica cada línea. Teclea, no copies: el que teclea lee cada línea.
-- **Cada sección termina en algo que corres.** Primero ves el resultado, después entiendes por qué.
-- **Las dudas se las preguntas a un agente**, como Claude Code. Pídele pistas antes que respuestas.
-- **Cada sección de código trae una prueba** para tu programa. Te dice si hace lo que la sección pide.
+- **You type all the code.** The guide gives it in small pieces and explains every line. Type it, don't copy it: whoever types reads every line.
+- **Every section ends with something you run.** You see the result first, then you understand why.
+- **You ask your questions to a coding agent**, such as Claude Code. Ask it for hints before answers.
+- **Every code section comes with a test** for your program. It tells you whether it does what the section asks.
 
-## Requisitos
+## Requirements
 
-La guía está escrita y probada con:
+The guide is written and tested with:
 
-- Un Mac con Apple silicon.
-- [OrbStack](https://orbstack.dev/), con una máquina Ubuntu 26.04 `aarch64`. Ahí se compila y se corre el programa, porque los namespaces y los cgroups solo existen en Linux. La sección 0a crea la máquina e instala Rust dentro.
-- `rustup` en el Mac, para que el editor revise tu código como código de Linux.
-- [Zed](https://zed.dev/) como editor. La sección 0b lo configura. Otro editor sirve, pero tendrás que configurarlo tú.
-- Para abrir la guía: Node 22.23.4 o más reciente y pnpm. Node lo piden Astro 7.4.4 y `@astrojs/mdx` 8.1.5, según `guide/pnpm-lock.yaml`, y el campo `packageManager` de `guide/package.json` fija pnpm 11.28.7.
+- A Mac with Apple silicon.
+- [OrbStack](https://orbstack.dev/), with an Ubuntu 26.04 `aarch64` machine. That is where the program is built and run, because namespaces and cgroups only exist on Linux. Section 0a creates the machine and installs Rust in it.
+- `rustup` on the Mac, so the editor checks your code as Linux code.
+- [Zed](https://zed.dev/) as the editor. Section 0b configures it. Another editor works, but you will have to configure it yourself.
+- To open the guide: Node 22.23.4 or newer, and pnpm. Astro 7.4.4 and `@astrojs/mdx` 8.1.5 require that Node version, according to `guide/pnpm-lock.yaml`, and the `packageManager` field of `guide/package.json` pins pnpm 11.28.7.
 
-## Empezar
+## Getting started
 
 ```sh
 git clone https://github.com/angelozdev/mini-container-rs.git
@@ -52,50 +52,50 @@ pnpm --dir guide install
 pnpm --dir guide dev
 ```
 
-Abre la dirección que imprime `pnpm`, normalmente `http://localhost:4321`, y empieza por la sección 0a.
+Open the address that `pnpm` prints, usually `http://localhost:4321`, and start with section 0a.
 
-La guía escribe la carpeta del repo como `/Users/tu-usuario/mini-container-rs`. Cada vez que la veas, lee la tuya.
+The guide writes the repo folder as `/Users/tu-usuario/mini-container-rs`, where *tu-usuario* means "your user". Whenever you see it, read your own path.
 
-## Qué hay en el repo
+## What's in the repo
 
 ```text
 mini-container-rs/
 ├── guide/
-│   ├── src/content/docs/   las secciones de la guía, en MDX
-│   ├── checkpoints/        el código de referencia de cada sección
-│   ├── scripts/            la prueba de tu código, check-my-code.sh
-│   └── tests/              las pruebas de la propia guía
-├── Cargo.toml              ┐ tu código: no viene en el repo,
-└── src/                    ┘ lo creas tú en la sección 0b
+│   ├── src/content/docs/   the guide's sections, in MDX
+│   ├── checkpoints/        the reference code for each section
+│   ├── scripts/            the test for your code, check-my-code.sh
+│   └── tests/              the tests for the guide itself
+├── Cargo.toml              ┐ your code: not in the repo,
+└── src/                    ┘ you create it in section 0b
 ```
 
-`guide/checkpoints/` tiene la solución de cada sección: la guía se comprueba contra ella. Si estás aprendiendo, no la abras. Para saber si tu código está bien, usa la prueba de la sección.
+`guide/checkpoints/` holds the solution for each section: the guide is checked against it. If you are learning, don't open it. To find out whether your code is right, use the section's test.
 
-## Comprobar tu código
+## Check your code
 
-Cada sección de código, de 1a a 3b, trae una prueba para tu programa. Se corre dentro de la máquina Linux, desde la raíz del repo y después de compilar con `cargo build`:
+Every code section, from 1a to 3b, comes with a test for your program. Run it inside the Linux machine, from the repo root, after building with `cargo build`:
 
 ```sh
 sudo guide/scripts/check-my-code.sh 1a
 ```
 
-- `sudo`: corre el comando como administrador. La prueba lo pide siempre.
-- `guide/scripts/check-my-code.sh`: el script que corre tu binario, `target/debug/mini-container`, con casos buenos y malos.
-- `1a`: la sección cuya prueba se corre. Cambia el número por el de la sección que hiciste.
-- Efecto: imprime `OK 1a` si tu programa hace lo que esa sección pide. Si no, dice qué caso falló.
+- `sudo`: runs the command as administrator. The test always asks for it.
+- `guide/scripts/check-my-code.sh`: the script that runs your binary, `target/debug/mini-container`, with good and bad cases.
+- `1a`: the section whose test runs. Change it to the section you finished.
+- Effect: prints `OK 1a` if your program does what that section asks. If not, it says which case failed.
 
-## Comprobar la guía
+## Check the guide
 
-Si cambias la guía, corre esto en el Mac, desde la raíz del repo y después de `pnpm --dir guide install`:
+If you change the guide, run this on the Mac, from the repo root, after `pnpm --dir guide install`:
 
 ```sh
 pnpm --dir guide check
 ```
 
-- `pnpm --dir guide`: corre `pnpm` dentro de la carpeta `guide/`.
-- `check`: construye el sitio y corre todas las pruebas de `guide/tests/`.
-- Efecto: termina sin errores si el sitio compila y las pruebas pasan. No toca tu código: solo genera las carpetas `guide/dist/` y `guide/.astro/`, que git ignora.
+- `pnpm --dir guide`: runs `pnpm` inside the `guide/` folder.
+- `check`: builds the site and runs every test in `guide/tests/`.
+- Effect: finishes without errors if the site builds and the tests pass. It doesn't touch your code: it only creates the `guide/dist/` and `guide/.astro/` folders, which git ignores.
 
-## Licencia
+## License
 
 [MIT](LICENSE).
